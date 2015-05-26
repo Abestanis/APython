@@ -6,11 +6,35 @@
                 android:paddingRight="@dimen/activity_horizontal_margin"
                 android:paddingTop="@dimen/activity_vertical_margin"
                 android:paddingBottom="@dimen/activity_vertical_margin"
-                tools:context=".MainActivity">
+                tools:context=".MainActivity"
+                android:background="@color/background_color">
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/pythonVersionText"
+        android:paddingBottom="10dp">
 
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/imageView"
+            android:src="@drawable/python_icon"
+            android:maxWidth="500dp"
+            android:maxHeight="500dp"
+            android:layout_gravity="center"
+            android:contentDescription="Python Icon"/>
+    </FrameLayout>
     <TextView
-        android:text="@string/hello_world"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
+        android:layout_height="wrap_content"
+        android:text="Python version X.X.X"
+        android:id="@+id/pythonVersionText"
+        android:textColor="#ffffffff"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:textSize="20sp"
+        android:textIsSelectable="false"
+        android:singleLine="false"
+        android:gravity="top|center"
+        android:minHeight="40dp"/>
 </RelativeLayout>
