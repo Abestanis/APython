@@ -6,6 +6,8 @@ import android.os.Bundle;
 
 public class MainActivity extends Activity {
 
+    public static final String TAG = "PythonHost";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

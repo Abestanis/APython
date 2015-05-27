@@ -19,10 +19,11 @@
             android:layout_height="wrap_content"
             android:id="@+id/imageView"
             android:src="@drawable/python_icon"
-            android:maxWidth="500dp"
-            android:maxHeight="500dp"
             android:layout_gravity="center"
-            android:contentDescription="Python Icon"/>
+            android:contentDescription="Python Icon"
+            android:adjustViewBounds="true"
+            android:maxHeight="255dp"
+            android:maxWidth="255dp"/>
     </FrameLayout>
     <TextView
         android:layout_width="wrap_content"
