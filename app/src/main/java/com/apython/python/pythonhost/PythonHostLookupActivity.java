@@ -21,8 +21,8 @@ public class PythonHostLookupActivity extends Activity {
         Intent result = new Intent();
         Log.d(MainActivity.TAG, this.getPackageName());
         result.putExtra("package_name", this.getPackageName());
-        Log.d(MainActivity.TAG, PythonHostService.class.getSimpleName());
-        result.putExtra("service_class_name", PythonHostService.class.getSimpleName());
+        Log.d(MainActivity.TAG, PythonHostService.class.getName());
+        result.putExtra("service_name", PythonHostService.class.getName());
         this.setResult(Activity.RESULT_OK, result);
         this.finish();
     }
