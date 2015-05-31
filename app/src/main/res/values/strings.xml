@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Python Host</string>
+    <string name="pythonHostPermission_label">Act as the Python host</string>
+    <string name="pythonHostPermission_description">This permission enables this app to act as the Python host. This empowers this app to gain access to the private files of any Python app or more.</string>
 </resources>

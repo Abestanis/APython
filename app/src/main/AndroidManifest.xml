@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.apython.python.pythonhost" >
-
+    <permission
+        android:name="com.python.permission.PYTHONHOST"
+        android:label="@string/pythonHostPermission_label"
+        android:description="@string/pythonHostPermission_description"
+        android:icon="@drawable/python_permission_icon"
+        android:protectionLevel="dangerous"/>
+    <!-- Should the permission declaration be here, in the app or both? Should we define a permission tree? -->
+    <uses-permission android:name="com.python.permission.PYTHONHOST"/>
     <application
         android:allowBackup="true"
         android:icon="@drawable/python_launcher_icon"
@@ -15,17 +22,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".PythonHostLookupActivity"
-            android:theme="@android:style/Theme.NoDisplay">
+        <activity android:name=".ExecutePythonAppActivity">
             <intent-filter>
-                <action android:name="com.apython.python.pythonhost.PYTHON_APP_EXECUTE" />
+                <action android:name="com.python.pythonhost.PYTHON_APP_EXECUTE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <service
-            android:name=".PythonHostService"
-            android:exported="true" />
     </application>
 
 </manifest>
