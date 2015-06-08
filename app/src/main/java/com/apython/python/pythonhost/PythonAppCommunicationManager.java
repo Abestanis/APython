@@ -39,7 +39,7 @@ public class PythonAppCommunicationManager {
         this.connection = new PythonAppConnection(new PythonAppConnection.ConnectionListener() {
             @Override
             public void onConnected(Messenger messenger) {
-                // TODO: Start here
+                new PythonExecute().start(); // TODO: Start here
             }
         });
         this.communicationHandler = new PythonAppCommunicationHandler(new PythonAppCommunicationHandler.ConnectionManager() {
@@ -90,7 +90,7 @@ public class PythonAppCommunicationManager {
         } catch (SecurityException se) {
             Log.e(PYTHON_HOST_TAG, "Could not connect to the python host.");
             se.printStackTrace();
-            // TODO: Handle this
+            // TODO: Handle this, does this lead to a leaked Service?
             exitWithError("Binding failed");
         }
     }

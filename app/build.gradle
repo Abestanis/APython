@@ -1,3 +1,6 @@
+import java.security.KeyException
+import java.util.zip.ZipException
+
 apply plugin: 'com.android.application'
 
 android {
@@ -17,9 +20,80 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    sourceSets.main{
+        jniLibs.srcDirs = ['src/main/libs']
+        jni.srcDirs = [] //disable automatic ndk-build
+    }
+
+    def ndkDir = project.plugins.findPlugin('com.android.application').sdkHandler.getNdkFolder()
+    //noinspection GroovyAssignabilityCheck
+    task ndkBuild(type: Exec, description: 'Compile JNI source via NDK.', dependsOn: 'getPythonIncludes') {
+        workingDir file('src/main')
+        commandLine 'cmd', '/c', "$ndkDir\\ndk-build", 'NDK_OUT=' + getBuildDir().absolutePath + '\\intermediates\\ndk\\obj'
+    }
+    ndkBuild.onlyIf {
+        if (ndkDir == null) { throw new KeyException('NDK location not found! Define location with ndk.dir in the local.properties file.')}
+        true
+    }
+
+    tasks.withType(JavaCompile) {
+        compileTask -> //noinspection GroovyAssignabilityCheck
+            compileTask.dependsOn ndkBuild
+    }
+
+    //noinspection GroovyAssignabilityCheck
+    task getPythonIncludes(type: downloadPythonIncludes, description: 'Get the Python header files.') {
+        pythonVersion = '2.7.2'
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.0.0'
+}
+
+class downloadPythonIncludes extends DefaultTask {
+
+    def String pythonVersion
+
+    @TaskAction
+    def main() {
+        def pythonDir = new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\include\\python' + pythonVersion)
+        if (!pythonDir.exists()) {
+            def archiveFile = new File(this.temporaryDir.absolutePath + '\\PythonSrc.tar.bz2')
+            println('Downloading Python source files from \'' + 'https://www.python.org/ftp/python/' + pythonVersion + '/Python-' + pythonVersion + '.tar.bz2\'...')
+            new URL('https://www.python.org/ftp/python/' + pythonVersion + '/Python-' + pythonVersion + '.tar.bz2').withInputStream { i ->
+                archiveFile.withOutputStream {
+                    it << i
+                }
+            }
+
+            println('Extracting files...')
+            def unzipTask = project.task('unzip', type: Copy)
+            def outputDir = new File(this.temporaryDir.absolutePath + '\\Python')
+            unzipTask.destinationDir = outputDir
+            unzipTask.from(project.tarTree(project.resources.bzip2(archiveFile.absoluteFile)).matching {include 'Python-' + pythonVersion + '\\Include\\**'})
+            unzipTask.execute()
+            archiveFile.delete()
+            if (!unzipTask.didWork) {throw new ZipException('Failed to extract the Python source code from the downloaded zip.')}
+
+            println("Copying files to '" + pythonDir.absolutePath + '\'.')
+            def copyTask = project.task('copyPythonSource', type: Copy)
+            copyTask.from(new File(outputDir.absolutePath + '\\Python-' + pythonVersion + '\\Include').listFiles())
+            copyTask.destinationDir = pythonDir
+            copyTask.execute()
+            outputDir.deleteDir()
+            if (!copyTask.didWork) {throw new IOException('Failed to copy the extracted Python source code to \'' + pythonDir.absolutePath + '\'.')}
+
+            copyTask = project.task('copyPyconfig.h', type: Copy)
+            copyTask.destinationDir = pythonDir
+            copyTask.from(new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\include\\pyconfig.h'))
+            copyTask.execute()
+            if (!copyTask.didWork) {
+                pythonDir.deleteDir()
+                throw new IOException('Failed to copy \'pyconfig.h\' from \'src\\main\\jni\\Python\\include\' to \'' + pythonDir.absolutePath + '\'.')
+            }
+        }
+    }
 }

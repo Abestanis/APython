@@ -7,3 +7,5 @@
 /captures
 Thumbs.db
 .idea
+/app/src/main/jni/Python/include/python*
+/app/src/main/libs
