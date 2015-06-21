@@ -26,24 +26,32 @@ android {
         jni.srcDirs = [] //disable automatic ndk-build
     }
 
-    def ndkDir = project.plugins.findPlugin('com.android.application').sdkHandler.getNdkFolder()
+    tasks.whenTaskAdded {
+        task ->
+            if (task.name == 'generateDebugAssets') {
+                //noinspection GroovyAssignabilityCheck
+                task.dependsOn getPythonSource
+            } else if (task.name == 'compileDebugJava') {
+                //noinspection GroovyAssignabilityCheck
+                task.dependsOn ndkBuild
+            }
+    }
+
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    def ndkDir = properties.getProperty('ndk.dir')
     //noinspection GroovyAssignabilityCheck
-    task ndkBuild(type: Exec, description: 'Compile JNI source via NDK.', dependsOn: 'getPythonIncludes') {
+    task ndkBuild(type: Exec, description: 'Compile JNI source via NDK.', dependsOn: 'getPythonSource') {
         workingDir file('src/main')
         commandLine 'cmd', '/c', "$ndkDir\\ndk-build", 'NDK_OUT=' + getBuildDir().absolutePath + '\\intermediates\\ndk\\obj'
     }
     ndkBuild.onlyIf {
-        if (ndkDir == null) { throw new KeyException('NDK location not found! Define location with ndk.dir in the local.properties file.')}
+        if (ndkDir == null) { throw new KeyException('NDK location not found! Define the location with ndk.dir in the local.properties file.')}
         true
     }
 
-    tasks.withType(JavaCompile) {
-        compileTask -> //noinspection GroovyAssignabilityCheck
-            compileTask.dependsOn ndkBuild
-    }
-
     //noinspection GroovyAssignabilityCheck
-    task getPythonIncludes(type: downloadPythonIncludes, description: 'Get the Python header files.') {
+    task getPythonSource(type: installPythonSource, description: 'Install the python soure code.') {
         pythonVersion = '2.7.2'
     }
 }
@@ -53,13 +61,13 @@ dependencies {
     compile 'com.android.support:appcompat-v7:22.0.0'
 }
 
-class downloadPythonIncludes extends DefaultTask {
+class installPythonSource extends DefaultTask {
 
     def String pythonVersion
 
     @TaskAction
     def main() {
-        def pythonDir = new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\include\\python' + pythonVersion)
+        def pythonDir = new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\Python' + pythonVersion)
         if (!pythonDir.exists()) {
             def archiveFile = new File(this.temporaryDir.absolutePath + '\\PythonSrc.tar.bz2')
             println('Downloading Python source files from \'' + 'https://www.python.org/ftp/python/' + pythonVersion + '/Python-' + pythonVersion + '.tar.bz2\'...')
@@ -72,27 +80,114 @@ class downloadPythonIncludes extends DefaultTask {
             println('Extracting files...')
             def unzipTask = project.task('unzip', type: Copy)
             def outputDir = new File(this.temporaryDir.absolutePath + '\\Python')
+            if (outputDir.exists()) {
+                outputDir.deleteDir()
+            }
             unzipTask.destinationDir = outputDir
-            unzipTask.from(project.tarTree(project.resources.bzip2(archiveFile.absoluteFile)).matching {include 'Python-' + pythonVersion + '\\Include\\**'})
+            unzipTask.from(project.tarTree(project.resources.bzip2(archiveFile.absoluteFile)).matching {
+                include 'Python-' + pythonVersion + '\\Include\\**'
+                include 'Python-' + pythonVersion + '\\Lib\\**'
+                include 'Python-' + pythonVersion + '\\Modules\\**'
+                include 'Python-' + pythonVersion + '\\Objects\\**'
+                include 'Python-' + pythonVersion + '\\Parser\\**'
+                include 'Python-' + pythonVersion + '\\Python\\**'
+            })
             unzipTask.execute()
             archiveFile.delete()
             if (!unzipTask.didWork) {throw new ZipException('Failed to extract the Python source code from the downloaded zip.')}
 
-            println("Copying files to '" + pythonDir.absolutePath + '\'.')
+            def patchFile = new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\Patches\\python' + pythonVersion + '.patch')
+            println('Applying patches from \'' + patchFile.getAbsolutePath() + '\'...')
+            def patchTask = project.task('applyPythonPatches', type: Exec)
+            def workingDir = new File(outputDir.absolutePath + '\\Python-' + pythonVersion)
+            patchTask.workingDir = workingDir
+            Properties properties = new Properties()
+            properties.load(project.rootProject.file('local.properties').newDataInputStream())
+            def patchPath = properties.getProperty('patch.path')
+            if (patchPath == null) {
+                throw new KeyException('Patch path not found! Define the path with patch.path in the local.properties file.')
+            }
+            def args = new ArrayList<String>()
+            args.add(patchPath)
+            args.add('-p1')
+            args.add('-i')
+            args.add('"' + patchFile.getAbsolutePath() + '"')
+            patchTask.commandLine = args
+            patchTask.execute()
+            if (!patchTask.didWork) {
+                outputDir.deleteDir()
+                throw new Exception('Failed to apply patches to the python source code!')
+            }
+
+            def disabledInfoFile = new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\Patches\\python' + pythonVersion + '-disabledFiles.txt')
+            if (disabledInfoFile.exists()) {
+                println('Disable incompatible C code...')
+                try {
+                    BufferedReader br = new BufferedReader(new FileReader(disabledInfoFile))
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        line = line.trim();
+                        if (!(line.startsWith('//') || line.startsWith('#') || line.equals(""))) {
+                            def sourceFile = new File(workingDir, line)
+                            if (sourceFile.exists()) {
+                                if (!sourceFile.renameTo(new File(sourceFile.getPath() + ".disabled"))) {
+                                    throw new IOException("Failed to disable c code file '" + line + "': Could not rename file to '" + sourceFile.getPath() + ".disabled'!")
+                                }
+                            } else {
+                                throw new IOException("Failed to disable c code file '" + line + "': File not found in Python source!")
+                            }
+                        }
+                    }
+                } catch (IOException ioe) {
+                    outputDir.deleteDir()
+                    ioe.printStackTrace()
+                    throw new IOException("Failed to reading in the disabled c code files!")
+                }
+            }
+
+            def pythonModulesDir = new File(workingDir, 'Lib')
+            def pythonModulesOutput = new File(project.getProjectDir().absolutePath + '\\src\\main\\res\\raw\\lib.zip')
+            println('Creating python modules zip at \'' + pythonModulesOutput.getAbsolutePath() + '\'...')
+            def zipTask = project.task('createPythonModuleZip', type: Zip)
+            pythonModulesOutput.mkdirs()
+            zipTask.from(pythonModulesDir.listFiles())
+            zipTask.destinationDir = pythonModulesOutput.parentFile
+            zipTask.baseName  = pythonModulesOutput.name
+            zipTask.version   = null
+            zipTask.extension = null
+            zipTask.finalizedBy(project.task('generateDebugResValues)'))
+            pythonModulesOutput.delete()
+            zipTask.execute()
+            pythonModulesDir.deleteDir()
+            if (!zipTask.didWork) {
+                outputDir.deleteDir()
+                throw new IOException('Failed to create the python modules zip at \'' + pythonModulesOutput.absolutePath + '\'.')
+            }
+
+            println('Copying files to \'' + pythonDir.absolutePath + '\'...')
             def copyTask = project.task('copyPythonSource', type: Copy)
-            copyTask.from(new File(outputDir.absolutePath + '\\Python-' + pythonVersion + '\\Include').listFiles())
+            copyTask.from(workingDir)
             copyTask.destinationDir = pythonDir
             copyTask.execute()
             outputDir.deleteDir()
             if (!copyTask.didWork) {throw new IOException('Failed to copy the extracted Python source code to \'' + pythonDir.absolutePath + '\'.')}
 
             copyTask = project.task('copyPyconfig.h', type: Copy)
-            copyTask.destinationDir = pythonDir
-            copyTask.from(new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\include\\pyconfig.h'))
+            copyTask.destinationDir = new File(pythonDir, 'Include')
+            copyTask.from(new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\pyconfig.h'))
             copyTask.execute()
             if (!copyTask.didWork) {
                 pythonDir.deleteDir()
-                throw new IOException('Failed to copy \'pyconfig.h\' from \'src\\main\\jni\\Python\\include\' to \'' + pythonDir.absolutePath + '\'.')
+                throw new IOException('Failed to copy \'pyconfig.h\' from \'src\\main\\jni\\Python\' to \'' + pythonDir.absolutePath + '\\Include\'.')
+            }
+
+            copyTask = project.task('copyConfig.c', type: Copy)
+            copyTask.destinationDir = new File(pythonDir, 'Modules')
+            copyTask.from(new File(project.getProjectDir().absolutePath + '\\src\\main\\jni\\Python\\config.c'))
+            copyTask.execute()
+            if (!copyTask.didWork) {
+                pythonDir.deleteDir()
+                throw new IOException('Failed to copy \'config.c\' from \'src\\main\\jni\\Python\' to \'' + pythonDir.absolutePath + '\\Modules\'.')
             }
         }
     }

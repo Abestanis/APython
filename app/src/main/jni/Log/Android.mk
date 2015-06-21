@@ -1,9 +1,9 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := pythonLog
+LOCAL_MODULE := pyLog
 LOCAL_SRC_FILES := log.c
-LOCAL_SHARED_LIBRARIES := python2.7.2
 LOCAL_LDLIBS := -llog
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../
 
 include $(BUILD_SHARED_LIBRARY)

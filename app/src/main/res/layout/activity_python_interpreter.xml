@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:background="#ff000000"
+                  android:id="@+id/scrollContainer">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@android:style/Theme">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/pythonOutput"
+            android:layout_gravity="center_horizontal"
+            android:textColor="@android:color/white"
+            android:focusable="false"
+            android:typeface="monospace"
+            android:textSize="20sp"/>
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/pythonInput"
+            android:layout_gravity="center_horizontal"
+            android:background="@null"
+            android:textCursorDrawable="@null"
+            android:textColor="@android:color/white"
+            android:typeface="monospace"
+            android:textSize="20sp"/>
+
+    </LinearLayout>
+</ScrollView>

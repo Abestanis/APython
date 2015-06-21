@@ -1,59 +1,81 @@
 #include "log.h"
-#include "android/log.h"
+#include <pthread.h>
+#include <stdio.h>
 
 // The Log system //
 
-#define LOG(x) __android_log_write(ANDROID_LOG_DEBUG, "Python", (x)) // TODO: Use Application tag
-#define LOG_INFO(x) __android_log_write(ANDROID_LOG_INFO, "Python", (x))
-#define LOG_ERROR(x) __android_log_write(ANDROID_LOG_ERROR, "Python", (x))
+const char* appTag = "Python";
+static pthread_t outputCaptureThread;
+static int outputPipe[2];
+pthread_mutex_t mutex;
+pthread_cond_t condition;
+int outputCaptureThreadStarted = 0;
+void (*stdout_write)(const char*) = NULL;
+void (*stderr_write)(const char*) = NULL;
 
-static PyObject *androidlog_info(PyObject *self, PyObject *args) {
-    char *logString = NULL;
-    if (!PyArg_ParseTuple(args, "s", &logString)) {
-        return NULL;
+#define LOG_ASSERT(x) __android_log_assert(ANDROID_LOG_FATAL, appTag, (x))
+
+int _log_write_(int priority, const char *text) {
+    __android_log_write(priority, appTag, text);
+}
+
+void _assert_(const char* expression, const char* file, int line, const char* errorString) {
+    __android_log_assert(expression, appTag, "Assertion failed (%s) at %s, line %i: %s", expression, file, line, errorString);
+}
+
+void setApplicationTag(const char* newAppTag) {
+    appTag = newAppTag;
+}
+
+void setStdoutRedirect(void (*f)(const char*)) {
+    stdout_write = f;
+}
+
+void setStderrRedirect(void (*f)(const char*)) {
+    stderr_write = f;
+}
+
+static void *outputCatcher(void* arg) {
+    ssize_t outputSize;
+    char buffer[256];
+    pthread_mutex_lock(&mutex);
+    outputCaptureThreadStarted = 1;
+    pthread_cond_signal(&condition);
+    pthread_mutex_unlock(&mutex);
+    //LOG("Started!");
+    while((outputSize = read(outputPipe[0], buffer, sizeof(buffer) - 1)) > 0) {
+        buffer[outputSize] = 0; // add null-terminator
+        if (stdout_write != NULL) {
+            stdout_write(buffer);
+        } else {
+            // Remove trailing newline
+            if (buffer[outputSize - 1] == '\n') { buffer[outputSize - 1] = 0; }
+            LOG(buffer);
+        }
     }
-    LOG_INFO(logString);
-    Py_RETURN_NONE;
+    return 0;
 }
 
-static PyObject *androidlog_error(PyObject *self, PyObject *args) {
-    char *logString = NULL;
-    if (!PyArg_ParseTuple(args, "s", &logString)) {
-        return NULL;
+int setupOutputRedirection() {
+    // Make stdout line-buffered and stderr unbuffered
+    setvbuf(stdout, 0, _IOLBF, 0);
+    setvbuf(stderr, 0, _IONBF, 0);
+
+    // Create the pipe and redirect stdout and stderr
+    pipe(outputPipe);
+    dup2(outputPipe[1], fileno(stdout));
+    dup2(outputPipe[1], fileno(stderr));
+
+    // Create the output capturing thread
+    if (pthread_create(&outputCaptureThread, NULL, outputCatcher, 0) != 0) {
+        LOG_ERROR("Could not create the output capture thread!");
+        return -1;
     }
-    LOG_ERROR(logString);
-    Py_RETURN_NONE;
-}
-
-static PyMethodDef AndroidLogMethods[] = {
-    {"info",  androidlog_info,  METH_VARARGS, "Write the string 'logString' to the Android log as an info."},
-    {"error", androidlog_error, METH_VARARGS, "Write the string 'logString' to the Android log as an error."},
-    {NULL, NULL, 0, NULL}
-};
-
-PyMODINIT_FUNC initLogModule(void) {
-    (void) Py_InitModule("androidlog", AndroidLogMethods);
-}
-
-void initLog() {
-    LOG("Initializing log module...");
-    initLogModule();
-    PyRun_SimpleString(
-        "import sys\n" \
-        "import androidlog\n" \
-        "class LogFile(object):\n" \
-        "    def __init__(self, logFunc):\n" \
-        "        self.buffer = ''\n" \
-        "        self.logFunc = logFunc\n" \
-        "    def write(self, s):\n" \
-        "        s = self.buffer + s\n" \
-        "        lines = s.split(\"\\n\")\n" \
-        "        for line in lines[:-1]:\n" \
-        "            self.logFunc(line)\n" \
-        "        self.buffer = lines[-1]\n" \
-        "    def flush(self):\n" \
-        "        return\n" \
-        "sys.stdout = LogFile(androidlog.info)\n" \
-        "sys.stderr = LogFile(androidlog.error)\n" \
-    );
+    pthread_detach(outputCaptureThread);
+    // Wait for the thread to be started
+    // TODO: This still does not wait long enough!
+    pthread_mutex_lock(&mutex);
+    while (!outputCaptureThreadStarted) { pthread_cond_wait(&condition, &mutex); }
+    pthread_mutex_unlock(&mutex);
+    return 0;
 }

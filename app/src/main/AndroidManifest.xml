@@ -22,6 +22,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".PythonInterpreterActivity"
+            android:label="PythonInterpreter"/>
         <activity android:name=".ExecutePythonAppActivity">
             <intent-filter>
                 <action android:name="com.python.pythonhost.PYTHON_APP_EXECUTE" />

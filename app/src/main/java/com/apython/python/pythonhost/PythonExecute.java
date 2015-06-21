@@ -10,7 +10,7 @@ public class PythonExecute {
 
     static  {
         System.loadLibrary("python2.7.2");
-        System.loadLibrary("pythonLog");
+        System.loadLibrary("pyLog");
         System.loadLibrary("application");
     }
 

@@ -1,0 +1,261 @@
+--- Python-2.7.2.orig.orig/Lib/sysconfig.py    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.orig.changed/Lib/sysconfig.py 2015-06-20 20:00:00.000000000 +0200
+@@ -416,7 +416,13 @@
+         if os.name in ('nt', 'os2'):
+             _init_non_posix(_CONFIG_VARS)
+         if os.name == 'posix':
+-            _init_posix(_CONFIG_VARS)
++            # TODO: Edited here!
++            if sys.platform == 'android':
++                _CONFIG_VARS['SO'] = '.so'
++                _CONFIG_VARS['VERSION'] = _PY_VERSION_SHORT_NO_DOT
++            else:
++                _init_posix(_CONFIG_VARS)
++            # end
+ 
+         # Setting 'userbase' is done below the call to the
+         # init function to enable using 'get_config_var' in
+--- Python-2.7.2.orig.orig/Modules/_localemodule.c    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.orig.changed/Modules/_localemodule.c 2015-06-20 20:00:00.000000000 +0200
+@@ -206,7 +206,7 @@
+ PyLocale_localeconv(PyObject* self)
+ {
+     PyObject* result;
+-    struct lconv *l;
++    //struct lconv *l; //TODO: Edited here
+     PyObject *x;
+ 
+     result = PyDict_New();
+@@ -214,52 +214,52 @@
+         return NULL;
+ 
+     /* if LC_NUMERIC is different in the C library, use saved value */
+-    l = localeconv();
++    //l = localeconv();
+ 
+     /* hopefully, the localeconv result survives the C library calls
+        involved herein */
+ 
+ #define RESULT_STRING(s)\
+-    x = PyString_FromString(l->s);\
++    x = PyString_FromString(s);/*l->s);*/\
+     if (!x) goto failed;\
+     PyDict_SetItemString(result, #s, x);\
+     Py_XDECREF(x)
+ 
+ #define RESULT_INT(i)\
+-    x = PyInt_FromLong(l->i);\
++    x = PyInt_FromLong(i);/*l->i);*/\
+     if (!x) goto failed;\
+     PyDict_SetItemString(result, #i, x);\
+     Py_XDECREF(x)
+ 
+     /* Numeric information */
+-    RESULT_STRING(decimal_point);
+-    RESULT_STRING(thousands_sep);
+-    x = copy_grouping(l->grouping);
++    RESULT_STRING(".");//decimal_point);
++    RESULT_STRING("");//thousands_sep);
++    x = copy_grouping("");//l->grouping);
+     if (!x)
+         goto failed;
+     PyDict_SetItemString(result, "grouping", x);
+     Py_XDECREF(x);
+ 
+     /* Monetary information */
+-    RESULT_STRING(int_curr_symbol);
+-    RESULT_STRING(currency_symbol);
+-    RESULT_STRING(mon_decimal_point);
+-    RESULT_STRING(mon_thousands_sep);
+-    x = copy_grouping(l->mon_grouping);
++    RESULT_STRING("");//int_curr_symbol);
++    RESULT_STRING("");//currency_symbol);
++    RESULT_STRING("");//mon_decimal_point);
++    RESULT_STRING("");//mon_thousands_sep);
++    x = copy_grouping("");//l->mon_grouping);
+     if (!x)
+         goto failed;
+     PyDict_SetItemString(result, "mon_grouping", x);
+     Py_XDECREF(x);
+-    RESULT_STRING(positive_sign);
+-    RESULT_STRING(negative_sign);
+-    RESULT_INT(int_frac_digits);
+-    RESULT_INT(frac_digits);
+-    RESULT_INT(p_cs_precedes);
+-    RESULT_INT(p_sep_by_space);
+-    RESULT_INT(n_cs_precedes);
+-    RESULT_INT(n_sep_by_space);
+-    RESULT_INT(p_sign_posn);
+-    RESULT_INT(n_sign_posn);
++    RESULT_STRING("");//positive_sign);
++    RESULT_STRING("");//negative_sign);
++    RESULT_INT(CHAR_MAX);//int_frac_digits);
++    RESULT_INT(CHAR_MAX);//frac_digits);
++    RESULT_INT(CHAR_MAX);//p_cs_precedes);
++    RESULT_INT(CHAR_MAX);//p_sep_by_space);
++    RESULT_INT(CHAR_MAX);//n_cs_precedes);
++    RESULT_INT(CHAR_MAX);//n_sep_by_space);
++    RESULT_INT(CHAR_MAX);//p_sign_posn);
++    RESULT_INT(CHAR_MAX);//n_sign_posn);
+     return result;
+ 
+   failed:
+--- Python-2.7.2.orig.orig/Modules/posixmodule.c    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.orig.changed/Modules/posixmodule.c 2015-06-20 20:00:00.000000000 +0200
+@@ -1995,7 +1995,7 @@
+ #if defined(PYOS_OS2) && defined(PYCC_GCC)
+         res = _getcwd2(tmpbuf, bufsize);
+ #else
+-        res = getcwd(tmpbuf, bufsize);
++        res = "/data/data/com.apython.python.pythonhost/files"; //res = getcwd(tmpbuf, bufsize); // TODO: Edited here. This is a hack!!!
+ #endif
+ 
+         if (res == NULL) {
+@@ -3787,13 +3787,13 @@
+     slave_fd = open(slave_name, O_RDWR | O_NOCTTY); /* open slave */
+     if (slave_fd < 0)
+         return posix_error();
+-#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
+-    ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
+-    ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
+-#ifndef __hpux
+-    ioctl(slave_fd, I_PUSH, "ttcompat"); /* push ttcompat */
+-#endif /* __hpux */
+-#endif /* HAVE_CYGWIN */
++//#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC) // TODO: Edited here
++//    ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
++//    ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
++//#ifndef __hpux
++//    ioctl(slave_fd, I_PUSH, "ttcompat"); /* push ttcompat */
++//#endif /* __hpux */
++//#endif /* HAVE_CYGWIN */
+ #endif /* HAVE_OPENPTY */
+ 
+     return Py_BuildValue("(ii)", master_fd, slave_fd);
+--- Python-2.7.2.orig/Modules/pwdmodule.c    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.changed/Modules/pwdmodule.c 2015-06-20 20:00:00.000000000 +0200
+@@ -75,7 +75,7 @@
+ #endif
+     SETI(setIndex++, p->pw_uid);
+     SETI(setIndex++, p->pw_gid);
+-#ifdef __VMS
++#if 1//def __VMS// TODO: Edited here
+     SETS(setIndex++, "");
+ #else
+     SETS(setIndex++, p->pw_gecos);
+--- Python-2.7.2.orig/Modules/termios.c    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.changed/Modules/termios.c 2015-06-20 20:00:00.000000000 +0200
+@@ -227,6 +227,7 @@
+     return Py_None;
+ }
+ 
++#if 0 // TODO: Edited here:
+ PyDoc_STRVAR(termios_tcdrain__doc__,
+ "tcdrain(fd) -> None\n\
+ \n\
+@@ -246,6 +247,7 @@
+     Py_INCREF(Py_None);
+     return Py_None;
+ }
++#endif
+ 
+ PyDoc_STRVAR(termios_tcflush__doc__,
+ "tcflush(fd, queue) -> None\n\
+@@ -301,8 +303,8 @@
+      METH_VARARGS, termios_tcsetattr__doc__},
+     {"tcsendbreak", termios_tcsendbreak,
+      METH_VARARGS, termios_tcsendbreak__doc__},
+-    {"tcdrain", termios_tcdrain,
+-     METH_VARARGS, termios_tcdrain__doc__},
++    //{"tcdrain", termios_tcdrain, //TODO: Edited here
++     //METH_VARARGS, termios_tcdrain__doc__},
+     {"tcflush", termios_tcflush,
+      METH_VARARGS, termios_tcflush__doc__},
+     {"tcflow", termios_tcflow,
+--- Python-2.7.2.orig/Objects/stringlib/formatter.h    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.changed/Objects/stringlib/formatter.h 2015-06-20 20:00:00.000000000 +0200
+@@ -639,13 +639,7 @@
+ get_locale_info(int type, LocaleInfo *locale_info)
+ {
+     switch (type) {
+-    case LT_CURRENT_LOCALE: {
+-        struct lconv *locale_data = localeconv();
+-        locale_info->decimal_point = locale_data->decimal_point;
+-        locale_info->thousands_sep = locale_data->thousands_sep;
+-        locale_info->grouping = locale_data->grouping;
+-        break;
+-    }
++    case LT_CURRENT_LOCALE:// TODO: HAD TO FIX HERE!!!
+     case LT_DEFAULT_LOCALE:
+         locale_info->decimal_point = ".";
+         locale_info->thousands_sep = ",";
+--- Python-2.7.2.orig/Objects/stringlib/localeutil.h    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.changed/Objects/stringlib/localeutil.h 2015-06-20 20:00:00.000000000 +0200
+@@ -202,9 +202,9 @@
+                                   Py_ssize_t n_digits,
+                                   Py_ssize_t min_width)
+ {
+-        struct lconv *locale_data = localeconv();
+-        const char *grouping = locale_data->grouping;
+-        const char *thousands_sep = locale_data->thousands_sep;
++        //struct lconv *locale_data = localeconv(); //TODO: Edited here
++        const char *grouping = "\3\0";//locale_data->grouping;
++        const char *thousands_sep = ",";//locale_data->thousands_sep;
+ 
+         return _Py_InsertThousandsGrouping(buffer, n_buffer, digits, n_digits,
+                                            min_width, grouping, thousands_sep);
+--- Python-2.7.2.orig/Python/bltinmodule.c    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.changed/Python/bltinmodule.c 2015-06-20 20:00:00.000000000 +0200
+@@ -2027,6 +2027,7 @@
+         if (PyFile_WriteString(" ", fout) != 0)
+             return NULL;
+     }
++
+     if (PyFile_AsFile(fin) && PyFile_AsFile(fout)
+         && isatty(fileno(PyFile_AsFile(fin)))
+         && isatty(fileno(PyFile_AsFile(fout)))) {
+--- Python-2.7.2.orig/Python/pystrtod.c    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.changed/Python/pystrtod.c 2015-06-20 20:00:00.000000000 +0200
+@@ -126,7 +126,7 @@
+ {
+     char *fail_pos;
+     double val = -1.0;
+-    struct lconv *locale_data;
++    //struct lconv *locale_data; // TODO: FIXED HERE
+     const char *decimal_point;
+     size_t decimal_point_len;
+     const char *p, *decimal_point_pos;
+@@ -138,8 +138,9 @@
+ 
+     fail_pos = NULL;
+ 
+-    locale_data = localeconv();
+-    decimal_point = locale_data->decimal_point;
++    // TODO: And here
++    //locale_data = localeconv();
++    decimal_point = "."; //locale_data->decimal_point;
+     decimal_point_len = strlen(decimal_point);
+ 
+     assert(decimal_point_len != 0);
+@@ -375,8 +376,8 @@
+ Py_LOCAL_INLINE(void)
+ change_decimal_from_locale_to_dot(char* buffer)
+ {
+-    struct lconv *locale_data = localeconv();
+-    const char *decimal_point = locale_data->decimal_point;
++    //struct lconv *locale_data = localeconv(); // TODO: FIXED HERE
++    const char *decimal_point = ".";//locale_data->decimal_point;
+ 
+     if (decimal_point[0] != '.' || decimal_point[1] != 0) {
+         size_t decimal_point_len = strlen(decimal_point);
+--- Python-2.7.2.orig/Python/strtod.c    2015-06-20 20:00:00.000000000 +0200
++++ Python-2.7.2.changed/Python/strtod.c 2015-06-20 20:00:00.000000000 +0200
+@@ -60,7 +60,7 @@
+ #ifdef HAVE_ERRNO_H
+ #include <errno.h>
+ #endif
+-extern  int     errno;
++//extern  int     errno;
+ 
+ double strtod(char *str, char **ptr)
+ {
