@@ -10,6 +10,10 @@ Although there are other projects which accomplish that (most noticeably the [py
 
 The Python-Host app provides the python interpreter and all additionally modules. Its source code can be found in this repository. This app must be installed alongside any Python app to allow them to work. The Python-Host app will also act as a packet manager. It saves memory space by providing any needed modules to the python apps, instead of having every app store a copy of the same module they need.
 
+It also provides these additional features:
+* A Python interpreter to freely explore the possibilities of Python.
+* See the issues for unimplemented features.
+
 ### The PyToApk-Tool
 
 This Python script convert a Python program into an apk which can be uploaded to an Android device and used with the Python-Host app. More information is provided [here](https://github.com/Abestanis/APython_PyToApk).
