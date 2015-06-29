@@ -17,7 +17,7 @@ import java.io.InputStream;
 public class PackageManager {
 
     public static File getModulePath(Context context) {
-        return new File(context.getFilesDir(), "lib");///python2.7");
+        return new File(context.getFilesDir(), "lib");
     }
 
     public static boolean installStandardModules(Context context) {
@@ -29,57 +29,23 @@ public class PackageManager {
             Log.e(MainActivity.TAG, "Failed to create the 'lib' directory!");
             return false;
         }
+        makeFileAccessible(modulesDest);
         InputStream moduleLocation = context.getResources().openRawResource(R.raw.lib);
         return unpackModules(modulesDest, moduleLocation);
     }
 
     private static boolean unpackModules(File destination, InputStream moduleLocation)
     {
-//        ZipInputStream archive;
-//        try {
-//            String filename;
-//            archive = new ZipInputStream(new BufferedInputStream(moduleLocation));
-//            ZipEntry zipEntry;
-//            byte[] buffer = new byte[1024];
-//            int count;
-//
-//            while ((zipEntry = archive.getNextEntry()) != null) {
-//                filename = zipEntry.getName();
-//                if (zipEntry.isDirectory()) {
-//                    // Create the directory if not exists
-//                    File directory = new File(destination, filename);
-//                    if (!(directory.mkdirs() || directory.isDirectory())) {
-//                        Log.e(MainActivity.TAG, "Could not save directory '" + filename + "' to path '"
-//                                + directory.getAbsolutePath() + "' while trying to install the Python modules!");
-//                        archive.close();
-//                        return false;
-//                    }
-//                } else {
-//                    // Save the file
-//                    FileOutputStream outputFile = new FileOutputStream(new File(destination, filename));
-//                    while ((count = archive.read(buffer)) != -1) {
-//                        outputFile.write(buffer, 0, count);
-//                    }
-//                    outputFile.close();
-//                }
-//                archive.closeEntry();
-//            }
-//            archive.close();
-//            return true;
-//        }
-//        catch(IOException e) {
-//            Log.e(MainActivity.TAG, "Failed to extract the Python modules!");
-//            e.printStackTrace();
-//            return false;
-//        }
         byte[] buffer = new byte[1024];
         int count;
         try {
-            FileOutputStream outputFile = new FileOutputStream(new File(destination, "python27.zip"));
+            File destZip = new File(destination, "python27.zip");
+            FileOutputStream outputFile = new FileOutputStream(destZip);
             while ((count = moduleLocation.read(buffer)) != -1) {
                 outputFile.write(buffer, 0, count);
             }
             outputFile.close();
+            makeFileAccessible(destZip);
         } catch (IOException e) {
             Log.e(MainActivity.TAG, "Failed to extract the Python modules!");
             e.printStackTrace();
@@ -87,5 +53,34 @@ public class PackageManager {
         }
         Log.d(MainActivity.TAG, "" + new File(destination, "python2.7.zip").isFile());
         return true;
+    }
+
+    private static boolean makeFileAccessible(File file) {
+        if(!file.exists()) {
+            try {
+                if (!file.createNewFile()) {
+                    Log.w(MainActivity.TAG, "Could not make file '" + file.getAbsolutePath() + "' accessible: Could not create file.");
+                    return false;
+                }
+            } catch (IOException e) {
+                Log.w(MainActivity.TAG, "Could not make file '" + file.getAbsolutePath() + "' accessible: Could not create file.");
+                e.printStackTrace();
+                return false;
+            }
+        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) { // TODO: Check this
+//            if (file.setReadable(true, false) && file.setExecutable(true, false)) {
+//                Log.d(TAG, "Successfully made '" + file.getAbsolutePath() + "' accessible.");
+//                return true;
+//            }
+//        }
+        try {
+            Runtime.getRuntime().exec("chmod 755 " + file.getAbsolutePath());
+            Log.d(MainActivity.TAG, "Successfully made '" + file.getAbsolutePath() + "' accessible via chmod.");
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

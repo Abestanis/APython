@@ -31,7 +31,7 @@ public class PythonInterpreterActivity extends Activity {
         this.pythonOutput    = (TextView)   findViewById(R.id.pythonOutput);
         this.pythonInput     = (EditText)   findViewById(R.id.pythonInput);
         this.scrollContainer = (ScrollView) findViewById(R.id.scrollContainer);
-        this.interpreter = new PythonInterpreter(new Handler(), getApplicationContext(), new PythonInterpreter.IOHandler() {
+        this.interpreter = new PythonInterpreter(new Handler(), this, new PythonInterpreter.IOHandler() {
             @Override
             public void addOutput(String text) {
                 scrollContainer.postDelayed(new Runnable() {

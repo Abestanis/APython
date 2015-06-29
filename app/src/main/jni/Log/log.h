@@ -13,6 +13,7 @@ int setupOutputRedirection(void);
 #define ASSERT(EX, message) (void)((EX) || (_assert_ (#EX, __FILE__, __LINE__, message),0))
 #define LOG(x)        _log_write_(ANDROID_LOG_DEBUG, (x))
 #define LOG_INFO_(x)  _log_write_(ANDROID_LOG_INFO,  (x))
+#define LOG_WARN(x)   _log_write_(ANDROID_LOG_WARN,  (x))
 #define LOG_ERROR(x)  _log_write_(ANDROID_LOG_ERROR, (x))
 
 #endif // LOGMODULE_H //

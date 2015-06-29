@@ -87,7 +87,7 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_star
     PyOS_ReadlineFunctionPointer = readLineFromJavaInput;
 
     const char *pythonHome = (*env)->GetStringUTFChars(env, jPythonHome, 0);
-    setenv("PYTHONHOME", pythonHome, 1);
+    Py_SetPythonHome((char*) pythonHome);
 //
 //    sleep(1);
 //    LOG(pythonHome);
@@ -100,7 +100,6 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_star
 //    printf("res: %s, tmpbuf: %s\n", res, tmpbuf);
 //    fflush(stdout);
 
-    (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
     const char *pythonTemp = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
     setenv("TMPDIR", pythonTemp, 1);
     (*env)->ReleaseStringUTFChars(env, jPythonTemp, pythonTemp);
@@ -111,6 +110,7 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_star
     LOG("1");
     Py_Main(argc, argv);
     LOG("2");
+    (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
     (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
     (*env)->DeleteGlobalRef(env, jPyInterpreter);
     jPyInterpreter = NULL;

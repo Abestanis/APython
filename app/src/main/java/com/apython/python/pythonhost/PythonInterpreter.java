@@ -6,6 +6,7 @@ package com.apython.python.pythonhost;
  * Created by Sebastian on 10.06.2015.
  */
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
@@ -22,23 +23,25 @@ public class PythonInterpreter implements Runnable {
     public final Object inputUpdater = new Object();
     public String inputLine = null;
     private Handler  handler;
-    private Context context;
+    private Activity activity;
     private IOHandler ioHandler;
     interface IOHandler {
         void addOutput(String text);
         void setupInput(String prompt);
     }
 
-    public PythonInterpreter(Handler handler, Context context, IOHandler ioHandler) {
+    public PythonInterpreter(Handler handler, Activity activity, IOHandler ioHandler) {
         this.handler   = handler;
-        this.context   = context;
+        this.activity  = activity;
         this.ioHandler = ioHandler;
     }
 
 
     @Override
     public void run() {
-        this.startInterpreter(MainActivity.TAG, this.context.getFilesDir().getAbsolutePath(), context.getCacheDir().getAbsolutePath());
+        Context context = this.activity.getApplicationContext();
+        this.startInterpreter(MainActivity.TAG, context.getFilesDir().getAbsolutePath(), context.getCacheDir().getAbsolutePath());
+        this.activity.finish();
     }
 
     public boolean notifyInput(String input) {
