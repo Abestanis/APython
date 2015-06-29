@@ -34,8 +34,8 @@ JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonAppBase
 
     PyObject *pyAppBase = PyString_FromString(pythonAppBase);
     PyObject *sys_path = PySys_GetObject("path");
-    if ((sys_path == NULL) || (PyList_SetItem(sys_path, 0, pyAppBase) == -1)) {
-        LOG_WARN("Could not set the appBase as sys.path[0]!");
+    if ((sys_path == NULL) || (PyList_Insert(sys_path, 0, pyAppBase) == -1)) {
+        LOG_WARN("Could not insert the appBase as sys.path[0]!");
     }
 
     startFile = fopen(filePath, "r");
