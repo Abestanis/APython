@@ -82,17 +82,27 @@ extern void init_json(void);
 extern void initzlib(void);
 extern void initpwd(void);
 extern void inittermios(void);
+//extern void initrgbimg(void);
+extern void initselect(void);
+extern void init_socket(void);
+extern void initstrop(void);
+//extern void initpcre(void);
+extern void initfcntl(void);
 
-//extern void init_multibytecodec(void);
-//extern void init_codecs_cn(void);
-//extern void init_codecs_hk(void);
-//extern void init_codecs_iso2022(void);
-//extern void init_codecs_jp(void);
-//extern void init_codecs_kr(void);
-//extern void init_codecs_tw(void);
+extern void init_multibytecodec(void);
+
+extern void init_codecs_cn(void);
+extern void init_codecs_hk(void);
+extern void init_codecs_iso2022(void);
+extern void init_codecs_jp(void);
+extern void init_codecs_kr(void);
+extern void init_codecs_tw(void);
 //extern void init_subprocess(void);
 extern void init_lsprof(void);
-//extern void init_io(void);
+extern void init_io(void);
+extern void init_ssl(void);
+extern void initunicodedata(void);
+extern void init_ctypes(void);
 
 struct _inittab _PyImport_Inittab[] = {
 
@@ -182,17 +192,26 @@ struct _inittab _PyImport_Inittab[] = {
     {"zlib", initzlib},
     {"pwd", initpwd},
     {"termios", inittermios},
+    //{"rgbimg", initrgbimg},
+    {"select", initselect},
+    {"_socket", init_socket},
+    {"strop", initstrop},
+    //{"pcre", initpcre},
+    {"fcntl", initfcntl},
 
     /* CJK codecs */
-//    {"_multibytecodec", init_multibytecodec},
-//    {"_codecs_cn", init_codecs_cn},
-//    {"_codecs_hk", init_codecs_hk},
-//    {"_codecs_iso2022", init_codecs_iso2022},
-//    {"_codecs_jp", init_codecs_jp},
-//    {"_codecs_kr", init_codecs_kr},
-//    {"_codecs_tw", init_codecs_tw},
+    {"_multibytecodec", init_multibytecodec},
+    {"_codecs_cn", init_codecs_cn},
+    {"_codecs_hk", init_codecs_hk},
+    {"_codecs_iso2022", init_codecs_iso2022},
+    {"_codecs_jp", init_codecs_jp},
+    {"_codecs_kr", init_codecs_kr},
+    {"_codecs_tw", init_codecs_tw},
 //
-//    {"_io", init_io},
+    {"_io", init_io},
+    {"_ssl", init_ssl},
+    {"unicodedata", initunicodedata},
+    {"_ctypes", init_ctypes},
 
     /* Sentinel */
     {0, 0}

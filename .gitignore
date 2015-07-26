@@ -7,6 +7,8 @@
 /captures
 Thumbs.db
 .idea
-/app/src/main/jni/Python/Python*
+/app/src/main/jni/*/source/*
+/app/src/main/jni/OpenSSL/libopenSSL.so
 /app/src/main/libs
 /app/src/main/res/raw/lib.zip
+/app/src/main/res/raw/python

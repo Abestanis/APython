@@ -1,8 +1,10 @@
 #include "main.h"
 #include "Python.h"
 #include "Log/log.h"
+#include "Interpreter/py_utils.h"
 
-JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonAppBase, jstring jPythonHome, jstring jPythonTemp, jstring jAppTag) {
+
+JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonExecutable, jstring jLibPath, jstring jPythonHome, jstring jPythonTemp, jstring jXDGBasePath, jstring jPythonAppBase, jstring jAppTag) {
     const char *appTag = (*env)->GetStringUTFChars(env, jAppTag, 0);
     int res;
     FILE *startFile = NULL;
@@ -12,11 +14,12 @@ JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonAppBase
     setApplicationTag(appTag);
     setupOutputRedirection();
 
-    const char *pythonHome = (*env)->GetStringUTFChars(env, jPythonHome, 0);
-    Py_SetPythonHome((char*) pythonHome);
-    const char *pythonTemp = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
-    setenv("TMPDIR", pythonTemp, 1);
-    (*env)->ReleaseStringUTFChars(env, jPythonTemp, pythonTemp);
+    const char *programName = (*env)->GetStringUTFChars(env, jPythonExecutable, 0);
+    const char *pythonLibs  = (*env)->GetStringUTFChars(env, jLibPath, 0);
+    const char *pythonHome  = (*env)->GetStringUTFChars(env, jPythonHome, 0);
+    const char *pythonTemp  = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
+    const char *xdgBasePath = (*env)->GetStringUTFChars(env, jXDGBasePath, 0);
+    setupPython(programName, pythonLibs, pythonHome, pythonTemp, xdgBasePath);
 
     const char *pythonAppBase = (*env)->GetStringUTFChars(env, jPythonAppBase, 0);
     filePath = malloc(strlen(pythonAppBase) + 1 + strlen(fileName) + 1);
@@ -29,7 +32,6 @@ JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonAppBase
 //    Py_VerboseFlag = 1;
 //    Py_DebugFlag = 1;
 
-    //Py_SetProgramName("Test"); // Todo: Change
     Py_Initialize();
 
     PyObject *pyAppBase = PyString_FromString(pythonAppBase);
@@ -56,8 +58,12 @@ JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonAppBase
         LOG("App executed normally!");
     }
     Py_Finalize();
+    free((char*) filePath);
     (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
     (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
+    (*env)->ReleaseStringUTFChars(env, jLibPath, pythonLibs);
+    (*env)->ReleaseStringUTFChars(env, jPythonExecutable, programName);
+    (*env)->ReleaseStringUTFChars(env, jXDGBasePath, xdgBasePath);
     (*env)->ReleaseStringUTFChars(env, jPythonAppBase, pythonAppBase);
     return res;
 }
@@ -72,7 +78,7 @@ int jniRegisterNativeMethods(JNIEnv *env, const char *className, const JNINative
 }
 
 static JNINativeMethod methods[] = {
-    {"startApp", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I", (void *)&startApp},
+    {"startApp", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)I", (void *)&startApp},
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {

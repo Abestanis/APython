@@ -2,6 +2,7 @@ package com.apython.python.pythonhost;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 public class PythonAppCommunicationManager {
 
     // The tag used by the Python host.
-    public static final String TAG = MainActivity.TAG;
+    public static final String TAG                  = MainActivity.TAG;
     // The newest protocol version this Python host can understand.
     public static final int    MAX_PROTOCOL_VERSION = 0;
     // The actual protocol version used in the current communication.
@@ -31,6 +32,8 @@ public class PythonAppCommunicationManager {
     private String appPackage;
     // The classpath that serves as an entry point when we should launch the Python app.
     private String launchClass;
+    // The path to a requirements.txt file which contains all the requirements for this App
+    private String requirements = null;
 
     public PythonAppCommunicationManager(final Activity activity) {
         this.activity = activity;
@@ -40,9 +43,9 @@ public class PythonAppCommunicationManager {
         PROTOCOL_VERSION = args.getIntExtra("protocolVersion", -1);
         switch (PROTOCOL_VERSION) {
         case 0:
-            // TODO: Handle module requirements.
-            this.appPackage = args.getStringExtra("package");
-            this.launchClass = args.getStringExtra("launchClass");
+            this.appPackage   = args.getStringExtra("package");
+            this.launchClass  = args.getStringExtra("launchClass");
+            this.requirements = args.getStringExtra("requirements");
             break;
         case -1:
             Log.e(TAG, "Client did not send protocol version!");
@@ -69,16 +72,27 @@ public class PythonAppCommunicationManager {
     }
 
     public void startPythonApp() {
+        Context context = this.activity.getApplicationContext();
         Intent args = new Intent();
         args.setComponent(new ComponentName(this.appPackage, this.launchClass));
-        String libPath = this.activity.getApplicationInfo().dataDir + "/lib/";
+        if (this.requirements != null) { // TODO: Add more checks to speed up startup time
+            PackageManager.installRequirements(context, this.requirements);
+        }
+        PackageManager.checkSitePackagesAvailability(context);
+        String libPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
         ArrayList<String> pythonLibs = new ArrayList<>();
         pythonLibs.add(libPath + System.mapLibraryName("pythonPatch"));
+        pythonLibs.add(libPath + System.mapLibraryName("bzip"));
+        pythonLibs.add(libPath + System.mapLibraryName("ffi"));
+        pythonLibs.add(libPath + System.mapLibraryName("openSSL"));
         pythonLibs.add(libPath + System.mapLibraryName("python2.7.2"));
         pythonLibs.add(libPath + System.mapLibraryName("pyLog"));
+        pythonLibs.add(libPath + System.mapLibraryName("pyInterpreter"));
         pythonLibs.add(libPath + System.mapLibraryName("application"));
         args.putExtra("pythonLibs", pythonLibs);
         args.putExtra("pythonHome", this.activity.getApplicationContext().getFilesDir().getAbsolutePath());
+        args.putExtra("pythonExecutablePath", PackageManager.getPythonExecutable(context).getAbsolutePath());
+        args.putExtra("xdgBasePath", PackageManager.getXDCBase(context).getAbsolutePath());
         this.activity.startActivity(args);
         this.activity.finish();
     }

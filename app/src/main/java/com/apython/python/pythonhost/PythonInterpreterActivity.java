@@ -21,17 +21,16 @@ public class PythonInterpreterActivity extends Activity {
     TextView pythonOutput;
     EditText pythonInput;
     ScrollView scrollContainer;
-    PythonInterpreter interpreter;
+    PythonInterpreterRunnable interpreter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        PackageManager.installStandardModules(getApplicationContext());
         this.setContentView(R.layout.activity_python_interpreter);
         this.pythonOutput    = (TextView)   findViewById(R.id.pythonOutput);
         this.pythonInput     = (EditText)   findViewById(R.id.pythonInput);
         this.scrollContainer = (ScrollView) findViewById(R.id.scrollContainer);
-        this.interpreter = new PythonInterpreter(new Handler(), this, new PythonInterpreter.IOHandler() {
+        this.interpreter = new PythonInterpreterRunnable(this, new PythonInterpreter.IOHandler() {
             @Override
             public void addOutput(String text) {
                 scrollContainer.postDelayed(new Runnable() {
@@ -75,7 +74,7 @@ public class PythonInterpreterActivity extends Activity {
                 pythonInput.setCursorVisible(true);
                 pythonInput.setEnabled(true);
             }
-        });
+        }, new Handler());
         this.pythonInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {

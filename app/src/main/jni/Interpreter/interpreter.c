@@ -1,9 +1,11 @@
 #include "interpreter.h"
 #include "Python.h"
 #include <unistd.h>
+#include <sys/wait.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "Log/log.h"
-#include "PythonPatch/redirects.h"
+#include "py_utils.h"
 
 jobject jPyInterpreter = NULL;
 static JavaVM *Jvm = NULL;
@@ -74,46 +76,148 @@ char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, char *prompt) {
     return lineCopy;
 }
 
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_startInterpreter(JNIEnv *env, jobject obj, jstring jAppTag, jstring jPythonHome, jstring jPythonTemp) {
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreter(
+           JNIEnv *env, jobject obj, jstring jProgramPath, jstring jLibPath, jstring jPythonHome,
+           jstring jPythonTemp, jstring jXDGBasePath, jstring jAppTag, jobjectArray jArgs, jboolean redirectOutput) {
     jPyInterpreter = (*env)->NewGlobalRef(env, obj);
     jEnv = env;
+    int i;
 
     setupStdinEmulation();
     const char *appTag = (*env)->GetStringUTFChars(env, jAppTag, 0);
     setApplicationTag(appTag);
     setupOutputRedirection();
-    setStdoutRedirect(redirectToTextView);
-    setStderrRedirect(redirectToTextView);
+    if (redirectOutput == JNI_TRUE) {
+        setStdoutRedirect(redirectToTextView);
+        setStderrRedirect(redirectToTextView);
+    }
     PyOS_ReadlineFunctionPointer = readLineFromJavaInput;
 
-    const char *pythonHome = (*env)->GetStringUTFChars(env, jPythonHome, 0);
-    Py_SetPythonHome((char*) pythonHome);
-//
-//    sleep(1);
-//    LOG(pythonHome);
-//    printf("%d", chdir(pythonHome));
-//    int bufsize = 1024;
-//    char tmpbuf[1024];
-//    char *res = NULL;
-//    res = getcwd(tmpbuf, bufsize - 1);
-//    tmpbuf[bufsize] = 0;
-//    printf("res: %s, tmpbuf: %s\n", res, tmpbuf);
-//    fflush(stdout);
+    const char *programName = (*env)->GetStringUTFChars(env, jProgramPath, 0);
+    const char *pythonLibs  = (*env)->GetStringUTFChars(env, jLibPath, 0);
+    const char *pythonHome  = (*env)->GetStringUTFChars(env, jPythonHome, 0);
+    const char *pythonTemp  = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
+    const char *xdgBasePath = (*env)->GetStringUTFChars(env, jXDGBasePath, 0);
+    setupPython(programName, pythonLibs, pythonHome, pythonTemp, xdgBasePath);
 
-    const char *pythonTemp = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
-    setenv("TMPDIR", pythonTemp, 1);
-    (*env)->ReleaseStringUTFChars(env, jPythonTemp, pythonTemp);
+    jsize argc = 1;
+    if (jArgs != NULL) {
+        argc = (*env)->GetArrayLength(env, jArgs);
+    }
+    char** argv = NULL;
+    argv = malloc(sizeof(char) * (argc + 1)); // TODO: Fix me!
+    if (argv == NULL) {
+        LOG_ERROR("Failed to allocate space for the argument list!");
+        return;
+    }
+
+    argv[0] = (char*) programName;
+    if (jArgs != NULL) {
+        for (i = 0; i < argc; i++) {
+            jstring jArgument = (*env)->GetObjectArrayElement(env, jArgs, i);
+            const char *argument = (*env)->GetStringUTFChars(env, jArgument, 0);
+            char *arg = malloc(sizeof(char) * (strlen(argument) + 1));
+            if (argv == NULL) {
+                LOG_ERROR("Failed to allocate space for an argument!");
+                return;
+            }
+            arg = strcpy(arg, argument);
+            argv[i + 1] = arg;
+            (*env)->ReleaseStringUTFChars(env, jArgument, argument);
+        }
+        argc++;
+    }
+
     //Py_VerboseFlag = 1;
     //Py_DebugFlag = 1;
-    const int argc = 1;
-    char* argv[] = {"TestName"};
-    LOG("1");
+    LOG("Starting...");
     Py_Main(argc, argv);
-    LOG("2");
+
+    for (i = 1; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
     (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
     (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
+    (*env)->ReleaseStringUTFChars(env, jLibPath, pythonLibs);
+    (*env)->ReleaseStringUTFChars(env, jProgramPath, programName);
+    (*env)->ReleaseStringUTFChars(env, jXDGBasePath, xdgBasePath);
     (*env)->DeleteGlobalRef(env, jPyInterpreter);
     jPyInterpreter = NULL;
+}
+
+JNIEXPORT int JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreterForResult(
+           JNIEnv *env, jobject obj, jstring jProgramPath, jstring jLibPath, jstring jPythonHome,
+           jstring jPythonTemp, jstring jXDGBasePath, jstring jAppTag, jobjectArray jArgs) {
+    jPyInterpreter = (*env)->NewGlobalRef(env, obj);
+    jEnv = env;
+    int i;
+
+    const char *appTag = (*env)->GetStringUTFChars(env, jAppTag, 0);
+    setApplicationTag(appTag);
+    setupOutputRedirection();
+
+    const char *programName = (*env)->GetStringUTFChars(env, jProgramPath, 0);
+    const char *pythonLibs  = (*env)->GetStringUTFChars(env, jLibPath, 0);
+    const char *pythonHome  = (*env)->GetStringUTFChars(env, jPythonHome, 0);
+    const char *pythonTemp  = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
+    const char *xdgBasePath = (*env)->GetStringUTFChars(env, jXDGBasePath, 0);
+    setupPython(programName, pythonLibs, pythonHome, pythonTemp, xdgBasePath);
+
+    jsize argc = 1;
+    if (jArgs != NULL) {
+        argc = (*env)->GetArrayLength(env, jArgs);
+    }
+    char** argv = NULL;
+    argv = malloc(sizeof(char) * (argc + 1)); // TODO: Fix me!
+    if (argv == NULL) {
+        LOG_ERROR("Failed to allocate space for the argument list!");
+        return -1;
+    }
+
+    argv[0] = (char*) programName;
+    if (jArgs != NULL) {
+        for (i = 0; i < argc; i++) {
+            jstring jArgument = (*env)->GetObjectArrayElement(env, jArgs, i);
+            const char *argument = (*env)->GetStringUTFChars(env, jArgument, 0);
+            char *arg = malloc(sizeof(char) * (strlen(argument) + 1));
+            if (argv == NULL) {
+                LOG_ERROR("Failed to allocate space for an argument!");
+                return -1;
+            }
+            arg = strcpy(arg, argument);
+            argv[i + 1] = arg;
+            (*env)->ReleaseStringUTFChars(env, jArgument, argument);
+        }
+        argc++;
+    }
+
+    pid_t pid = fork();
+
+    if (pid == 0) {
+        //Py_VerboseFlag = 1;
+        //Py_DebugFlag = 1;
+        LOG("Starting...");
+        exit(Py_Main(argc, argv));
+    }
+    int status;
+    waitpid(pid, &status, 0);
+
+    for (i = 1; i < argc; i++) {
+        free(argv[i]);
+    }
+    //free(argv); // TODO: Investigate why it crashes here
+    (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
+    (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
+    (*env)->ReleaseStringUTFChars(env, jLibPath, pythonLibs);
+    (*env)->ReleaseStringUTFChars(env, jProgramPath, programName);
+    (*env)->ReleaseStringUTFChars(env, jXDGBasePath, xdgBasePath);
+    (*env)->DeleteGlobalRef(env, jPyInterpreter);
+    jPyInterpreter = NULL;
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    return 1;
 }
 
 JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_dispatchKey(JNIEnv *env, jobject obj, jint character) {

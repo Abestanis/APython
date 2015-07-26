@@ -1,18 +1,18 @@
 package com.apython.python.pythonhost;
 
 /*
- * The Python interpreter with his own thread.
+ * The Python interpreter.
  *
  * Created by Sebastian on 10.06.2015.
  */
 
-import android.app.Activity;
 import android.content.Context;
-import android.os.Handler;
 import android.util.Log;
 import android.view.KeyEvent;
 
-public class PythonInterpreter implements Runnable {
+import java.io.File;
+
+public class PythonInterpreter {
 
     static {
         System.loadLibrary("python2.7.2");
@@ -21,27 +21,60 @@ public class PythonInterpreter implements Runnable {
     }
 
     public final Object inputUpdater = new Object();
-    public String inputLine = null;
-    private Handler  handler;
-    private Activity activity;
-    private IOHandler ioHandler;
+    public       String inputLine    = null;
+    protected Context   context;
+    protected IOHandler ioHandler;
+
     interface IOHandler {
         void addOutput(String text);
         void setupInput(String prompt);
     }
 
-    public PythonInterpreter(Handler handler, Activity activity, IOHandler ioHandler) {
-        this.handler   = handler;
-        this.activity  = activity;
+    public PythonInterpreter(Context context) {
+        this(context, null);
+    }
+
+    public PythonInterpreter(Context context, IOHandler ioHandler) {
+        this.context = context;
         this.ioHandler = ioHandler;
     }
 
+    public void runPythonInterpreter(String[] interpreterArgs) {
+        this.runInterpreter(PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
+                                   PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
+                                   this.context.getFilesDir().getAbsolutePath(),
+                                   PackageManager.getTempDir(this.context).getAbsolutePath(),
+                                   PackageManager.getXDCBase(this.context).getAbsolutePath(),
+                                   MainActivity.TAG,
+                                   interpreterArgs,
+                                   this.ioHandler != null);
+    }
 
-    @Override
-    public void run() {
-        Context context = this.activity.getApplicationContext();
-        this.startInterpreter(MainActivity.TAG, context.getFilesDir().getAbsolutePath(), context.getCacheDir().getAbsolutePath());
-        this.activity.finish();
+    public int runPythonInterpreterForResult(String[] interpreterArgs) {
+        return this.runInterpreterForResult(PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
+                                            PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
+                                            this.context.getFilesDir().getAbsolutePath(),
+                                            PackageManager.getTempDir(this.context).getAbsolutePath(),
+                                            PackageManager.getXDCBase(this.context).getAbsolutePath(),
+                                            MainActivity.TAG,
+                                            interpreterArgs);
+    }
+
+    public int runPythonFile(File file, String[] args) {
+        return this.runPythonFile(file.getAbsolutePath(), args);
+    }
+
+    public int runPythonFile(String filePath, String[] args) {
+        return this.runPythonInterpreterForResult(Util.mergeArrays(new String[] {filePath}, args));
+    }
+
+    public int runPythonModule(String module, String[] args) {
+        return this.runPythonInterpreterForResult(Util.mergeArrays(new String[] {"-m", module}, args));
+    }
+
+    @SuppressWarnings("unused")
+    public int runPythonString(String command, String[] args) {
+        return this.runPythonInterpreterForResult(Util.mergeArrays(new String[] {"-c", command}, args));
     }
 
     public boolean notifyInput(String input) {
@@ -65,23 +98,17 @@ public class PythonInterpreter implements Runnable {
     }
 
     @SuppressWarnings("unused")
-    protected void addTextToOutput(final String text) {
-        this.handler.post(new Runnable() {
-            @Override
-            public void run() {
-                ioHandler.addOutput(text);
-            }
-        });
+    protected void addTextToOutput(String text) {
+        if (ioHandler != null) {
+            ioHandler.addOutput(text);
+        }
     }
 
     @SuppressWarnings("unused")
-    protected String readLine(final String prompt) {
-        this.handler.post(new Runnable() {
-            @Override
-            public void run() {
-                ioHandler.setupInput(prompt);
-            }
-        });
+    protected String readLine(String prompt) {
+        if (ioHandler != null) {
+            ioHandler.setupInput(prompt);
+        }
 
         // Wait for line
         synchronized (inputUpdater) {
@@ -103,6 +130,7 @@ public class PythonInterpreter implements Runnable {
     }
 
     public  native static String getPythonVersion();
-    private native        void   startInterpreter(String appTag, String pythonHome, String pythonTemp);
+    private native        void   runInterpreter(String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
+    private native        int    runInterpreterForResult(String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs);
     private native        void   dispatchKey(int character);
 }

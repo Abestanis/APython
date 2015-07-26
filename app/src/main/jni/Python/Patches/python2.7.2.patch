@@ -1,23 +1,65 @@
---- Python-2.7.2.orig.orig/Lib/sysconfig.py    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.orig.changed/Lib/sysconfig.py 2015-06-20 20:00:00.000000000 +0200
-@@ -416,7 +416,13 @@
-         if os.name in ('nt', 'os2'):
-             _init_non_posix(_CONFIG_VARS)
-         if os.name == 'posix':
--            _init_posix(_CONFIG_VARS)
-+            # TODO: Edited here!
-+            if sys.platform == 'android':
-+                _CONFIG_VARS['SO'] = '.so'
-+                _CONFIG_VARS['VERSION'] = _PY_VERSION_SHORT_NO_DOT
-+            else:
-+                _init_posix(_CONFIG_VARS)
-+            # end
+--- Python-2.7.2.orig/Python-2.7.2/Lib/distutils/sysconfig.py
++++ Python-2.7.2.new/Python-2.7.2/Lib/distutils/sysconfig.py
+@@ -148,7 +148,7 @@ def customize_compiler(compiler):
+     Mainly needed on Unix, so we can plug in the information that
+     varies across Unices and is stored in Python's Makefile.
+     """
+-    if compiler.compiler_type == "unix":
++    if compiler.compiler_type == "unix" and sys.platform != "android": # TODO: Edited here
+         (cc, cxx, opt, cflags, ccshared, ldshared, so_ext) = \
+             get_config_vars('CC', 'CXX', 'OPT', 'CFLAGS',
+                             'CCSHARED', 'LDSHARED', 'SO')
+@@ -358,6 +358,18 @@ _config_vars = None
+ def _init_posix():
+     """Initialize the module as appropriate for POSIX systems."""
+     g = {}
++    global _config_vars # TODO: Edited here
++    if sys.platform == 'android':
++        g['LIBDEST'] = get_python_lib(plat_specific=0, standard_lib=1)
++        g['BINLIBDEST'] = get_python_lib(plat_specific=1, standard_lib=1)
++
++        #g['INCLUDEPY'] = get_python_inc(plat_specific=0)
++
++        g['SO'] = '.so'
++        g['VERSION'] = get_python_version().replace(".", "")
++        #g['BINDIR'] = os.path.dirname(os.path.abspath(sys.executable))
++        _config_vars = g
++        return
+     # load the installed Makefile:
+     try:
+         filename = get_makefile_filename()
+@@ -430,7 +442,7 @@ def _init_posix():
+             g['LDSHARED'] = ("%s -L%s/lib -lpython%s" %
+                              (linkerscript, PREFIX, get_python_version()))
  
-         # Setting 'userbase' is done below the call to the
-         # init function to enable using 'get_config_var' in
---- Python-2.7.2.orig.orig/Modules/_localemodule.c    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.orig.changed/Modules/_localemodule.c 2015-06-20 20:00:00.000000000 +0200
-@@ -206,7 +206,7 @@
+-    global _config_vars
++    #global _config_vars
+     _config_vars = g
+ 
+
+--- Python-2.7.2.orig/Python-2.7.2/Lib/sysconfig.py
++++ Python-2.7.2.new/Python-2.7.2/Lib/sysconfig.py
+@@ -276,6 +276,16 @@ def _get_makefile_filename():
+
+ def _init_posix(vars):
+     """Initialize the module as appropriate for POSIX systems."""
++    if sys.platform == 'android':
++        vars['LIBDEST'] = get_path('stdlib')
++        vars['BINLIBDEST'] = get_path('platstdlib')
++
++        #vars['INCLUDEPY'] = get_python_inc(plat_specific=0)
++
++        vars['SO'] = '.so'
++        vars['VERSION'] = _PY_VERSION_SHORT_NO_DOT
++        vars['BINDIR'] = os.path.dirname(_safe_realpath(sys.executable))
++        return
+     # load the installed Makefile:
+     makefile = _get_makefile_filename()
+     try:
+
+--- Python-2.7.2.orig/Python-2.7.2/Modules/_localemodule.c
++++ Python-2.7.2.new/Python-2.7.2/Modules/_localemodule.c
+@@ -206,7 +206,7 @@ static PyObject*
  PyLocale_localeconv(PyObject* self)
  {
      PyObject* result;
@@ -26,7 +68,7 @@
      PyObject *x;
  
      result = PyDict_New();
-@@ -214,52 +214,52 @@
+@@ -214,52 +214,52 @@ PyLocale_localeconv(PyObject* self)
          return NULL;
  
      /* if LC_NUMERIC is different in the C library, use saved value */
@@ -100,18 +142,9 @@
      return result;
  
    failed:
---- Python-2.7.2.orig.orig/Modules/posixmodule.c    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.orig.changed/Modules/posixmodule.c 2015-06-20 20:00:00.000000000 +0200
-@@ -1995,7 +1995,7 @@
- #if defined(PYOS_OS2) && defined(PYCC_GCC)
-         res = _getcwd2(tmpbuf, bufsize);
- #else
--        res = getcwd(tmpbuf, bufsize);
-+        res = "/data/data/com.apython.python.pythonhost/files"; //res = getcwd(tmpbuf, bufsize); // TODO: Edited here. This is a hack!!!
- #endif
- 
-         if (res == NULL) {
-@@ -3787,13 +3787,13 @@
+--- Python-2.7.2.orig/Python-2.7.2/Modules/posixmodule.c
++++ Python-2.7.2.new/Python-2.7.2/Modules/posixmodule.c
+@@ -3787,13 +3787,13 @@ posix_openpty(PyObject *self, PyObject *noargs)
      slave_fd = open(slave_name, O_RDWR | O_NOCTTY); /* open slave */
      if (slave_fd < 0)
          return posix_error();
@@ -132,9 +165,9 @@
  #endif /* HAVE_OPENPTY */
  
      return Py_BuildValue("(ii)", master_fd, slave_fd);
---- Python-2.7.2.orig/Modules/pwdmodule.c    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.changed/Modules/pwdmodule.c 2015-06-20 20:00:00.000000000 +0200
-@@ -75,7 +75,7 @@
+--- Python-2.7.2.orig/Python-2.7.2/Modules/pwdmodule.c
++++ Python-2.7.2.new/Python-2.7.2/Modules/pwdmodule.c
+@@ -75,7 +75,7 @@ mkpwent(struct passwd *p)
  #endif
      SETI(setIndex++, p->pw_uid);
      SETI(setIndex++, p->pw_gid);
@@ -143,9 +176,9 @@
      SETS(setIndex++, "");
  #else
      SETS(setIndex++, p->pw_gecos);
---- Python-2.7.2.orig/Modules/termios.c    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.changed/Modules/termios.c 2015-06-20 20:00:00.000000000 +0200
-@@ -227,6 +227,7 @@
+--- Python-2.7.2.orig/Python-2.7.2/Modules/termios.c
++++ Python-2.7.2.new/Python-2.7.2/Modules/termios.c
+@@ -227,6 +227,7 @@ termios_tcsendbreak(PyObject *self, PyObject *args)
      return Py_None;
  }
  
@@ -153,7 +186,7 @@
  PyDoc_STRVAR(termios_tcdrain__doc__,
  "tcdrain(fd) -> None\n\
  \n\
-@@ -246,6 +247,7 @@
+@@ -246,6 +247,7 @@ termios_tcdrain(PyObject *self, PyObject *args)
      Py_INCREF(Py_None);
      return Py_None;
  }
@@ -161,7 +194,7 @@
  
  PyDoc_STRVAR(termios_tcflush__doc__,
  "tcflush(fd, queue) -> None\n\
-@@ -301,8 +303,8 @@
+@@ -301,8 +303,8 @@ static PyMethodDef termios_methods[] =
       METH_VARARGS, termios_tcsetattr__doc__},
      {"tcsendbreak", termios_tcsendbreak,
       METH_VARARGS, termios_tcsendbreak__doc__},
@@ -172,9 +205,9 @@
      {"tcflush", termios_tcflush,
       METH_VARARGS, termios_tcflush__doc__},
      {"tcflow", termios_tcflow,
---- Python-2.7.2.orig/Objects/stringlib/formatter.h    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.changed/Objects/stringlib/formatter.h 2015-06-20 20:00:00.000000000 +0200
-@@ -639,13 +639,7 @@
+--- Python-2.7.2.orig/Python-2.7.2/Objects/stringlib/formatter.h
++++ Python-2.7.2.new/Python-2.7.2/Objects/stringlib/formatter.h
+@@ -639,13 +639,7 @@ static void
  get_locale_info(int type, LocaleInfo *locale_info)
  {
      switch (type) {
@@ -189,9 +222,9 @@
      case LT_DEFAULT_LOCALE:
          locale_info->decimal_point = ".";
          locale_info->thousands_sep = ",";
---- Python-2.7.2.orig/Objects/stringlib/localeutil.h    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.changed/Objects/stringlib/localeutil.h 2015-06-20 20:00:00.000000000 +0200
-@@ -202,9 +202,9 @@
+--- Python-2.7.2.orig/Python-2.7.2/Objects/stringlib/localeutil.h
++++ Python-2.7.2.new/Python-2.7.2/Objects/stringlib/localeutil.h
+@@ -202,9 +202,9 @@ _Py_InsertThousandsGroupingLocale(STRINGLIB_CHAR *buffer,
                                    Py_ssize_t n_digits,
                                    Py_ssize_t min_width)
  {
@@ -204,19 +237,20 @@
  
          return _Py_InsertThousandsGrouping(buffer, n_buffer, digits, n_digits,
                                             min_width, grouping, thousands_sep);
---- Python-2.7.2.orig/Python/bltinmodule.c    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.changed/Python/bltinmodule.c 2015-06-20 20:00:00.000000000 +0200
-@@ -2027,6 +2027,7 @@
-         if (PyFile_WriteString(" ", fout) != 0)
-             return NULL;
-     }
-+
-     if (PyFile_AsFile(fin) && PyFile_AsFile(fout)
-         && isatty(fileno(PyFile_AsFile(fin)))
-         && isatty(fileno(PyFile_AsFile(fout)))) {
---- Python-2.7.2.orig/Python/pystrtod.c    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.changed/Python/pystrtod.c 2015-06-20 20:00:00.000000000 +0200
-@@ -126,7 +126,7 @@
+--- Python-2.7.2.orig/Python-2.7.2/Python/bltinmodule.c
++++ Python-2.7.2.new/Python-2.7.2/Python/bltinmodule.c
+@@ -19,7 +19,7 @@
+ */
+ #if defined(MS_WINDOWS) && defined(HAVE_USABLE_WCHAR_T)
+ const char *Py_FileSystemDefaultEncoding = "mbcs";
+-#elif defined(__APPLE__)
++#elif defined(__APPLE__) || 1 // TODO: Edited here
+ const char *Py_FileSystemDefaultEncoding = "utf-8";
+ #else
+ const char *Py_FileSystemDefaultEncoding = NULL; /* use default */
+--- Python-2.7.2.orig/Python-2.7.2/Python/pystrtod.c
++++ Python-2.7.2.new/Python-2.7.2/Python/pystrtod.c
+@@ -126,7 +126,7 @@ _PyOS_ascii_strtod(const char *nptr, char **endptr)
  {
      char *fail_pos;
      double val = -1.0;
@@ -225,7 +259,7 @@
      const char *decimal_point;
      size_t decimal_point_len;
      const char *p, *decimal_point_pos;
-@@ -138,8 +138,9 @@
+@@ -138,8 +138,9 @@ _PyOS_ascii_strtod(const char *nptr, char **endptr)
  
      fail_pos = NULL;
  
@@ -237,7 +271,7 @@
      decimal_point_len = strlen(decimal_point);
  
      assert(decimal_point_len != 0);
-@@ -375,8 +376,8 @@
+@@ -375,8 +376,8 @@ PyOS_string_to_double(const char *s,
  Py_LOCAL_INLINE(void)
  change_decimal_from_locale_to_dot(char* buffer)
  {
@@ -248,9 +282,9 @@
  
      if (decimal_point[0] != '.' || decimal_point[1] != 0) {
          size_t decimal_point_len = strlen(decimal_point);
---- Python-2.7.2.orig/Python/strtod.c    2015-06-20 20:00:00.000000000 +0200
-+++ Python-2.7.2.changed/Python/strtod.c 2015-06-20 20:00:00.000000000 +0200
-@@ -60,7 +60,7 @@
+--- Python-2.7.2.orig/Python-2.7.2/Python/strtod.c
++++ Python-2.7.2.new/Python-2.7.2/Python/strtod.c
+@@ -60,7 +60,7 @@ extern  double  atof(const char *);             /* Only called when result known
  #ifdef HAVE_ERRNO_H
  #include <errno.h>
  #endif

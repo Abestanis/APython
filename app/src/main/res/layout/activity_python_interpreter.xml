@@ -30,7 +30,10 @@
             android:textCursorDrawable="@null"
             android:textColor="@android:color/white"
             android:typeface="monospace"
-            android:textSize="20sp"/>
+            android:textSize="20sp"
+            android:textIsSelectable="false"
+            android:inputType="textNoSuggestions|text|textMultiLine"
+            android:singleLine="false"/>
 
     </LinearLayout>
 </ScrollView>

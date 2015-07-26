@@ -17,11 +17,19 @@ JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_g
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
- * Method:    startInterpreter
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ * Method:    runInterpreter
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Z)V
  */
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_startInterpreter
-  (JNIEnv *, jobject, jstring, jstring, jstring);
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreter
+  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jboolean);
+
+/*
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    runInterpreterForResult
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreterForResult
+  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray);
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
