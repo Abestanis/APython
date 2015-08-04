@@ -1,7 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := python2.7.2
+LOCAL_MODULE := python2.7
 FILE_LIST := $(wildcard $(LOCAL_PATH)/source/*/*.c) $(wildcard $(LOCAL_PATH)/source/*/*/*.c)
 EXCLUDED_FILES := Modules/almodule.c \
                   Modules/bsddbmodule.c \
@@ -65,6 +65,7 @@ EXCLUDED_FILES := Modules/almodule.c \
                   Python/getcwd.c \
                   Python/mactoolboxglue.c \
                   Python/sigcheck.c \
+                  #Modules/_ssl.c \
 
 EXCLUDED_FILES := $(addprefix source/, $(EXCLUDED_FILES))
 LOCAL_SRC_FILES := $(filter-out $(EXCLUDED_FILES), $(FILE_LIST:$(LOCAL_PATH)/%=%))
@@ -75,7 +76,7 @@ LOCAL_CFLAGS = -D 'PLATFORM=\"android\"' \
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/source/Include $(LOCAL_PATH)/source/Modules/_io $(LOCAL_PATH)/source/Modules/expat $(LOCAL_PATH)/source/Modules/cjkcodecs
 LOCAL_EXPORT_C_INCLUDES += $(LOCAL_PATH)/source/Include
-LOCAL_SHARED_LIBRARIES := pythonPatch ffi openSSL bzip
+LOCAL_SHARED_LIBRARIES := pythonPatch ffi bzip openSSL
 LOCAL_LDLIBS := -lz
 
 LOCAL_SHORT_COMMANDS = true

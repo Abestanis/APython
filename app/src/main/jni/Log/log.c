@@ -1,6 +1,7 @@
 #include "log.h"
 #include <pthread.h>
 #include <stdio.h>
+#include <errno.h>
 
 // The Log system //
 
@@ -35,15 +36,19 @@ void setStderrRedirect(void (*f)(const char*)) {
     stderr_write = f;
 }
 
-static void *outputCatcher(void* arg) {
+void captureOutput(int streamFD) {
     ssize_t outputSize;
-    char buffer[256];
-    pthread_mutex_lock(&mutex);
-    outputCaptureThreadStarted = 1;
-    pthread_cond_signal(&condition);
-    pthread_mutex_unlock(&mutex);
-    //LOG("Started!");
-    while((outputSize = read(outputPipe[0], buffer, sizeof(buffer) - 1)) > 0) {
+    char buffer[4096];
+    while((outputSize = read(streamFD, buffer, sizeof(buffer) - 1)) != 0) {
+        if (outputSize == -1) {
+            if (errno != EINTR) {
+                LOG_WARN("Failed to read from output pipe:");
+                LOG_WARN(strerror(errno));
+                LOG_WARN("Stopp reading from output (output no longer valid).");
+                break;
+            }
+            continue;
+        }
         buffer[outputSize] = 0; // add null-terminator
         if (stdout_write != NULL) {
             stdout_write(buffer);
@@ -53,29 +58,16 @@ static void *outputCatcher(void* arg) {
             LOG(buffer);
         }
     }
-    return 0;
 }
 
-int setupOutputRedirection() {
+int setupOutputRedirection(int pipe[2]) {
     // Make stdout line-buffered and stderr unbuffered
     setvbuf(stdout, 0, _IOLBF, 0);
     setvbuf(stderr, 0, _IONBF, 0);
 
-    // Create the pipe and redirect stdout and stderr
-    pipe(outputPipe);
-    dup2(outputPipe[1], fileno(stdout));
-    dup2(outputPipe[1], fileno(stderr));
+    while ((dup2(pipe[1], fileno(stdout)) == -1) && (errno == EINTR)) {}
+    while ((dup2(pipe[1], fileno(stderr)) == -1) && (errno == EINTR)) {}
 
-    // Create the output capturing thread
-    if (pthread_create(&outputCaptureThread, NULL, outputCatcher, 0) != 0) {
-        LOG_ERROR("Could not create the output capture thread!");
-        return -1;
-    }
-    pthread_detach(outputCaptureThread);
-    // Wait for the thread to be started
-    // TODO: This still does not wait long enough!
-    pthread_mutex_lock(&mutex);
-    while (!outputCaptureThreadStarted) { pthread_cond_wait(&condition, &mutex); }
-    pthread_mutex_unlock(&mutex);
-    return 0;
+    close(pipe[1]);
+    return 1;
 }

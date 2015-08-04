@@ -39,6 +39,16 @@ int redirectedIOCtl(int fd, int request, ...) {
     }
 }
 
+void redirectedExit(int code) {
+    int *ret = malloc(sizeof(int));
+    if (ret == NULL) {
+        printf("Could not allocate memory for the return value (%d)!", code);
+    } else {
+        *ret = code;
+    }
+    pthread_exit(ret);
+}
+
 // If we ever want to emulate a command, we can do this here:
 //int (*androidMoreCommandPointer)(const char* command) = NULL;
 

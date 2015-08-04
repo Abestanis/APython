@@ -46,6 +46,8 @@ android {
     //noinspection GroovyAssignabilityCheck
     task ndkBuild(type: Exec, description: 'Compile JNI source via NDK.', dependsOn: 'getPythonSource') {
         workingDir file('src/main')
+        inputs.dir file('src/main/jni')
+        outputs.dir file('src/main/libs')
         commandLine 'cmd', '/c', "$ndkDir\\ndk-build", 'NDK_OUT=' + getBuildDir().absolutePath.replace('\\', '/') + '/intermediates/ndk/obj'
     }
     ndkBuild.onlyIf {
@@ -64,7 +66,7 @@ android {
 
     //noinspection GroovyAssignabilityCheck
     task getPythonSource(type: installSource, description: 'Install the sources for Python.') {
-        downloadUrl = 'https://www.python.org/ftp/python/%VERSION%/Python-%VERSION%.tar.bz2'
+        downloadUrl = 'https://www.python.org/ftp/python/%VERSION%/Python-%VERSION%.tgz'
         version = '2.7.2'
         outputDir = file('src/main/jni/Python/source')
         downloadFilter = {
@@ -315,9 +317,11 @@ class installSource extends DefaultTask {
             } else if (archiveFile.getName().endsWith(".bz2")) {
                 resource = project.resources.bzip2(archiveFile.absoluteFile)
             }
+        } else if (archiveFile.getName().endsWith(".tgz")) {
+            resource = project.resources.gzip(archiveFile.absoluteFile)
         }
         if (resource == null) {
-            throw new ZipException('Unsupportet file format \'' + archiveFile.getName() + '\'.')
+            throw new ZipException('Unsupportet archive format \'' + archiveFile.getName() + '\'.')
         }
         def download = project.tarTree(resource)
         if (downloadFilter != null) {

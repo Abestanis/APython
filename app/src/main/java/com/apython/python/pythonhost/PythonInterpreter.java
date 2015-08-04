@@ -15,7 +15,11 @@ import java.io.File;
 public class PythonInterpreter {
 
     static {
-        System.loadLibrary("python2.7.2");
+        System.loadLibrary("pythonPatch");
+        System.loadLibrary("bzip");
+        System.loadLibrary("ffi");
+        System.loadLibrary("openSSL");
+        System.loadLibrary("python" + PackageManager.pythonVersion);
         System.loadLibrary("pyLog");
         System.loadLibrary("pyInterpreter");
     }
@@ -39,8 +43,8 @@ public class PythonInterpreter {
         this.ioHandler = ioHandler;
     }
 
-    public void runPythonInterpreter(String[] interpreterArgs) {
-        this.runInterpreter(PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
+    public int runPythonInterpreter(String[] interpreterArgs) {
+        return this.runInterpreter(PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
                                    PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
                                    this.context.getFilesDir().getAbsolutePath(),
                                    PackageManager.getTempDir(this.context).getAbsolutePath(),
@@ -50,31 +54,21 @@ public class PythonInterpreter {
                                    this.ioHandler != null);
     }
 
-    public int runPythonInterpreterForResult(String[] interpreterArgs) {
-        return this.runInterpreterForResult(PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
-                                            PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
-                                            this.context.getFilesDir().getAbsolutePath(),
-                                            PackageManager.getTempDir(this.context).getAbsolutePath(),
-                                            PackageManager.getXDCBase(this.context).getAbsolutePath(),
-                                            MainActivity.TAG,
-                                            interpreterArgs);
-    }
-
     public int runPythonFile(File file, String[] args) {
         return this.runPythonFile(file.getAbsolutePath(), args);
     }
 
     public int runPythonFile(String filePath, String[] args) {
-        return this.runPythonInterpreterForResult(Util.mergeArrays(new String[] {filePath}, args));
+        return this.runPythonInterpreter(Util.mergeArrays(new String[] {filePath}, args));
     }
 
     public int runPythonModule(String module, String[] args) {
-        return this.runPythonInterpreterForResult(Util.mergeArrays(new String[] {"-m", module}, args));
+        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-m", module}, args));
     }
 
     @SuppressWarnings("unused")
     public int runPythonString(String command, String[] args) {
-        return this.runPythonInterpreterForResult(Util.mergeArrays(new String[] {"-c", command}, args));
+        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
     }
 
     public boolean notifyInput(String input) {
@@ -126,11 +120,10 @@ public class PythonInterpreter {
             return null;
         }
         line = line.substring(prompt.length());
-        return line + "\n";
+        return line;
     }
 
     public  native static String getPythonVersion();
-    private native        void   runInterpreter(String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
-    private native        int    runInterpreterForResult(String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs);
-    private native        void   dispatchKey(int character);
+    public  native        void   dispatchKey(int character);
+    private native        int    runInterpreter(String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
 }

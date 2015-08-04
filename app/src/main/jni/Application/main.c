@@ -12,7 +12,6 @@ JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonExecuta
     const char* filePath = NULL;
 
     setApplicationTag(appTag);
-    setupOutputRedirection();
 
     const char *programName = (*env)->GetStringUTFChars(env, jPythonExecutable, 0);
     const char *pythonLibs  = (*env)->GetStringUTFChars(env, jLibPath, 0);
@@ -32,24 +31,20 @@ JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonExecuta
 //    Py_VerboseFlag = 1;
 //    Py_DebugFlag = 1;
 
-    Py_Initialize();
+    int argc = 2;
 
-    PyObject *pyAppBase = PyString_FromString(pythonAppBase);
-    PyObject *sys_path = PySys_GetObject("path");
-    if ((sys_path == NULL) || (PyList_Insert(sys_path, 0, pyAppBase) == -1)) {
-        LOG_WARN("Could not insert the appBase as sys.path[0]!");
+    char** argv = malloc(sizeof(char) * (argc + 1));
+    if (argv == NULL) {
+        LOG_ERROR("Failed to allocate space for the argument list!");
+        return 1;
     }
 
-    startFile = fopen(filePath, "r");
-    if (startFile == NULL) {
-        LOG_ERROR("Could not open start file:");
-        char* errorMsg = strerror(errno);
-        LOG_ERROR(errorMsg);
-        return -1;
-    }
+    // TODO: Temp
+    argv[0] = (char*) programName;
+    argv[1] = (char*) filePath;
 
-    LOG("Starting...");
-    res = PyRun_SimpleFileEx(startFile, filePath, 1);
+
+    res = runPythonInterpreter(argc, argv);
     fflush(stdout);
     fflush(stderr);
     if (res != 0) {
@@ -57,7 +52,7 @@ JNIEXPORT jint JNICALL startApp(JNIEnv *env, jobject obj, jstring jPythonExecuta
     } else {
         LOG("App executed normally!");
     }
-    Py_Finalize();
+
     free((char*) filePath);
     (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
     (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);

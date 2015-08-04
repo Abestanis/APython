@@ -1,8 +1,10 @@
 package com.apython.python.pythonhost;
 
 import android.app.Activity;
-import android.os.*;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -18,8 +20,12 @@ import android.widget.TextView;
 
 public class PythonInterpreterActivity extends Activity {
 
-    TextView pythonOutput;
-    EditText pythonInput;
+    // A boolean that is required in order to show the soft keyboard at any time.
+    // If we would call pythonInput.setEnabled(false), we would hide the soft keyboard every time.
+    // Instead, we don't disable pythonInput, but we handle the input after it has occurred.
+    boolean    pythonInputEnabled = false;
+    TextView   pythonOutput;
+    EditText   pythonInput;
     ScrollView scrollContainer;
     PythonInterpreterRunnable interpreter;
 
@@ -69,25 +75,36 @@ public class PythonInterpreterActivity extends Activity {
 
             @Override
             public void setupInput(String prompt) {
+                pythonInputEnabled = true;
                 pythonInput.append(prompt);
                 pythonInput.setSelection(prompt.length());
                 pythonInput.setCursorVisible(true);
-                pythonInput.setEnabled(true);
             }
-        }, new Handler());
-        this.pythonInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        }, this);
+        this.pythonInput.addTextChangedListener(new TextWatcher() {
             @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    String input = v.getText().toString();
-                    pythonOutput.append(input + "\n");
-                    v.setText("");
-                    v.setCursorVisible(false);
-                    v.setEnabled(false);
-                    interpreter.notifyInput(input);
-                    return true;
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String input = s.toString();
+                if (input.length() > 0) {
+                    if (!pythonInputEnabled) {
+                        interpreter.dispatchKey(input.charAt(input.length() - 1));
+                        pythonInput.setText(input.substring(0, input.length() - 1));
+                    } else if (input.charAt(input.length() - 1) == '\n') {
+                        pythonOutput.append(input);
+                        pythonInput.setText("");
+                        pythonInput.setCursorVisible(false);
+                        pythonInputEnabled = false;
+                        interpreter.notifyInput(input);
+                    }
                 }
-                return false;
             }
         });
         // Make the keyboard always visible
@@ -99,7 +116,7 @@ public class PythonInterpreterActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        if (!this.pythonInput.isEnabled()) {
+        if (!this.pythonInputEnabled) {
             // input via stdin pipe
             return this.interpreter.dispatchKeyEvent(event);
         } else {

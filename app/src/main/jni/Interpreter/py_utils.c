@@ -1,6 +1,15 @@
 #include "py_utils.h"
 #include <stdlib.h>
+#include <pthread.h>
 #include "Log/log.h"
+
+struct pythonThreadArguments {
+    int argc;
+    char** argv;
+};
+FILE *stdin_writer = NULL;
+static int saved_stdout;
+static int saved_stderr;
 
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHome, const char* pythonTemp, const char* xdgBasePath) {
 
@@ -36,5 +45,64 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     strcpy((char*) configHome, xdgBasePath);
     strcat((char*) configHome, configAppendix);
     setenv("XDG_CONFIG_HOME", configHome, 1);
-    free((char*) dataHome);
+    free((char*) configHome);
+}
+
+int setupStdinEmulation() {
+    int p[2];
+
+    // error return checks omitted
+    pipe(p);
+
+    stdin_writer = fdopen(p[1], "w");
+
+    return  p[0];
+}
+
+static void cleanupPythonThread(void* arg) {
+    dup2(saved_stdout, fileno(stdout));
+    dup2(saved_stderr, fileno(stderr));
+}
+
+void* startPythonInterpreter(void* arg) {
+    pthread_cleanup_push(cleanupPythonThread, NULL);
+
+    struct pythonThreadArguments *args = (struct pythonThreadArguments *)arg;
+
+    //Py_VerboseFlag = 1;
+    //Py_DebugFlag = 1;
+    LOG("Starting...");
+    exit(Py_Main(args->argc, args->argv));
+    pthread_cleanup_pop(0);
+}
+
+int runPythonInterpreter(int argc, char** argv) {
+    int outputPipe[2];
+    int redirectedStdInFD;
+    void *status = NULL;
+    pthread_t pythonThread;
+
+    if (pipe(outputPipe) == -1) {
+        LOG_ERROR("Could not create the pipe to redirect stdout and stderr to.");
+        return 1;
+    }
+
+    saved_stderr = dup(fileno(stderr));
+    saved_stdout = dup(fileno(stdout));
+    setupOutputRedirection(outputPipe);
+    redirectedStdInFD = setupStdinEmulation();
+    dup2(redirectedStdInFD, fileno(stdin));
+
+    struct pythonThreadArguments args;
+    args.argc = argc;
+    args.argv = argv;
+
+    if (pthread_create(&pythonThread, NULL, startPythonInterpreter, (void *) &args) == -1) {
+        LOG_ERROR("Could not create the Python thread!");
+        return 1;
+    }
+
+    captureOutput(outputPipe[0]);
+    pthread_join(pythonThread, &status);
+    return *((int*) status);
 }

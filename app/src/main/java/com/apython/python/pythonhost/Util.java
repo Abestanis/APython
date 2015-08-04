@@ -1,5 +1,6 @@
 package com.apython.python.pythonhost;
 
+import android.content.Context;
 import android.util.Log;
 
 import org.apache.http.HttpResponse;
@@ -29,19 +30,7 @@ import java.util.ArrayList;
 
 public class Util {
 
-    public static boolean recursiveMakeDirAccessible(File dir) {
-        if (!makeFileAccessible(dir)) { return false; }
-        for (File child: dir.listFiles()) {
-            if (child.isDirectory()) {
-                if (!recursiveMakeDirAccessible(child)) { return false; }
-            } else {
-                if (!makeFileAccessible(child)) { return false; }
-            }
-        }
-        return true;
-    }
-
-    public static boolean makeFileAccessible(File file) {
+    public static boolean makeFileAccessible(File file, boolean recursive) {
         if (!file.exists()) {
             try {
                 if (!file.createNewFile()) {
@@ -60,12 +49,20 @@ public class Util {
         //                return true;
         //            }
         //        }
+        String rec = recursive ? "-R " : "";
         try {
-            Runtime.getRuntime().exec("chmod 755 " + file.getAbsolutePath());
-            Log.d(MainActivity.TAG, "Successfully made '" + file.getAbsolutePath() + "' accessible via chmod.");
-            return true;
+            int result = Runtime.getRuntime().exec("chmod " + rec + "755 " + file.getAbsolutePath()).waitFor();
+            if (result == 0) {
+                Log.d(MainActivity.TAG, "Successfully made '" + file.getAbsolutePath() + "' accessible via chmod.");
+                return true;
+            } else {
+                Log.w(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() + "' accessible via chmod: Process failed with exit status " + result);
+                return true;
+            }
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (InterruptedException ie) {
+            ie.printStackTrace();
         }
         return false;
     }
@@ -112,16 +109,30 @@ public class Util {
         return response;
     }
 
-    public static boolean installRawResource(File destination, InputStream resourceLocation) {
+    public static boolean installRawResource(File destination, InputStream resourceLocation, PackageManager.ProgressHandler progressHandler) {
         byte[] buffer = new byte[1024];
         int count;
         try {
+            int total = resourceLocation.available();
+            int totalCount = 0;
+            float nextUpdate = 0;
+            float onePercent = (float) total / 100;
             FileOutputStream outputFile = new FileOutputStream(destination);
             while ((count = resourceLocation.read(buffer)) != -1) {
                 outputFile.write(buffer, 0, count);
+                if (progressHandler != null) {
+                    totalCount += count;
+                    if (totalCount >= nextUpdate) {
+                        progressHandler.setProgress((float) totalCount / total);
+                        nextUpdate += onePercent;
+                    }
+                }
+            }
+            if (progressHandler != null) {
+                progressHandler.setProgress(-1);
             }
             outputFile.close();
-            Util.makeFileAccessible(destination);
+            Util.makeFileAccessible(destination, false);
         } catch (IOException e) {
             Log.e(MainActivity.TAG, "Failed to extract the raw resource to " + destination.getAbsolutePath() + "!");
             e.printStackTrace();
@@ -145,4 +156,32 @@ public class Util {
         return result;
     }
 
+    public static void parsePipOutput(Context context, PackageManager.ProgressHandler progressHandler, String text) {
+        text = text.trim().replace("[?25h", "");
+        if (text.startsWith("[K")) {
+            String[] parts = text.split(" ");
+            try {
+                if (parts.length >= 4) {
+                    progressHandler.setProgress((float) Integer.valueOf(parts[4].substring(0, parts[4].length() - 1)) / 100.0f);
+                }
+            } catch (NumberFormatException e) {
+                Log.w(MainActivity.TAG, "Failed to extract percentage from '" + text + "'.");
+            }
+        } else if (text.startsWith("Collecting")) {
+            String name = text.substring(11);
+            name = name.replaceFirst("(<|>|!|=| \\()+.*", "");
+            progressHandler.setProgress(-1);
+            progressHandler.setText(context.getString(R.string.module_installation_searching, name));
+        } else if (text.startsWith("Downloading")) {
+            progressHandler.setProgress(-1);
+            progressHandler.setText(context.getString(R.string.module_installation_downloading, text.substring(12)));
+        } else if (text.startsWith("Installing collected packages:")) {
+            progressHandler.setProgress(-1);
+            progressHandler.setText(context.getString(R.string.module_installation_installing, text.substring(31)));
+        } else if (text.startsWith("Building")) {
+            progressHandler.setProgress(-1);
+            progressHandler.setText(context.getString(R.string.module_installation_building));
+        }
+        Log.d(MainActivity.TAG, text);
+    }
 }

@@ -85,7 +85,6 @@ extern void inittermios(void);
 //extern void initrgbimg(void);
 extern void initselect(void);
 extern void init_socket(void);
-extern void initstrop(void);
 //extern void initpcre(void);
 extern void initfcntl(void);
 
@@ -195,7 +194,6 @@ struct _inittab _PyImport_Inittab[] = {
     //{"rgbimg", initrgbimg},
     {"select", initselect},
     {"_socket", init_socket},
-    {"strop", initstrop},
     //{"pcre", initpcre},
     {"fcntl", initfcntl},
 

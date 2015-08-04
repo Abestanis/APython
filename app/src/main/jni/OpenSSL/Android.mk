@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := openSSL
-FILE_LIST := $(wildcard $(LOCAL_PATH)/source/ssl/*.c) $(wildcard $(LOCAL_PATH)/source/crypto/*.c) $(wildcard $(LOCAL_PATH)/source/crypto/*/*.c)
+FILE_LIST := $(wildcard $(LOCAL_PATH)/source/ssl/*.c) $(wildcard $(LOCAL_PATH)/source/crypto/*.c) $(wildcard $(LOCAL_PATH)/source/crypto/*/*.c) #$(LOCAL_PATH)/../Python/source/Modules/_ssl.c
 LOCAL_SRC_FILES := $(FILE_LIST:$(LOCAL_PATH)/%=%)
 EXCLUDED_FILES := ssl/ssl_task.c \
                   ssl/ssltest.c \
@@ -118,10 +118,10 @@ LOCAL_SRC_FILES := $(filter-out $(EXCLUDED_FILES), $(FILE_LIST:$(LOCAL_PATH)/%=%
 LOCAL_CFLAGS = -DOPENSSL_NO_HW -DOPENSSL_NO_GOST
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/source/include $(LOCAL_PATH)/source/crypto $(dir $(wildcard $(LOCAL_PATH)/source/crypto/*/*.h))
 LOCAL_EXPORT_C_INCLUDES += $(LOCAL_PATH)/source/include
+LOCAL_SHARED_LIBRARIES := pythonPatch# python2.7
 
 LOCAL_SHORT_COMMANDS = true
 include $(BUILD_SHARED_LIBRARY)
 
 #LOCAL_SRC_FILES := libopenSSL.so
-
 #include $(PREBUILT_SHARED_LIBRARY)

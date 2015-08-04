@@ -8,7 +8,8 @@ void _assert_(const char*, const char*, int, const char*);
 void setApplicationTag(const char*);
 void setStdoutRedirect(void (*f)(const char*));
 void setStderrRedirect(void (*f)(const char*));
-int setupOutputRedirection(void);
+int startOutputCapturing(int);
+int setupOutputRedirection(int pipe[2]);
 
 #define ASSERT(EX, message) (void)((EX) || (_assert_ (#EX, __FILE__, __LINE__, message),0))
 #define LOG(x)        _log_write_(ANDROID_LOG_DEBUG, (x))

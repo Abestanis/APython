@@ -1,7 +1,17 @@
 package com.apython.python.pythonhost;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 /*
  * This activity can be launched via an intent with the action
@@ -21,7 +31,93 @@ public class GetPythonAppExecutionInfoActivity extends Activity {
         super.onCreate(savedInstanceState);
         this.communicationManager = new PythonAppCommunicationManager(this);
         if (this.communicationManager.parseArgs(this.getIntent())) {
-            this.communicationManager.startPythonApp();
+
+            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(GetPythonAppExecutionInfoActivity.this);
+            final LinearLayout progressContainer = new LinearLayout(this.getApplicationContext());
+            final TextView progressTextView = new TextView(this.getApplicationContext());
+            final ProgressBar progressView = new ProgressBar(this.getApplicationContext(), null, android.R.attr.progressBarStyleHorizontal);
+
+            dialogBuilder.setNegativeButton(getText(R.string.run_in_background), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+
+            progressContainer.setPadding(20, 20, 20, 20);
+            progressContainer.setOrientation(LinearLayout.VERTICAL);
+            progressContainer.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            progressTextView.setSingleLine();
+            progressTextView.setGravity(Gravity.CENTER_HORIZONTAL);
+            progressTextView.setTextColor(Color.WHITE);
+            progressTextView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            progressContainer.addView(progressTextView);
+            progressContainer.addView(progressView);
+
+            dialogBuilder.setView(progressContainer);
+
+            final AlertDialog dialog = dialogBuilder.create();
+            dialog.setCancelable(false);
+
+            final PackageManager.ProgressHandler progressHandler = new PackageManager.ProgressHandler() {
+                boolean wasShown = false;
+                @Override
+                public void enable(final String text) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressTextView.setText(text);
+                            if (!dialog.isShowing() && !wasShown) {
+                                wasShown = true;
+                                dialog.show();
+                                WindowManager.LayoutParams windowLayoutParams = new WindowManager.LayoutParams();
+                                Window window = dialog.getWindow();
+                                windowLayoutParams.copyFrom(window.getAttributes());
+                                windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+                                window.setAttributes(windowLayoutParams);
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void setText(final String text) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressTextView.setText(text);
+                        }
+                    });
+                }
+
+                @Override
+                public void setProgress(final float progress) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (progress < 0) {
+                                progressView.setIndeterminate(true);
+                            } else {
+                                progressView.setIndeterminate(false);
+                                progressView.setProgress((int) (progress * 100));
+                            }
+                        }
+                    });
+                }
+            };
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    communicationManager.startPythonApp(progressHandler);
+                    if (dialog.isShowing()) {
+                        dialog.dismiss();
+                    }
+                    finish();
+                }
+            }).start();
+        } else {
+            finish();
         }
     }
 }

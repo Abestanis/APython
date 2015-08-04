@@ -33,7 +33,9 @@
             android:textSize="20sp"
             android:textIsSelectable="false"
             android:inputType="textNoSuggestions|text|textMultiLine"
-            android:singleLine="false"/>
+            android:singleLine="false"
+            android:cursorVisible="false"
+            android:enabled="true"/>
 
     </LinearLayout>
 </ScrollView>

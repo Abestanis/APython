@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pythonHostPermission_description">Diese Berechtigung erlaubt dieser Anwendung als Python Host zu fungieren. Das bedeutet, dass diese Anwendung Dateien bereitstellt, die von anderen Python-Andwendungen ausgeführt werden.</string>
+    <string name="pythonHostPermission_label">Als Python Host agieren</string>
+    <string name="install_executable">Installiere die ausführbare Datei für Python…</string>
+    <string name="install_pythonLibs">Installiere Python\'s Standardmodule…</string>
+    <string name="install_requirements">Installiere benötigte Module…</string>
+    <string name="changing_sitePackages_permissions">Ändere die Berechtigungen der Dateien im site-packages Ordner…</string>
+    <string name="install_pip">Installiere das Abhängigkeitssystem (Pip)…</string>
+    <string name="download_pip">Lade die Installationsdatei für Pip herunter…</string>
+    <string name="configure_pip">Configuriere Pip…</string>
+    <string name="run_in_background">Im Hintergund laufen</string>
+    <string name="run_pip_installer">Führe den Pip Installer aus…</string>
+    <string name="module_installation_building">Erstelle Modul…</string>
+    <string name="module_installation_downloading">Lade %1$s herunter…</string>
+    <string name="module_installation_installing">Installiere %1$s…</string>
+    <string name="module_installation_searching">Suche nach %1$s…</string>
+</resources>

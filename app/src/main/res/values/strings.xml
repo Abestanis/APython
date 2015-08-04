@@ -1,5 +1,18 @@
 <resources>
-    <string name="app_name">Python Host</string>
+    <string name="app_name" translatable="false">Python Host</string>
     <string name="pythonHostPermission_label">Act as the Python host</string>
     <string name="pythonHostPermission_description">This permission enables this app to act as the Python host. This means that the app will provide executables, which Python apps will execute.</string>
+    <string name="install_executable">Installing the Python executable…</string>
+    <string name="install_pythonLibs">Installing Python libraries…</string>
+    <string name="install_requirements">Installing Requirements…</string>
+    <string name="changing_sitePackages_permissions">Changing the permissions of files in the site-packages directory…</string>
+    <string name="install_pip">Installing dependency system (Pip)…</string>
+    <string name="download_pip">Downloading Pip installer…</string>
+    <string name="configure_pip">Configuring Pip…</string>
+    <string name="run_in_background">Run in background</string>
+    <string name="run_pip_installer">Running Pip installer…</string>
+    <string name="module_installation_searching">Searching for module %1$s…</string>
+    <string name="module_installation_building">Building module…</string>
+    <string name="module_installation_downloading">Downloading %1$s…</string>
+    <string name="module_installation_installing">Installing %1$s…</string>
 </resources>

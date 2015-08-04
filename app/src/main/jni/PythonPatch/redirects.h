@@ -5,6 +5,7 @@
 
 int redirectedIsATty(int fd);
 int redirectedIOCtl(int fd, int request, ...);
+void __attribute__((noreturn)) redirectedExit(int code);
 //int redirectedSystem(const char *command);
 
 #endif // OUTPUT_REDIRECT_H //

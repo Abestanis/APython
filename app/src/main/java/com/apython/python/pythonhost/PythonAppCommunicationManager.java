@@ -71,21 +71,23 @@ public class PythonAppCommunicationManager {
         this.activity.finish();
     }
 
-    public void startPythonApp() {
+    public void startPythonApp(PackageManager.ProgressHandler progressHandler) {
         Context context = this.activity.getApplicationContext();
         Intent args = new Intent();
         args.setComponent(new ComponentName(this.appPackage, this.launchClass));
+
         if (this.requirements != null) { // TODO: Add more checks to speed up startup time
-            PackageManager.installRequirements(context, this.requirements);
+            PackageManager.installRequirements(context, this.requirements, progressHandler);
         }
-        PackageManager.checkSitePackagesAvailability(context);
+        PackageManager.checkSitePackagesAvailability(context, progressHandler);
+
         String libPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
         ArrayList<String> pythonLibs = new ArrayList<>();
         pythonLibs.add(libPath + System.mapLibraryName("pythonPatch"));
         pythonLibs.add(libPath + System.mapLibraryName("bzip"));
         pythonLibs.add(libPath + System.mapLibraryName("ffi"));
         pythonLibs.add(libPath + System.mapLibraryName("openSSL"));
-        pythonLibs.add(libPath + System.mapLibraryName("python2.7.2"));
+        pythonLibs.add(libPath + System.mapLibraryName("python" + PackageManager.pythonVersion));
         pythonLibs.add(libPath + System.mapLibraryName("pyLog"));
         pythonLibs.add(libPath + System.mapLibraryName("pyInterpreter"));
         pythonLibs.add(libPath + System.mapLibraryName("application"));
@@ -94,6 +96,5 @@ public class PythonAppCommunicationManager {
         args.putExtra("pythonExecutablePath", PackageManager.getPythonExecutable(context).getAbsolutePath());
         args.putExtra("xdgBasePath", PackageManager.getXDCBase(context).getAbsolutePath());
         this.activity.startActivity(args);
-        this.activity.finish();
     }
 }

@@ -1,7 +1,8 @@
 package com.apython.python.pythonhost;
 
+import android.app.Activity;
 import android.content.Context;
-import android.os.Handler;
+import android.util.Log;
 
 /*
  * A Python Interpreter which can run in an different thread.
@@ -11,12 +12,15 @@ import android.os.Handler;
 
 public class PythonInterpreterRunnable extends PythonInterpreter implements Runnable {
 
-    PythonInterpreterRunnable(Context context, final IOHandler ioHandler, final Handler handler) {
+    Activity activity;
+
+    PythonInterpreterRunnable(Context context, final IOHandler ioHandler, final Activity activity) {
         super(context);
+        this.activity = activity;
         this.ioHandler = new IOHandler() {
             @Override
             public void addOutput(final String text) {
-                handler.post(new Runnable() {
+                activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         ioHandler.addOutput(text);
@@ -26,7 +30,7 @@ public class PythonInterpreterRunnable extends PythonInterpreter implements Runn
 
             @Override
             public void setupInput(final String prompt) {
-                handler.post(new Runnable() {
+                activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         ioHandler.setupInput(prompt);
@@ -38,6 +42,8 @@ public class PythonInterpreterRunnable extends PythonInterpreter implements Runn
 
     @Override
     public void run() {
-        this.runPythonInterpreter(null);
+        int res = this.runPythonInterpreter(null);
+        Log.d(MainActivity.TAG, "Python interpreter exited with result " + res);
+        activity.finish();
     }
 }
