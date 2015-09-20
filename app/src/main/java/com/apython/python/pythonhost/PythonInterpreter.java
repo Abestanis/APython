@@ -19,14 +19,13 @@ public class PythonInterpreter {
         System.loadLibrary("bzip");
         System.loadLibrary("ffi");
         System.loadLibrary("openSSL");
-        System.loadLibrary("python" + PackageManager.pythonVersion);
         System.loadLibrary("pyLog");
-        System.loadLibrary("pyInterpreter");
     }
 
     public final Object inputUpdater = new Object();
     public       String inputLine    = null;
     protected Context   context;
+    protected String    pythonVersion;
     protected IOHandler ioHandler;
 
     interface IOHandler {
@@ -34,17 +33,25 @@ public class PythonInterpreter {
         void setupInput(String prompt);
     }
 
-    public PythonInterpreter(Context context) {
-        this(context, null);
+    public PythonInterpreter(Context context, String pythonVersion) {
+        this(context, pythonVersion, null);
     }
 
-    public PythonInterpreter(Context context, IOHandler ioHandler) {
+    public PythonInterpreter(Context context, String pythonVersion, IOHandler ioHandler) {
+        System.loadLibrary("python" + pythonVersion);
+        System.loadLibrary("pyInterpreter");
         this.context = context;
+        this.pythonVersion = pythonVersion;
         this.ioHandler = ioHandler;
     }
 
+    public String getPythonVersion() {
+        return nativeGetPythonVersion(System.mapLibraryName("python" + this.pythonVersion));
+    }
+
     public int runPythonInterpreter(String[] interpreterArgs) {
-        return this.runInterpreter(PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
+        return this.runInterpreter(System.mapLibraryName("python" + this.pythonVersion),
+                                   PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
                                    PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
                                    this.context.getFilesDir().getAbsolutePath(),
                                    PackageManager.getTempDir(this.context).getAbsolutePath(),
@@ -86,9 +93,8 @@ public class PythonInterpreter {
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             this.dispatchKey(event.getUnicodeChar());
-            return true;
         }
-        return true; // TODO: What happens if we say false?
+        return true;
     }
 
     @SuppressWarnings("unused")
@@ -123,7 +129,7 @@ public class PythonInterpreter {
         return line;
     }
 
-    public  native static String getPythonVersion();
-    public  native        void   dispatchKey(int character);
-    private native        int    runInterpreter(String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
+    private native String nativeGetPythonVersion(String pythonLibName);
+    public  native void   dispatchKey(int character);
+    private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
 }

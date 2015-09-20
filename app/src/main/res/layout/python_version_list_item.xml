@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="vertical"
+              android:animateLayoutChanges="true">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="30sp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/version_list_main_version_text"
+                android:layout_weight="10"
+                android:singleLine="true"
+                android:textSize="20sp"/>
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:src="@drawable/bullet_arrow_left"
+                android:id="@+id/version_list_dropdown_button"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/version_list_action_button"
+            android:src="@drawable/add"
+            android:layout_weight="1"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/version_list_delete_button"
+            android:src="@android:drawable/ic_menu_delete"
+            android:layout_weight="1"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/version_list_total_progress_view"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone"
+        android:progress="100"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/version_list_info_container"
+        android:visibility="gone"
+        android:animateLayoutChanges="true">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Subversion"
+            android:id="@+id/textView3"
+            android:textSize="16sp"
+            android:layout_toLeftOf="@+id/version_list_subversion_container"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No modules selected"
+            android:id="@+id/version_list_modules_info_text"
+            android:layout_alignTop="@+id/version_list_download_config_button"
+            android:layout_below="@+id/textView3"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:textSize="16sp"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/version_list_download_config_button"
+            android:src="@android:drawable/ic_menu_manage"
+            android:layout_alignRight="@+id/version_list_info_value_text"
+            android:layout_alignEnd="@+id/version_list_info_value_text"
+            android:layout_below="@+id/version_list_subversion_container"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Download size"
+            android:id="@+id/version_list_info_text"
+            android:layout_below="@+id/version_list_download_config_button"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_toLeftOf="@+id/version_list_info_value_text"
+            android:layout_toStartOf="@+id/version_list_info_value_text"
+            android:textSize="16sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="20 Mb"
+            android:id="@+id/version_list_info_value_text"
+            android:layout_below="@+id/version_list_download_config_button"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBottom="@+id/version_list_info_text"
+            android:textSize="16sp"/>
+
+        <Spinner
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/version_list_subversion_container"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"/>
+
+        <ProgressBar
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/version_list_progress_view"
+            android:layout_gravity="center_horizontal"
+            android:progress="100"
+            android:layout_below="@+id/version_list_info_text"
+            android:layout_alignRight="@+id/version_list_info_value_text"
+            android:layout_alignEnd="@+id/version_list_info_value_text"
+            android:visibility="gone"/>
+
+    </RelativeLayout>
+
+</LinearLayout>

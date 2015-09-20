@@ -361,7 +361,7 @@ class installSource extends DefaultTask {
             def fileFilter = new FileFilter() {
                 @Override
                 boolean accept(File pathname) {
-                    return pathname.getName().endsWith(".patch")
+                    return pathname.getName().endsWith(".patch") && pathname.getName().contains(version)
                 }
             }
             for (File patchFile : patchDir.listFiles(fileFilter)) {

@@ -60,52 +60,17 @@ public class GetPythonAppExecutionInfoActivity extends Activity {
             final AlertDialog dialog = dialogBuilder.create();
             dialog.setCancelable(false);
 
-            final PackageManager.ProgressHandler progressHandler = new PackageManager.ProgressHandler() {
-                boolean wasShown = false;
+            final ProgressHandler progressHandler = ProgressHandler.Factory.create(this, progressTextView, progressView, new Runnable() {
                 @Override
-                public void enable(final String text) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            progressTextView.setText(text);
-                            if (!dialog.isShowing() && !wasShown) {
-                                wasShown = true;
-                                dialog.show();
-                                WindowManager.LayoutParams windowLayoutParams = new WindowManager.LayoutParams();
-                                Window window = dialog.getWindow();
-                                windowLayoutParams.copyFrom(window.getAttributes());
-                                windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
-                                window.setAttributes(windowLayoutParams);
-                            }
-                        }
-                    });
+                public void run() {
+                    dialog.show();
+                    WindowManager.LayoutParams windowLayoutParams = new WindowManager.LayoutParams();
+                    Window window = dialog.getWindow();
+                    windowLayoutParams.copyFrom(window.getAttributes());
+                    windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+                    window.setAttributes(windowLayoutParams);
                 }
-
-                @Override
-                public void setText(final String text) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            progressTextView.setText(text);
-                        }
-                    });
-                }
-
-                @Override
-                public void setProgress(final float progress) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (progress < 0) {
-                                progressView.setIndeterminate(true);
-                            } else {
-                                progressView.setIndeterminate(false);
-                                progressView.setProgress((int) (progress * 100));
-                            }
-                        }
-                    });
-                }
-            };
+            }, null);
             new Thread(new Runnable() {
                 @Override
                 public void run() {

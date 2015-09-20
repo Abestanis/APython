@@ -49,6 +49,14 @@ void redirectedExit(int code) {
     pthread_exit(ret);
 }
 
+// because: https://github.com/awong-dev/ndk/blob/master/sources/android/support/src/locale/setlocale.c
+char* redirectedSetLocale(int category, const char *locale) {
+    if (locale == NULL) {
+        return "C";
+    }
+    return setlocale(category, locale);
+}
+
 // If we ever want to emulate a command, we can do this here:
 //int (*androidMoreCommandPointer)(const char* command) = NULL;
 

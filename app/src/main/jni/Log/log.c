@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
 // The Log system //
 
@@ -14,14 +15,24 @@ int outputCaptureThreadStarted = 0;
 void (*stdout_write)(const char*) = NULL;
 void (*stderr_write)(const char*) = NULL;
 
-#define LOG_ASSERT(x) __android_log_assert(ANDROID_LOG_FATAL, appTag, (x))
-
-int _log_write_(int priority, const char *text) {
-    __android_log_write(priority, appTag, text);
+int _log_write_(int priority, const char *text, ...) {
+    va_list argP;
+    va_start(argP, text);
+    __android_log_vprint(priority, appTag, text, argP);
+    va_end(argP);
 }
 
-void _assert_(const char* expression, const char* file, int line, const char* errorString) {
-    __android_log_assert(expression, appTag, "Assertion failed (%s) at %s, line %i: %s", expression, file, line, errorString);
+void _assert_(const char* expression, const char* file, int line, const char* errorString, ...) {
+    va_list argP;
+    va_start(argP, errorString);
+    char* message = malloc(sizeof(char) * (strlen(errorString) + 2048));
+    if (message == NULL) {
+        LOG_ERROR("Failed to allocate memory for assert message (format = '%s')", errorString);
+        assert(message != NULL);
+    }
+    vsprintf(message, errorString, argP);
+    va_end(argP);
+    __android_log_assert(expression, appTag, "Assertion failed (%s) at %s, line %i: %s", expression, file, line, message);
 }
 
 void setApplicationTag(const char* newAppTag) {

@@ -9,19 +9,27 @@ extern "C" {
 #endif
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
- * Method:    getPythonVersion
- * Signature: ()Ljava/lang/String;
+ * Method:    nativeGetPythonVersion
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_getPythonVersion
-  (JNIEnv *, jclass);
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_nativeGetPythonVersion
+  (JNIEnv *, jclass, jstring);
+
+///*
+// * Class:     com_apython_python_pythonhost_PythonInterpreter
+// * Method:    runInterpreter
+// * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Z)V
+// */
+//JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreter
+//  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jboolean);
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
  * Method:    runInterpreter
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Z)I
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Z)I
  */
 JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreter
-  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jboolean);
+  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jboolean);
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter

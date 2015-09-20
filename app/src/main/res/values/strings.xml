@@ -15,4 +15,6 @@
     <string name="module_installation_building">Building module…</string>
     <string name="module_installation_downloading">Downloading %1$s…</string>
     <string name="module_installation_installing">Installing %1$s…</string>
+    <string name="getPython_title">Download Python sources</string>
+    <string name="search_hint">Search...</string>
 </resources>

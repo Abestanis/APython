@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "Log/log.h"
+#include "py_compatibility.h"
 
 struct pythonThreadArguments {
     int argc;
@@ -24,8 +25,8 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
         free((char*) newValue);
     }
 
-    Py_SetPythonHome((char*) pythonHome);
-    Py_SetProgramName((char*) pythonProgramPath);
+    call_Py_SetPythonHome((char*) pythonHome);
+    call_Py_SetProgramName((char*) pythonProgramPath);
 
     setenv("TMPDIR", pythonTemp, 1);
     setenv("XDG_CACHE_HOME", pythonTemp, 1);
@@ -72,7 +73,8 @@ void* startPythonInterpreter(void* arg) {
     //Py_VerboseFlag = 1;
     //Py_DebugFlag = 1;
     LOG("Starting...");
-    exit(Py_Main(args->argc, args->argv));
+    fflush(stdout);
+    exit(call_Py_Main(args->argc, args->argv));
     pthread_cleanup_pop(0);
 }
 

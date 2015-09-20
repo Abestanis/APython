@@ -1,9 +1,18 @@
 #include "main.h"
-#include "Python.h"
 #include "Log/log.h"
 #include <stdio.h>
 #include <unistd.h>
 #include "Interpreter/py_utils.h"
+#include "Interpreter/py_compatibility.h"
+
+const char* getPythonLibraryName() {
+    char* name = getenv("PYTHON_LIBRARY_NAME");
+    if (name == NULL) {
+        name = "libpython3.4.so";
+        LOG_WARN("Python executable was unable to retrive the python library name! Using default (%s).", name);
+    }
+    return (const char*) name;
+}
 
 int main(int argc, char** argv) {
     const char* defaultPath  = "/data/data/com.apython.python.pythonhost/"; // This is an fallback if argv[0] is not set right;
@@ -30,6 +39,8 @@ int main(int argc, char** argv) {
         basePath = malloc(sizeof(char) * (strlen(defaultPath) + 1));
         strcpy((char*) basePath, defaultPath);
     }
+    // load pythonLib
+    if (!setPythonLibrary(getPythonLibraryName())) { return 1; }
     // libs
     const char* pythonLibs = malloc(sizeof(char) * (strlen(basePath) + strlen(libAppendix) + 1));
     ASSERT(pythonLibs != NULL, "Not enough memory to construct the path to the Python libraries!");
@@ -51,11 +62,12 @@ int main(int argc, char** argv) {
     strcpy((char*) xdgBasePath, basePath);
     strcat((char*) xdgBasePath, xdgAppendix);
     setupPython(programName, pythonLibs, pythonHome, pythonTemp, xdgBasePath);
-    int result = Py_Main(argc, argv);
+    int result = call_Py_Main(argc, argv);
     free((char*) basePath);
     free((char*) pythonLibs);
     free((char*) pythonHome);
     free((char*) pythonTemp);
     free((char*) xdgBasePath);
+    closePythonLibrary();
     return result;
 }

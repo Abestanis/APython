@@ -1,0 +1,346 @@
+--- Python-3.4.3.orig/Lib/distutils/sysconfig.py
++++ Python-3.4.3.new/Lib/distutils/sysconfig.py
+@@ -165,7 +165,7 @@ def customize_compiler(compiler):
+     Mainly needed on Unix, so we can plug in the information that
+     varies across Unices and is stored in Python's Makefile.
+     """
+-    if compiler.compiler_type == "unix":
++    if compiler.compiler_type == "unix" and sys.platform != "android":
+         if sys.platform == "darwin":
+             # Perform first-time customization of compiler-related
+             # config vars on OS X now that we know we need a compiler.
+@@ -425,6 +425,18 @@ _config_vars = None
+ def _init_posix():
+     """Initialize the module as appropriate for POSIX systems."""
+     g = {}
++    global _config_vars # TODO: Edited here
++    if sys.platform == 'android':
++        g['LIBDEST'] = get_python_lib(plat_specific=0, standard_lib=1)
++        g['BINLIBDEST'] = get_python_lib(plat_specific=1, standard_lib=1)
++
++        #g['INCLUDEPY'] = get_python_inc(plat_specific=0)
++
++        g['SO'] = '.so'
++        g['VERSION'] = get_python_version().replace(".", "")
++        #g['BINDIR'] = os.path.dirname(os.path.abspath(sys.executable))
++        _config_vars = g
++        return
+     # load the installed Makefile:
+     try:
+         filename = get_makefile_filename()
+@@ -454,7 +466,7 @@ def _init_posix():
+     if python_build:
+         g['LDSHARED'] = g['BLDSHARED']
+ 
+-    global _config_vars
++    #global _config_vars
+     _config_vars = g
+ 
+ 
+--- Python-3.4.3.orig/Lib/sysconfig.py
++++ Python-3.4.3.new/Lib/sysconfig.py
+@@ -345,24 +345,34 @@ def _generate_posix_vars():
+     """Generate the Python module containing build-time variables."""
+     import pprint
+     vars = {}
+-    # load the installed Makefile:
+-    makefile = get_makefile_filename()
+-    try:
+-        _parse_makefile(makefile, vars)
+-    except OSError as e:
+-        msg = "invalid Python installation: unable to open %s" % makefile
+-        if hasattr(e, "strerror"):
+-            msg = msg + " (%s)" % e.strerror
+-        raise OSError(msg)
+-    # load the installed pyconfig.h:
+-    config_h = get_config_h_filename()
+-    try:
+-        with open(config_h) as f:
+-            parse_config_h(f, vars)
+-    except OSError as e:
+-        msg = "invalid Python installation: unable to open %s" % config_h
+-        if hasattr(e, "strerror"):
+-            msg = msg + " (%s)" % e.strerror
++    if sys.platform == 'android':
++        vars['LIBDEST'] = get_path('stdlib')
++        vars['BINLIBDEST'] = get_path('platstdlib')
++
++        #vars['INCLUDEPY'] = get_python_inc(plat_specific=0)
++
++        vars['SO'] = '.so'
++        vars['VERSION'] = _PY_VERSION_SHORT_NO_DOT
++        vars['BINDIR'] = os.path.dirname(_safe_realpath(sys.executable))
++    else:
++        # load the installed Makefile:
++        makefile = get_makefile_filename()
++        try:
++            _parse_makefile(makefile, vars)
++        except OSError as e:
++            msg = "invalid Python installation: unable to open %s" % makefile
++            if hasattr(e, "strerror"):
++                msg = msg + " (%s)" % e.strerror
++            raise OSError(msg)
++        # load the installed pyconfig.h:
++        config_h = get_config_h_filename()
++        try:
++            with open(config_h) as f:
++                parse_config_h(f, vars)
++        except OSError as e:
++            msg = "invalid Python installation: unable to open %s" % config_h
++            if hasattr(e, "strerror"):
++                msg = msg + " (%s)" % e.strerror
+         raise OSError(msg)
+     # On AIX, there are wrong paths to the linker scripts in the Makefile
+     # -- these paths are relative to the Python source, but when installed
+@@ -407,8 +417,18 @@ def _generate_posix_vars():
+ def _init_posix(vars):
+     """Initialize the module as appropriate for POSIX systems."""
+     # _sysconfigdata is generated at build time, see _generate_posix_vars()
+-    from _sysconfigdata import build_time_vars
+-    vars.update(build_time_vars)
++    if sys.platform == 'android':
++        vars['LIBDEST'] = get_path('stdlib')
++        vars['BINLIBDEST'] = get_path('platstdlib')
++
++        #vars['INCLUDEPY'] = get_python_inc(plat_specific=0)
++
++        vars['SO'] = '.so'
++        vars['VERSION'] = _PY_VERSION_SHORT_NO_DOT
++        vars['BINDIR'] = os.path.dirname(_safe_realpath(sys.executable))
++    else:
++        from _sysconfigdata import build_time_vars
++        vars.update(build_time_vars)
+ 
+ def _init_non_posix(vars):
+     """Initialize the module as appropriate for NT"""
+--- Python-3.4.3.orig/Modules/_localemodule.c
++++ Python-3.4.3.new/Modules/_localemodule.c
+@@ -134,7 +134,7 @@ static PyObject*
+ PyLocale_localeconv(PyObject* self)
+ {
+     PyObject* result;
+-    struct lconv *l;
++    //struct lconv *l;
+     PyObject *x;
+ 
+     result = PyDict_New();
+@@ -142,7 +142,7 @@ PyLocale_localeconv(PyObject* self)
+         return NULL;
+ 
+     /* if LC_NUMERIC is different in the C library, use saved value */
+-    l = localeconv();
++    //l = localeconv();
+ 
+     /* hopefully, the localeconv result survives the C library calls
+        involved herein */
+@@ -160,40 +160,40 @@ PyLocale_localeconv(PyObject* self)
+ 
+ #define RESULT_STRING(s)\
+     do { \
+-        x = PyUnicode_DecodeLocale(l->s, NULL); \
++        x = PyUnicode_DecodeLocale(s, NULL);/*l->s, NULL);*/ \
+         RESULT(#s, x); \
+     } while (0)
+ 
+ #define RESULT_INT(i)\
+     do { \
+-        x = PyLong_FromLong(l->i); \
++        x = PyLong_FromLong(i);/*l->i);*/ \
+         RESULT(#i, x); \
+     } while (0)
+ 
+     /* Numeric information */
+-    RESULT_STRING(decimal_point);
+-    RESULT_STRING(thousands_sep);
+-    x = copy_grouping(l->grouping);
++    RESULT_STRING(".");//decimal_point);
++    RESULT_STRING("");//thousands_sep);
++    x = copy_grouping("");//l->grouping);
+     RESULT("grouping", x);
+ 
+     /* Monetary information */
+-    RESULT_STRING(int_curr_symbol);
+-    RESULT_STRING(currency_symbol);
+-    RESULT_STRING(mon_decimal_point);
+-    RESULT_STRING(mon_thousands_sep);
+-    x = copy_grouping(l->mon_grouping);
++    RESULT_STRING("");//int_curr_symbol);
++    RESULT_STRING("");//currency_symbol);
++    RESULT_STRING("");//mon_decimal_point);
++    RESULT_STRING("");//mon_thousands_sep);
++    x = copy_grouping("");//l->mon_grouping);
+     RESULT("mon_grouping", x);
+ 
+-    RESULT_STRING(positive_sign);
+-    RESULT_STRING(negative_sign);
+-    RESULT_INT(int_frac_digits);
+-    RESULT_INT(frac_digits);
+-    RESULT_INT(p_cs_precedes);
+-    RESULT_INT(p_sep_by_space);
+-    RESULT_INT(n_cs_precedes);
+-    RESULT_INT(n_sep_by_space);
+-    RESULT_INT(p_sign_posn);
+-    RESULT_INT(n_sign_posn);
++    RESULT_STRING("");//positive_sign);
++    RESULT_STRING("");//negative_sign);
++    RESULT_INT(CHAR_MAX);//int_frac_digits);
++    RESULT_INT(CHAR_MAX);//frac_digits);
++    RESULT_INT(CHAR_MAX);//p_cs_precedes);
++    RESULT_INT(CHAR_MAX);//p_sep_by_space);
++    RESULT_INT(CHAR_MAX);//n_cs_precedes);
++    RESULT_INT(CHAR_MAX);//n_sep_by_space);
++    RESULT_INT(CHAR_MAX);//p_sign_posn);
++    RESULT_INT(CHAR_MAX);//n_sign_posn);
+     return result;
+ 
+   failed:
+--- Python-3.4.3.orig/Modules/posixmodule.c
++++ Python-3.4.3.new/Modules/posixmodule.c
+@@ -6068,13 +6068,13 @@ posix_openpty(PyObject *self, PyObject *noargs)
+     if (_Py_set_inheritable(master_fd, 0, NULL) < 0)
+         goto posix_error;
+ 
+-#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
+-    ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
+-    ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
+-#ifndef __hpux
+-    ioctl(slave_fd, I_PUSH, "ttcompat"); /* push ttcompat */
+-#endif /* __hpux */
+-#endif /* HAVE_CYGWIN */
++//#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
++//    ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
++//    ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
++//#ifndef __hpux
++//    ioctl(slave_fd, I_PUSH, "ttcompat"); /* push ttcompat */
++//#endif /* __hpux */
++//#endif /* HAVE_CYGWIN */
+ #endif /* HAVE_OPENPTY */
+ 
+     return Py_BuildValue("(ii)", master_fd, slave_fd);
+--- Python-3.4.3.orig/Modules/pwdmodule.c"
++++ Python-3.4.3.new/Modules/pwdmodule.c"
+@@ -72,7 +72,7 @@ mkpwent(struct passwd *p)
+     SETS(setIndex++, p->pw_passwd);
+     PyStructSequence_SET_ITEM(v, setIndex++, _PyLong_FromUid(p->pw_uid));
+     PyStructSequence_SET_ITEM(v, setIndex++, _PyLong_FromGid(p->pw_gid));
+-    SETS(setIndex++, p->pw_gecos);
++    SETS(setIndex++, "");//p->pw_gecos);
+     SETS(setIndex++, p->pw_dir);
+     SETS(setIndex++, p->pw_shell);
+ 
+--- Python-3.4.3.orig/Modules/python.c"
++++ Python-3.4.3.new/Modules/python.c"
+@@ -16,7 +16,7 @@ wmain(int argc, wchar_t **argv)
+ #else
+ 
+ int
+-main(int argc, char **argv)
++oldPy_Main(int argc, char **argv)
+ {
+     wchar_t **argv_copy;
+     /* We need a second copy, as Python might modify the first one. */
+--- Python-3.4.3.orig/Modules/socketmodule.c
++++ Python-3.4.3.new/Modules/socketmodule.c
+@@ -260,6 +260,8 @@ if_indextoname(index) -- return the corresponding interface name\n\
+ #include <net/if.h>
+ #endif
+ 
++#include <linux/if.h>
++
+ /* Generic socket object definitions and includes */
+ #define PySocket_BUILDING_SOCKET
+ #include "socketmodule.h"
+--- Python-3.4.3.orig/Modules/termios.c"
++++ Python-3.4.3.new/Modules/termios.c"
+@@ -220,6 +220,7 @@ termios_tcsendbreak(PyObject *self, PyObject *args)
+     return Py_None;
+ }
+ 
++#if 0
+ PyDoc_STRVAR(termios_tcdrain__doc__,
+ "tcdrain(fd) -> None\n\
+ \n\
+@@ -239,6 +240,7 @@ termios_tcdrain(PyObject *self, PyObject *args)
+     Py_INCREF(Py_None);
+     return Py_None;
+ }
++#endif
+ 
+ PyDoc_STRVAR(termios_tcflush__doc__,
+ "tcflush(fd, queue) -> None\n\
+@@ -294,8 +296,8 @@ static PyMethodDef termios_methods[] =
+      METH_VARARGS, termios_tcsetattr__doc__},
+     {"tcsendbreak", termios_tcsendbreak,
+      METH_VARARGS, termios_tcsendbreak__doc__},
+-    {"tcdrain", termios_tcdrain,
+-     METH_VARARGS, termios_tcdrain__doc__},
++//    {"tcdrain", termios_tcdrain,
++//     METH_VARARGS, termios_tcdrain__doc__},
+     {"tcflush", termios_tcflush,
+      METH_VARARGS, termios_tcflush__doc__},
+     {"tcflow", termios_tcflow,
+--- Python-3.4.3.orig/Python/bltinmodule.c
++++ Python-3.4.3.new/Python/bltinmodule.c
+@@ -24,7 +24,7 @@
+ #ifdef HAVE_MBCS
+ const char *Py_FileSystemDefaultEncoding = "mbcs";
+ int Py_HasFileSystemDefaultEncoding = 1;
+-#elif defined(__APPLE__)
++#elif defined(__APPLE__) || 1
+ const char *Py_FileSystemDefaultEncoding = "utf-8";
+ int Py_HasFileSystemDefaultEncoding = 1;
+ #else
+--- Python-3.4.3.orig/Python/formatter_unicode.c"
++++ Python-3.4.3.new/Python/formatter_unicode.c"
+@@ -666,7 +666,7 @@ static int
+ get_locale_info(int type, LocaleInfo *locale_info)
+ {
+     switch (type) {
+-    case LT_CURRENT_LOCALE: {
++    case LT_CURRENT_LOCALE: /*{
+         struct lconv *locale_data = localeconv();
+         locale_info->decimal_point = PyUnicode_DecodeLocale(
+                                          locale_data->decimal_point,
+@@ -681,8 +681,7 @@ get_locale_info(int type, LocaleInfo *locale_info)
+             return -1;
+         }
+         locale_info->grouping = locale_data->grouping;
+-        break;
+-    }
++        break; */
+     case LT_DEFAULT_LOCALE:
+         locale_info->decimal_point = PyUnicode_FromOrdinal('.');
+         locale_info->thousands_sep = PyUnicode_FromOrdinal(',');
+--- Python-3.4.3.orig/Python/pystrtod.c
++++ Python-3.4.3.new/Python/pystrtod.c
+@@ -165,7 +165,7 @@ _PyOS_ascii_strtod(const char *nptr, char **endptr)
+ {
+     char *fail_pos;
+     double val;
+-    struct lconv *locale_data;
++    //struct lconv *locale_data;
+     const char *decimal_point;
+     size_t decimal_point_len;
+     const char *p, *decimal_point_pos;
+@@ -177,8 +177,8 @@ _PyOS_ascii_strtod(const char *nptr, char **endptr)
+ 
+     fail_pos = NULL;
+ 
+-    locale_data = localeconv();
+-    decimal_point = locale_data->decimal_point;
++    //locale_data = localeconv();
++    decimal_point = ".";//locale_data->decimal_point;
+     decimal_point_len = strlen(decimal_point);
+ 
+     assert(decimal_point_len != 0);
+@@ -378,8 +378,8 @@ PyOS_string_to_double(const char *s,
+ Py_LOCAL_INLINE(void)
+ change_decimal_from_locale_to_dot(char* buffer)
+ {
+-    struct lconv *locale_data = localeconv();
+-    const char *decimal_point = locale_data->decimal_point;
++    //struct lconv *locale_data = localeconv();
++    const char *decimal_point = ".";//locale_data->decimal_point;
+ 
+     if (decimal_point[0] != '.' || decimal_point[1] != 0) {
+         size_t decimal_point_len = strlen(decimal_point);

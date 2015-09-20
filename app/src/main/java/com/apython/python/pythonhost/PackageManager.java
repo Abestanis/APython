@@ -7,6 +7,7 @@ package com.apython.python.pythonhost;
  */
 
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -24,14 +25,6 @@ import java.util.ArrayList;
 public class PackageManager {
 
     public static String pythonVersion = "2.7";
-
-    public interface ProgressHandler {
-        void enable(String text);
-
-        void setText(String text);
-
-        void setProgress(float progress);
-    }
 
     public static File getSharedLibrariesPath(Context context) {
         return new File(context.getApplicationInfo().dataDir, "lib");
@@ -57,15 +50,81 @@ public class PackageManager {
         return new File(context.getFilesDir(), "pythonApps");
     }
 
-    public static File getLibDynLoad(Context context) {
+    public static File getLibDynLoad(Context context, String pythonVersion) {
         return new File(getStandardLibPath(context), "python" + pythonVersion + "/lib-dynload");
+    }
+
+    public static File getDynamicLibraryPath(Context context) {
+        return new File(context.getFilesDir(), "dynLibs");
+    }
+
+    public static boolean isAdditionalLibraryInstalled(Context context, String libName) {
+        return new File(getDynamicLibraryPath(context), System.mapLibraryName(libName)).exists();
+    }
+
+    public static boolean isPythonVersionInstalled(Context context, String pythonVersion) {
+        return new File(getDynamicLibraryPath(context), System.mapLibraryName("python" + pythonVersion)).exists()
+                && new File(getStandardLibPath(context), "python" + pythonVersion.replace(".", "") + ".zip").exists();
+    }
+
+    public static ArrayList<String> getInstalledPythonVersions(Context context) { // TODO: Make this better
+        File libPath = getDynamicLibraryPath(context);
+        ArrayList<String> versions = new ArrayList<>();
+        if (!libPath.exists() || !libPath.isDirectory()) {
+            return versions;
+        }
+        for (File libFile : libPath.listFiles()) {
+            String name = libFile.getName();
+            if (!name.startsWith("libpython") || !name.endsWith(".so") || name.contains("pythonPatch")) {
+                continue;
+            }
+            String version = name.replace("libpython", "").replace(".so", "");
+            if (new File(getStandardLibPath(context), "python" + version.replace(".", "") + ".zip").exists()) {
+                versions.add(version);
+            }
+        }
+        return versions;
+    }
+
+    /**
+     * Get the ABIs supported by this device.
+     *
+     * @return a list of supported ABIs.
+     */
+    public static String[] getSupportedCPUABIS() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            //noinspection deprecation
+            return new String[] {Build.CPU_ABI, Build.CPU_ABI2};
+        } else {
+            return Build.SUPPORTED_ABIS;
+        }
+    }
+
+    public static boolean deletePythonVersion(Context context, String pythonVersion) {
+        File pythonLib = new File(getDynamicLibraryPath(context), "libpython" + pythonVersion + ".so");
+        File moduleZip = new File(getStandardLibPath(context), "python" + pythonVersion.replace(".", "") + ".zip");
+        File moduleDir = getLibDynLoad(context, pythonVersion);
+
+        if (!Util.deleteDirectory(moduleDir)) {
+            Log.w(MainActivity.TAG, "Failed to delete the Python version + " + pythonVersion + ": Could not delete the lib-dynload directory!");
+            return false;
+        }
+        if (!moduleZip.delete()) {
+            Log.w(MainActivity.TAG, "Failed to delete the Python version + " + pythonVersion + ": Could not delete the module zip!");
+            return false;
+        }
+        if (!pythonLib.delete()) {
+            Log.e(MainActivity.TAG, "Failed to delete the Python version + " + pythonVersion + ": Could not delete the Python library!");
+            return false;
+        }
+        return true;
     }
 
     // Checks that all components of this Python installation are present.
     public static boolean ensurePythonInstallation(Context context, ProgressHandler progressHandler) {
         return installPythonExecutable(context, progressHandler)
                 && installPythonLibraries(context, progressHandler)
-                && installPip(context, progressHandler)
+                //&& installPip(context, progressHandler)
                 && checkSitePackagesAvailability(context, progressHandler);
     }
 
@@ -80,24 +139,25 @@ public class PackageManager {
         if (progressHandler != null) {
             progressHandler.enable(context.getString(R.string.install_executable));
         }
-        return executable.exists() || Util.installRawResource(executable, context.getResources().openRawResource(R.raw.python), progressHandler);
+        return executable.exists() || Util.installFromInputStream(executable, context.getResources().openRawResource(R.raw.python), progressHandler);
     }
 
     public static boolean installPythonLibraries(Context context, ProgressHandler progressHandler) {
         File libDest = getStandardLibPath(context);
-        if (libDest.isDirectory()) {
-            return true;
-        }
         if (!(libDest.mkdirs() || libDest.isDirectory())) {
             Log.e(MainActivity.TAG, "Failed to create the 'lib' directory!");
             return false;
+        }
+        File libZip = new File(libDest, "python" + pythonVersion.replace(".", "") + ".zip");
+        if (libZip.exists()) {
+            return true;
         }
         if (progressHandler != null) {
             progressHandler.enable(context.getString(R.string.install_pythonLibs));
         }
         Util.makeFileAccessible(libDest, false);
         InputStream libLocation = context.getResources().openRawResource(R.raw.lib);
-        return Util.installRawResource(new File(libDest, "python" + pythonVersion.replace(".", "") + ".zip"), libLocation, progressHandler);
+        return Util.installFromInputStream(libZip, libLocation, progressHandler);
     }
 
     public static boolean installRequirements(final Context context, String requirements, final ProgressHandler progressHandler) {
@@ -125,7 +185,7 @@ public class PackageManager {
                 public void setupInput(String prompt) {}
             };
         }
-        PythonInterpreter interpreter = new PythonInterpreter(context, ioHandler);
+        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
         int result = interpreter.runPythonModule("pip", new String[] {"install", "-r", reqFile.getAbsolutePath()});
         if (!reqFile.delete()) {
             Log.w(MainActivity.TAG, "Cannot delete temporary file '" + reqFile.getAbsolutePath() + "'!");
@@ -167,7 +227,7 @@ public class PackageManager {
                 progressHandler.enable(context.getString(R.string.install_pip));
             }
             String url = "https://bootstrap.pypa.io/get-pip.py";
-            HttpResponse response = Util.connectToUrl(url);
+            HttpResponse response = Util.connectToUrl(url, 20);
             InputStream stream;
             long totalDownloadSize;
             try {
@@ -229,7 +289,7 @@ public class PackageManager {
                     public void setupInput(String prompt) {}
                 };
             }
-            PythonInterpreter interpreter = new PythonInterpreter(context, ioHandler);
+            PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
             int res = interpreter.runPythonFile(file, null);
             if (!file.delete()) {
                 Log.w(MainActivity.TAG, "Failed to delete '" + file.getAbsolutePath() + "'!");
@@ -253,6 +313,6 @@ public class PackageManager {
         if (progressHandler != null) {
             progressHandler.enable(context.getString(R.string.configure_pip));
         }
-        return Util.installRawResource(config, context.getResources().openRawResource(R.raw.pip_conf), progressHandler) && Util.makeFileAccessible(new File(context.getFilesDir(), "pythonApps"), true);
+        return Util.installFromInputStream(config, context.getResources().openRawResource(R.raw.pip_conf), progressHandler) && Util.makeFileAccessible(new File(context.getFilesDir(), "pythonApps"), true);
     }
 }

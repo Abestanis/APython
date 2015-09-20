@@ -14,8 +14,8 @@ public class PythonInterpreterRunnable extends PythonInterpreter implements Runn
 
     Activity activity;
 
-    PythonInterpreterRunnable(Context context, final IOHandler ioHandler, final Activity activity) {
-        super(context);
+    PythonInterpreterRunnable(Context context, String pythonVersion, final IOHandler ioHandler, final Activity activity) {
+        super(context, pythonVersion);
         this.activity = activity;
         this.ioHandler = new IOHandler() {
             @Override

@@ -47,9 +47,6 @@
    the case on Motorola V4 (R40V4.2) */
 /* #undef GETTIMEOFDAY_NO_TZ */
 
-/* Define to 1 if you have the `accept4' function. */
-#undef HAVE_ACCEPT4
-
 /* Define to 1 if you have the `acosh' function. */
 #define HAVE_ACOSH 1
 
@@ -218,7 +215,7 @@
 #define HAVE_FCNTL_H 1
 
 /* Define if you have the 'fdatasync' function. */
-#define HAVE_FDATASYNC 1
+/*#undef HAVE_FDATASYNC */
 
 /* Define to 1 if you have the `finite' function. */
 #define HAVE_FINITE 1

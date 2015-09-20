@@ -46,6 +46,7 @@ public class PythonAppCommunicationManager {
             this.appPackage   = args.getStringExtra("package");
             this.launchClass  = args.getStringExtra("launchClass");
             this.requirements = args.getStringExtra("requirements");
+            // TODO: Handle Python Version
             break;
         case -1:
             Log.e(TAG, "Client did not send protocol version!");
@@ -71,7 +72,7 @@ public class PythonAppCommunicationManager {
         this.activity.finish();
     }
 
-    public void startPythonApp(PackageManager.ProgressHandler progressHandler) {
+    public void startPythonApp(ProgressHandler progressHandler) {
         Context context = this.activity.getApplicationContext();
         Intent args = new Intent();
         args.setComponent(new ComponentName(this.appPackage, this.launchClass));
@@ -95,6 +96,7 @@ public class PythonAppCommunicationManager {
         args.putExtra("pythonHome", this.activity.getApplicationContext().getFilesDir().getAbsolutePath());
         args.putExtra("pythonExecutablePath", PackageManager.getPythonExecutable(context).getAbsolutePath());
         args.putExtra("xdgBasePath", PackageManager.getXDCBase(context).getAbsolutePath());
+        args.putExtra("pythonVersion", PackageManager.pythonVersion);
         this.activity.startActivity(args);
     }
 }

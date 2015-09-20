@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.apython.python.pythonhost" >
+          xmlns:tools="http://schemas.android.com/tools"
+          package="com.apython.python.pythonhost" >
     <permission
         android:name="com.python.permission.PYTHONHOST"
         android:label="@string/pythonHostPermission_label"
         android:description="@string/pythonHostPermission_description"
-        android:icon="@drawable/python_permission_icon"
+        android:icon="@drawable/python_grey_icon"
         android:protectionLevel="dangerous" />
     <!-- Should the permission declaration be here, in the app or both? Should we define a permission tree? -->
     <uses-permission android:name="com.python.permission.PYTHONHOST" />
@@ -36,6 +37,18 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".PythonDownloadCenterActivity"
+            android:label="DownloadPythonSources"
+            android:parentActivityName=".MainActivity"
+            tools:ignore="UnusedAttribute">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+        <service
+            android:name=".PythonDownloadService"
+            android:exported="false"/>
     </application>
 
 </manifest>

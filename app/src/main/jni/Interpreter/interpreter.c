@@ -1,7 +1,7 @@
 #include "interpreter.h"
-#include "Python.h"
 #include "Log/log.h"
 #include "py_utils.h"
+#include "py_compatibility.h"
 
 jobject jPyInterpreter = NULL;
 static JavaVM *Jvm = NULL;
@@ -59,7 +59,7 @@ char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, char *prompt) {
     }
 
     const char *line = (*env)->GetStringUTFChars(env, jLine, 0);
-    char *lineCopy = (char*) PyMem_Malloc(1 + strlen(line)); // TODO: Use PyMem_RawMalloc from python version 3.4
+    char *lineCopy = (char*) call_PyMem_Malloc(1 + strlen(line));
     if (lineCopy == NULL) {
         LOG("Could not copy string!");
         return NULL;
@@ -73,22 +73,28 @@ char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, char *prompt) {
 /* JNI functions */
 
 
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_getPythonVersion(JNIEnv *env, jclass clazz) {
-    return (*env)->NewStringUTF(env, PY_VERSION);
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_nativeGetPythonVersion(JNIEnv *env, jclass clazz, jstring jPythonLibName) {
+    const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
+    setPythonLibrary(pythonLibName);
+    (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
+    return (*env)->NewStringUTF(env, getPythonVersion());
 }
 
 JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreter(
-           JNIEnv *env, jobject obj, jstring jProgramPath, jstring jLibPath, jstring jPythonHome,
+           JNIEnv *env, jobject obj, jstring jPythonLibName, jstring jProgramPath, jstring jLibPath, jstring jPythonHome,
            jstring jPythonTemp, jstring jXDGBasePath, jstring jAppTag, jobjectArray jArgs, jboolean redirectOutput) {
     jPyInterpreter = (*env)->NewGlobalRef(env, obj);
     int i;
 
     const char *appTag = (*env)->GetStringUTFChars(env, jAppTag, 0);
     setApplicationTag(appTag);
+
+    const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
+    if (!setPythonLibrary(pythonLibName)) { return 1; }
     if (redirectOutput == JNI_TRUE) {
         setStdoutRedirect(redirectOutputToJava);
         setStderrRedirect(redirectOutputToJava);
-        PyOS_ReadlineFunctionPointer = readLineFromJavaInput;
+        set_PyOS_ReadlineFunctionPointer(readLineFromJavaInput);
     }
 
     const char *programName = (*env)->GetStringUTFChars(env, jProgramPath, 0);
@@ -116,7 +122,7 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runI
             const char *argument = (*env)->GetStringUTFChars(env, jArgument, 0);
             char *arg = malloc(sizeof(char) * (strlen(argument) + 1));
             if (argv == NULL) {
-                LOG_ERROR("Failed to allocate space for an argument!");
+                LOG_ERROR("Failed to allocate space for argument %d ('%s')!", i, argument);
                 return 1;
             }
             arg = strcpy(arg, argument);
@@ -135,17 +141,19 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runI
 
     (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
     (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
+    (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jLibPath, pythonLibs);
     (*env)->ReleaseStringUTFChars(env, jProgramPath, programName);
     (*env)->ReleaseStringUTFChars(env, jXDGBasePath, xdgBasePath);
     (*env)->DeleteGlobalRef(env, jPyInterpreter);
+    closePythonLibrary();
     jPyInterpreter = NULL;
     return result;
 }
 
 JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_dispatchKey(JNIEnv *env, jobject obj, jint character) {
     if (stdin_writer == NULL) {
-        LOG_WARN("Tried to dispatch a key event to the Python interpreter, but the input pipe is not initialized yet.");
+        LOG_WARN("Tried to dispatch kex event to the Python interpreter, but the input pipe is not initialized yet.");
         return;
     }
     putc(character, stdin_writer);
