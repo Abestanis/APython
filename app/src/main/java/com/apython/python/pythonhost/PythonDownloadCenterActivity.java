@@ -40,8 +40,8 @@ public class PythonDownloadCenterActivity extends Activity {
     private PythonVersionListAdapter pythonVersionListAdapter;
     volatile boolean isUpdateRunning = false;
 
-    //public static String serverUrl = "https://abestanis.github.io/APython-Libs/";
-    public static String serverUrl = "http://10.0.2.2:8000";
+    public static String serverUrl = "https://abestanis.github.io/APython-Libs/";
+    //public static String serverUrl = "http://10.0.2.2:8000";
     public static String indexPath = "index.json";
 
     private PythonDownloadServiceConnection downloadServiceConnection = new PythonDownloadServiceConnection();
