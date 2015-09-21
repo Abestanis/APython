@@ -4,7 +4,7 @@
 
 The goal of this project is to enable the execution of Python programs on Android.
 
-Although there are other projects which accomplish that (most noticeably the [python-for-android project](https://github.com/kivy/python-for-android)), their implementation has a few disadvantages (most noticeably large apk sizes due to the fact, that every single apk contains an independent Python interpreter and modules). This project tries to resolve these problems by using a client-host principle. To achieve this, the project is divided into three parts:
+Although there are other projects which accomplish that (most noticeably the [python-for-android project](https://github.com/kivy/python-for-android)), none of them allow **multiple Python versions** to be installed at the same time and their implementation has a few disadvantages (most noticeably large apk sizes due to the fact, that every single apk contains an independent Python interpreter and modules). This project tries to resolve these problems by using a client-host principle. To achieve this, the project is divided into three parts:
 
 ### The Python-Host App
 
@@ -12,6 +12,7 @@ The Python-Host app provides the python interpreter and all additionally modules
 
 It also provides these additional features:
 * A Python interpreter to freely explore the possibilities of Python.
+* A download manager to download Python versions and additional modules.
 * See the issues for unimplemented features.
 
 ### The PyToApk-Tool
