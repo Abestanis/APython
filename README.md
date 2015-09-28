@@ -10,6 +10,8 @@ Although there are other projects which accomplish that (most noticeably the [py
 
 The Python-Host app provides the python interpreter and all additionally modules. Its source code can be found in this repository. This app must be installed alongside any Python app to allow them to work. The Python-Host app will also act as a packet manager. It saves memory space by providing any needed modules to the python apps, instead of having every app store a copy of the same module they need.
 
+Additionally, the user can choose which python versions and which additional modules he wants to have installed, giving him the ability to fine-tune the memory usage of the Python Host. Python versions and modules are downloaded from [here](https://github.com/Abestanis/APython-Libs).
+
 It also provides these additional features:
 * A Python interpreter to freely explore the possibilities of Python.
 * A download manager to download Python versions and additional modules.
