@@ -1,5 +1,6 @@
 package com.apython.python.pythonhost;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -12,8 +13,10 @@ import android.widget.TextView;
 public interface ProgressHandler {
 
     class Factory {
-        static class ProgressHandlerStub implements ProgressHandler {
+        static class SimpleProgressHandler implements ProgressHandler {
             protected boolean enabled         = false;
+            protected String text             = null;
+            protected String progressText     = null;
             private   Activity activity       = null;
             private   TextView output         = null;
             private   ProgressBar progressBar = null;
@@ -21,8 +24,8 @@ public interface ProgressHandler {
             private   Runnable onSuccess      = null;
             private   Runnable onFailure      = null;
 
-            ProgressHandlerStub(Activity activity, TextView output, ProgressBar progressBar,
-                                Runnable onEnable, Runnable onSuccess, Runnable onFailure) {
+            SimpleProgressHandler(Activity activity, TextView output, ProgressBar progressBar,
+                                  Runnable onEnable, Runnable onSuccess, Runnable onFailure) {
                 this.activity = activity;
                 this.output = output;
                 this.progressBar = progressBar;
@@ -33,11 +36,13 @@ public interface ProgressHandler {
 
             @Override
             public void enable(final String text) {
+                this.text = text;
                 activity.runOnUiThread(new Runnable() {
+                    @SuppressLint("SetTextI18n")
                     @Override
                     public void run() {
                         if (output != null) {
-                            output.setText(text);
+                            output.setText(text + (progressText != null ? "\n" + progressText : ""));
                         }
                         if (enabled) {
                             return;
@@ -54,19 +59,34 @@ public interface ProgressHandler {
 
             @Override
             public void setText(final String text) {
+                this.text = text;
                 activity.runOnUiThread(new Runnable() {
+                    @SuppressLint("SetTextI18n")
                     @Override
                     public void run() {
                         if (output != null) {
-                            output.setText(text);
+                            output.setText(text + (progressText != null ? "\n" + progressText : ""));
                         }
                     }
                 });
             }
 
             @Override
-            public void setProgress(final float progress) {
+            public void setProgress(float progress) {
+                setProgress(progress, null);
+            }
+
+            @Override
+            public void setProgress(float progress, int bytesPerSecond, int remainingSeconds) {
+                setProgress(progress, Util.generateDownloadInfoText(activity, bytesPerSecond, remainingSeconds));
+            }
+
+            protected void setProgress(final float progress, String progressTextString) {
+                if (progressTextString != null || progress < 0) {
+                    this.progressText = progressTextString;
+                }
                 activity.runOnUiThread(new Runnable() {
+                    @SuppressLint("SetTextI18n")
                     @Override
                     public void run() {
                         if (progress < 0) {
@@ -74,6 +94,9 @@ public interface ProgressHandler {
                         } else {
                             progressBar.setIndeterminate(false);
                             progressBar.setProgress((int) (progress * 100));
+                        }
+                        if (output != null) {
+                            output.setText(text + (progressText != null ? "\n" + progressText : ""));
                         }
                     }
                 });
@@ -93,10 +116,11 @@ public interface ProgressHandler {
                         }
                     });
                 }
+                enabled = false;
             }
         }
 
-        static class TwoLevelProgressHandler extends ProgressHandlerStub {
+        static class TwoLevelProgressHandler extends SimpleProgressHandler {
 
             private float lastProgress  = 0.0f;
             private float totalProgress = 0.0f;
@@ -127,8 +151,8 @@ public interface ProgressHandler {
             }
 
             @Override
-            public void setProgress(float progress) {
-                super.setProgress(progress);
+            public void setProgress(float progress, String text) {
+                super.setProgress(progress, text);
                 if (progress >= 0) {
                     if (progress >= lastProgress) {
                         totalProgress += progress - lastProgress;
@@ -139,6 +163,13 @@ public interface ProgressHandler {
                     totalProgressBar.setProgress((int) (totalProgress * 100));
                     lastProgress = progress;
                 }
+            }
+
+            @Override
+            public void onComplete(boolean success) {
+                super.onComplete(success);
+                lastProgress = 0.0f;
+                totalProgress = 0.0f;
             }
         }
 
@@ -151,7 +182,7 @@ public interface ProgressHandler {
         public static ProgressHandler create(Activity activity, TextView output,
                                              ProgressBar progressBar, Runnable onEnable,
                                              Runnable onSuccess, Runnable onFailure) {
-            return new ProgressHandlerStub(activity, output, progressBar, onEnable, onSuccess, onFailure);
+            return new SimpleProgressHandler(activity, output, progressBar, onEnable, onSuccess, onFailure);
         }
 
         public static ProgressHandler createTwoLevel(Activity activity, TextView output,
@@ -167,5 +198,6 @@ public interface ProgressHandler {
     void enable(String text);
     void setText(String text);
     void setProgress(float progress);
+    void setProgress(float progress, int bytesPerSecond, int remainingSeconds);
     void onComplete(boolean success);
 }

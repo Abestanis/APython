@@ -16,5 +16,6 @@
     <string name="module_installation_downloading">Downloading %1$s…</string>
     <string name="module_installation_installing">Installing %1$s…</string>
     <string name="getPython_title">Download Python sources</string>
-    <string name="search_hint">Search...</string>
+    <string name="search_hint">Search…</string>
+    <string name="progress_download">%1$s %2$s/s, %3$d seconds left.</string>
 </resources>

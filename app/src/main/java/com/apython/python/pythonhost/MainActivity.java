@@ -4,24 +4,15 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
 public class MainActivity extends Activity {
 
     public static final String TAG = "PythonHost";
-
-    private static final ScheduledExecutorService worker =
-            Executors.newSingleThreadScheduledExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +55,24 @@ public class MainActivity extends Activity {
         startActivity(new Intent(this, PythonDownloadCenterActivity.class));
     }
 
+    public void onSettingsButtonClick(View v) {
+        startActivity(new Intent(this, PythonSettingsActivity.class));
+    }
+
+    private void setupMainMenu() {
+        setContentView(R.layout.main_menu);
+        LinearLayout interpreterButtonContainer = (LinearLayout) findViewById(R.id.main_menu_interpreter_button_container);
+        interpreterButtonContainer.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Intent interpreterIntent = new Intent(MainActivity.this, PythonInterpreterActivity.class);
+                interpreterIntent.putExtra("pythonVersion", PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED);
+                startActivity(interpreterIntent);
+                return true;
+            }
+        });
+    }
+
     protected void onInstallationCheckFinished(boolean result) {
 //        if (!result) {
 //            Log.e(TAG, "Python installation is not complete!");
@@ -75,13 +84,13 @@ public class MainActivity extends Activity {
 
         // Get the python version.
         TextView pythonVersionView = (TextView) findViewById(R.id.pythonVersionText);
-        pythonVersionView.setText("Python Version " + new PythonInterpreter(getApplicationContext(), PackageManager.pythonVersion).getPythonVersion());
+        pythonVersionView.setText("Python");// Version " + new PythonInterpreter(getApplicationContext(), PackageManager.pythonVersion).getPythonVersion());
         pythonVersionView.setVisibility(View.VISIBLE);
 
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             public void run() {
-                setContentView(R.layout.main_menu);
+                setupMainMenu();
             }
         }, 4000);
 
@@ -89,7 +98,7 @@ public class MainActivity extends Activity {
         container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setContentView(R.layout.main_menu);
+                setupMainMenu();
             }
         });
     }

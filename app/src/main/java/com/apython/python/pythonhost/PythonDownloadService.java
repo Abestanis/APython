@@ -53,6 +53,7 @@ public class PythonDownloadService extends IntentService {
         String pythonVersion;
         int downloadSteps = 0;
         String text          = null;
+        String progressText  = null;
         float  totalProgress = -1.0f;
         float  secProgress   = -1.0f;
 
@@ -84,6 +85,25 @@ public class PythonDownloadService extends IntentService {
 
         @Override
         public void setProgress(float progress) {
+            saveProgress(progress, null);
+            if (progressHandler != null && !showingNotification()) {
+                progressHandler.setProgress(progress);
+            } else {
+                displayOrUpdateNotification();
+            }
+        }
+
+        @Override
+        public void setProgress(float progress, int bytesPerSecond, int remainingSeconds) {
+            saveProgress(progress, Util.generateDownloadInfoText(PythonDownloadService.this, bytesPerSecond, remainingSeconds));
+            if (progressHandler != null && !showingNotification()) {
+                progressHandler.setProgress(progress, bytesPerSecond, remainingSeconds);
+            } else {
+                displayOrUpdateNotification();
+            }
+        }
+
+        private void saveProgress(float progress, String text) {
             if (progress >= 0) {
                 if (totalProgress < 0) { totalProgress = 0.0f; secProgress = 0.0f; }
                 if (progress >= secProgress) {
@@ -93,10 +113,8 @@ public class PythonDownloadService extends IntentService {
                 }
                 secProgress = progress;
             }
-            if (progressHandler != null && !showingNotification()) {
-                progressHandler.setProgress(progress);
-            } else {
-                displayOrUpdateNotification();
+            if (progressText != null || progress < 0) {
+                this.progressText = text;
             }
         }
 
@@ -104,6 +122,7 @@ public class PythonDownloadService extends IntentService {
         public void onComplete(boolean success) {
             if (progressHandler != null && !showingNotification()) {
                 progressHandler.onComplete(success);
+                notificationManager.cancel(NOTIFICATION_ID);
             } else {
                 if (success) {
                     stopForeground(true);
@@ -122,7 +141,7 @@ public class PythonDownloadService extends IntentService {
                     progressHandler.setProgress(1.0f);
                     progressHandler.setProgress(-1.0f);
                 }
-                progressHandler.setProgress(secProgress);
+                progressHandler.setProgress(secProgress, progressText);
             }
             this.progressHandler = progressHandler;
         }
@@ -133,7 +152,7 @@ public class PythonDownloadService extends IntentService {
             notificationBuilder.setSmallIcon(R.drawable.python_grey_icon);
             notificationBuilder.setWhen(System.currentTimeMillis());
             notificationBuilder.setContentTitle("Downloading Python Version " + pythonVersion);
-            notificationBuilder.setContentText(text);
+            notificationBuilder.setContentText(text + (progressText != null ? "\n" + progressText : ""));
             notificationBuilder.setOngoing(true);
             notificationBuilder.setContentIntent(PendingIntent.getActivity(context, 0, new Intent(context, PythonDownloadCenterActivity.class), PendingIntent.FLAG_UPDATE_CURRENT));
             notificationBuilder.setCategory(NotificationCompat.CATEGORY_STATUS);
@@ -198,10 +217,10 @@ public class PythonDownloadService extends IntentService {
             return;
         }
         currentPythonVersion = pythonVersion;
-        ProgressHandler progressHandler = progressHandlerList.get(Util.getMajorMinorVersionPart(pythonVersion));
+        ProgressHandler progressHandler = progressHandlerList.get(Util.getMainVersionPart(pythonVersion));
         if (intent.getBooleanExtra("waitForProgressHandler", false) && progressHandler == null) {
             for (int i = 0; i < 10; i++) {
-                progressHandler = progressHandlerList.get(Util.getMajorMinorVersionPart(pythonVersion));
+                progressHandler = progressHandlerList.get(Util.getMainVersionPart(pythonVersion));
                 if (progressHandler != null) { break; }
                 try {
                     Thread.sleep(100);
@@ -225,7 +244,7 @@ public class PythonDownloadService extends IntentService {
                                                    intent.getIntExtra("numModules", 0),
                                                    currentProxy);
         currentProxy.onComplete(success);
-        progressHandlerList.remove(Util.getMajorMinorVersionPart(pythonVersion));
+        progressHandlerList.remove(Util.getMainVersionPart(pythonVersion));
         currentPythonVersion = null;
         currentProxy = null;
     }
@@ -238,8 +257,8 @@ public class PythonDownloadService extends IntentService {
         if (progressHandler != null) {
             progressHandler.enable("Downloading Python " + version);
         }
-        File libraryFile = new File(PackageManager.getDynamicLibraryPath(getApplicationContext()), System.mapLibraryName("python" + Util.getMajorMinorVersionPart(version)));
-        File moduleZipFile = new File(PackageManager.getStandardLibPath(getApplicationContext()), "python" + Util.getMajorMinorVersionPart(version).replace(".", "") + ".zip");
+        File libraryFile = new File(PackageManager.getDynamicLibraryPath(getApplicationContext()), System.mapLibraryName("python" + Util.getMainVersionPart(version)));
+        File moduleZipFile = new File(PackageManager.getStandardLibPath(getApplicationContext()), "python" + Util.getMainVersionPart(version).replace(".", "") + ".zip");
         if (progressHandler != null) {
             progressHandler.setText("Downloading Python library " + libraryFile.getName() + "...");
         }
@@ -312,7 +331,7 @@ public class PythonDownloadService extends IntentService {
                 progressHandler.setText("Downloading module " + moduleName + "...");
             }
             if (!Util.downloadFile(serverUrl + "/" + downloadUrl,
-                                   new File(PackageManager.getLibDynLoad(getApplicationContext(), Util.getMajorMinorVersionPart(version)), moduleFileName),
+                                   new File(PackageManager.getLibDynLoad(getApplicationContext(), Util.getMainVersionPart(version)), moduleFileName),
                                    md5Hashes[PYTHON_MODULE_ZIP_INDEX + numRequirements + numDependencies + 1 + i],
                                    progressHandler)) {
                 Log.w(MainActivity.TAG, "Failed to install module '" + moduleName + "'.");
@@ -325,7 +344,7 @@ public class PythonDownloadService extends IntentService {
         ProgressHandler previousProgressHandler = progressHandlerList.put(version, progressHandler);
         if (previousProgressHandler != progressHandler &&
                 currentPythonVersion != null &&
-                version.equals(Util.getMajorMinorVersionPart(currentPythonVersion))
+                version.equals(Util.getMainVersionPart(currentPythonVersion))
                 && currentProxy != null) {
             currentProxy.setProgressHandler((ProgressHandler.Factory.TwoLevelProgressHandler) progressHandler);
         }
@@ -335,7 +354,7 @@ public class PythonDownloadService extends IntentService {
         return progressHandlerList;
     }
 
-    public boolean showingNotification() {
+    public synchronized boolean showingNotification() {
         return displayNotification;
     }
 
@@ -346,7 +365,7 @@ public class PythonDownloadService extends IntentService {
             stopForeground(true);
             notificationManager.cancel(NOTIFICATION_ID);
             if (currentPythonVersion != null && currentProxy != null) {
-                ProgressHandler progressHandler = progressHandlerList.get(Util.getMajorMinorVersionPart(currentPythonVersion));
+                ProgressHandler progressHandler = progressHandlerList.get(Util.getMainVersionPart(currentPythonVersion));
                 if (progressHandler != null) {
                     currentProxy.setProgressHandler((ProgressHandler.Factory.TwoLevelProgressHandler) progressHandler);
                 }

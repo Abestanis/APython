@@ -15,11 +15,8 @@ import java.io.File;
 public class PythonInterpreter {
 
     static {
-        System.loadLibrary("pythonPatch");
-        System.loadLibrary("bzip");
-        System.loadLibrary("ffi");
-        System.loadLibrary("openSSL");
         System.loadLibrary("pyLog");
+        System.loadLibrary("pyInterpreter");
     }
 
     public final Object inputUpdater = new Object();
@@ -38,8 +35,9 @@ public class PythonInterpreter {
     }
 
     public PythonInterpreter(Context context, String pythonVersion, IOHandler ioHandler) {
-        System.loadLibrary("python" + pythonVersion);
-        System.loadLibrary("pyInterpreter");
+        PackageManager.loadDynamicLibrary(context, "pythonPatch");
+        PackageManager.loadDynamicLibrary(context, "python" + pythonVersion);
+        PackageManager.loadAdditionalLibraries(context, pythonVersion);
         this.context = context;
         this.pythonVersion = pythonVersion;
         this.ioHandler = ioHandler;
@@ -52,7 +50,7 @@ public class PythonInterpreter {
     public int runPythonInterpreter(String[] interpreterArgs) {
         return this.runInterpreter(System.mapLibraryName("python" + this.pythonVersion),
                                    PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
-                                   PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
+                                   PackageManager.getStandardLibPath(this.context).getAbsolutePath(),
                                    this.context.getFilesDir().getAbsolutePath(),
                                    PackageManager.getTempDir(this.context).getAbsolutePath(),
                                    PackageManager.getXDCBase(this.context).getAbsolutePath(),

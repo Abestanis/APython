@@ -1,9 +1,11 @@
 package com.apython.python.pythonhost;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.AnimationDrawable;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
@@ -44,14 +46,14 @@ public class PythonVersionListAdapter extends BaseAdapter {
 
     private Activity activity;
     private Context  context;
-    private ArrayList<View>                        views               = new ArrayList<>();
-    private Map<String, PythonVersionDownloadable> versions            = new HashMap<>();
-    private Map<String, ArrayList<String>>         additionalLibraries = new HashMap<>();
-    private Map<String, ArrayList<Boolean>>        moduleConfiguration = new HashMap<>();
-    private Map<String, String[]>                  additionalLibData   = new HashMap<>();
-    private ArrayList<String>                      simpleVersionList   = new ArrayList<>();
-    private ArrayList<String>                      filteredVersionList = new ArrayList<>();
-    private Map<String, ProgressHandler>           progressHandlerList = new HashMap<>();
+    private ArrayList<View>                  views               = new ArrayList<>();
+    private Map<String, PythonVersionObject> versions            = new HashMap<>();
+    private Map<String, ArrayList<String>>   additionalLibraries = new HashMap<>();
+    private Map<String, ArrayList<Boolean>>  moduleConfiguration = new HashMap<>();
+    private Map<String, String[]>            additionalLibData   = new HashMap<>();
+    private ArrayList<String>                simpleVersionList   = new ArrayList<>();
+    private ArrayList<String>                filteredVersionList = new ArrayList<>();
+    private Map<String, ProgressHandler>     progressHandlerList = new HashMap<>();
 
     interface ActionHandler {
         void onDownload(String version, String[] downloadUrls, String[] md5Hashes,
@@ -92,16 +94,17 @@ public class PythonVersionListAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         String version = filteredVersionList.get(position);
 
-        if (convertView != null
-                && views.contains(convertView)
-                && version.equals(simpleVersionList.get(views.indexOf(convertView)))) {
-            return convertView;
+        if (convertView != null && views.contains(convertView)) {
+            TextView versionText = (TextView) convertView.findViewById(R.id.version_list_main_version_text);
+            if (versionText != null && version.equals(Util.getMainVersionPart(versionText.getText().toString()))) {
+                return convertView;
+            }
         }
         int index = simpleVersionList.indexOf(version);
         if (index < views.size()) {
             return views.get(index);
         }
-        View view = getVersionItemView(context, version, parent);
+        View view = getVersionItemView(version, parent);
         views.add(position, view);
         return view;
     }
@@ -121,7 +124,7 @@ public class PythonVersionListAdapter extends BaseAdapter {
         return filteredVersionList.isEmpty();
     }
 
-    protected View getVersionItemView(final Context context, final String version, ViewGroup parent) {
+    protected View getVersionItemView(final String version, ViewGroup parent) {
         final View view = LayoutInflater.from(context).inflate(R.layout.python_version_list_item, parent, false);
         final TextView versionText = (TextView) view.findViewById(R.id.version_list_main_version_text);
         final ProgressBar totalProgressView = (ProgressBar) view.findViewById(R.id.version_list_total_progress_view);
@@ -132,12 +135,12 @@ public class PythonVersionListAdapter extends BaseAdapter {
         final RelativeLayout infoContainer = (RelativeLayout) view.findViewById(R.id.version_list_info_container);
         final Spinner subversionContainer = (Spinner) view.findViewById(R.id.version_list_subversion_container);
         final ImageView downloadConfButton = (ImageView) view.findViewById(R.id.version_list_download_config_button);
+        final TextView infoText = (TextView) view.findViewById(R.id.version_list_info_text);
         final Dialog optionalModulesDialog = new Dialog(activity);
 
-        versionText.setText("Python " + version);
         progressHandlerList.put(version, ProgressHandler.Factory.createTwoLevel(
                 activity,
-                null,
+                infoText,
                 totalProgressView,
                 progressView,
                 2,
@@ -153,12 +156,7 @@ public class PythonVersionListAdapter extends BaseAdapter {
                     public void run() {
                         totalProgressView.setVisibility(View.GONE);
                         progressView.setVisibility(View.GONE);
-                        int index = simpleVersionList.indexOf(version);
-                        if (index < views.size()) {
-                            views.remove(index);
-                        }
-                        actionButton.setImageResource(R.drawable.installed);
-                        actionButton.setClickable(false);
+                        configureViewWhileInstalled(view, version);
                     }
                 },
                 new Runnable() {
@@ -166,78 +164,19 @@ public class PythonVersionListAdapter extends BaseAdapter {
                     public void run() {
                         totalProgressView.setVisibility(View.GONE);
                         progressView.setVisibility(View.GONE);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                        builder.setIcon(android.R.drawable.ic_dialog_alert);
+                        builder.setTitle("Failed to download Python version " + version); // TODO: Use full version
+                        builder.setMessage("An error occurred while downloading the python version " + version + ".");
+                        builder.show();
                     }
                 }));
         actionHandler.onUpdateProgressHandler(version, progressHandlerList.get(version));
 
         if (PackageManager.isPythonVersionInstalled(context, version)) { // Already installed
-            actionButton.setImageResource(R.drawable.installed);
-            actionButton.setClickable(false);
+            configureViewWhileInstalled(view, version);
         } else {
-            actionButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (actionHandler != null) {
-                        PythonVersionDownloadable versionDownloadable;
-                        if (subversionContainer.getSelectedItem() != null) {
-                            versionDownloadable = versions.get(subversionContainer.getSelectedItem().toString());
-                        } else {
-                            versionDownloadable = versions.get(getAllAvaliableSubVersions(version).get(0));
-                        }
-                        ArrayList<String> downloadUrls = new ArrayList<>(2);
-                        ArrayList<String> md5Hashes = new ArrayList<>(2);
-                        int numRequirements = 0;
-                        int numModules = 0;
-
-                        downloadUrls.add(versionDownloadable.downloadUrl);
-                        md5Hashes.add(versionDownloadable.md5CheckSum);
-                        downloadUrls.add(versionDownloadable.libZipUrl);
-                        md5Hashes.add(versionDownloadable.libZipMd5Checksum);
-
-                        if (versionDownloadable.moduleDependencies.containsKey("<General>")) {
-                            for (String requiredDependency : versionDownloadable.moduleDependencies.get("<General>")) {
-                                if (additionalLibData.keySet().contains(requiredDependency)
-                                        && !PackageManager.isAdditionalLibraryInstalled(context, requiredDependency)) {
-                                    numRequirements++;
-                                    downloadUrls.add(additionalLibData.get(requiredDependency)[0]);
-                                    md5Hashes.add(additionalLibData.get(requiredDependency)[1]);
-                                }
-                            }
-                        }
-
-                        ArrayList<Boolean> modulesChosenForDownload = moduleConfiguration.get(versionDownloadable.version);
-                        ArrayList<String> dependencies = new ArrayList<>();
-                        for (int i = 0; i < versionDownloadable.modules.size(); i++) {
-                            if (modulesChosenForDownload.get(i)) {
-                                for (String dependency : versionDownloadable.getModuleDependencies(versionDownloadable.modules.get(i))) {
-                                    if (!dependencies.contains(dependency)
-                                            && additionalLibData.keySet().contains(dependency)
-                                            && !PackageManager.isAdditionalLibraryInstalled(context, dependency)) {
-                                        dependencies.add(dependency);
-                                        downloadUrls.add(additionalLibData.get(dependency)[0]);
-                                        md5Hashes.add(additionalLibData.get(dependency)[1]);
-                                    }
-                                }
-                            }
-                        }
-
-                        for (int i = 0; i < versionDownloadable.modules.size(); i++) {
-                            if (modulesChosenForDownload.get(i)) {
-                                numModules++;
-                                downloadUrls.add(versionDownloadable.moduleUrls.get(i));
-                                md5Hashes.add(versionDownloadable.modulesMd5Checksum.get(i));
-                            }
-                        }
-                        ProgressHandler.Factory.TwoLevelProgressHandler progressHandler = (ProgressHandler.Factory.TwoLevelProgressHandler) progressHandlerList.get(version);
-                        progressHandler.setTotalSteps(2 + numRequirements + dependencies.size() + numModules);
-                        actionHandler.onDownload(versionDownloadable.version,
-                                                 downloadUrls.toArray(new String[downloadUrls.size()]),
-                                                 md5Hashes.toArray(new String[md5Hashes.size()]),
-                                                 numRequirements, dependencies.size(), numModules,
-                                                 progressHandler);
-                    }
-                }
-            });
+            configureViewForDownload(view, version);
         }
         dropdownButton.setOnClickListener(new View.OnClickListener() {
             boolean expanded = false;
@@ -356,8 +295,22 @@ public class PythonVersionListAdapter extends BaseAdapter {
                     deleteButton.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
+                            String fullVersion = PackageManager.getDetailedInstalledVersion(context, version);
                             if (!PackageManager.deletePythonVersion(context, version)) {
-                                Log.w(MainActivity.TAG, "Deleting Python " + version + " failed."); // TODO: React
+                                Log.w(MainActivity.TAG, "Deleting Python " + version + " failed.");
+                                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                                builder.setIcon(android.R.drawable.ic_dialog_alert);
+                                builder.setTitle("Failed to delete Python version " + fullVersion);
+                                builder.setMessage("An error occurred while deleting the python version " + fullVersion + ".");
+                                builder.show();
+                            } else {
+                                deleteButton.setVisibility(View.GONE);
+                                Log.d(MainActivity.TAG, fullVersion + " is installable: " + versions.get(fullVersion).isInstallable());
+                                if (versions.get(fullVersion).isInstallable()) {
+                                    configureViewForDownload(view, version);
+                                } else {
+                                    removeVersion(fullVersion);
+                                }
                             }
                         }
                     });
@@ -377,6 +330,104 @@ public class PythonVersionListAdapter extends BaseAdapter {
         });
 
         return view;
+    }
+
+    protected void configureViewForDownload(final View view, final String version) {
+        final TextView versionText = (TextView) view.findViewById(R.id.version_list_main_version_text);
+        final ProgressBar totalProgressView = (ProgressBar) view.findViewById(R.id.version_list_total_progress_view);
+        final ProgressBar progressView = (ProgressBar) view.findViewById(R.id.version_list_progress_view);
+        final ImageView actionButton = (ImageView) view.findViewById(R.id.version_list_action_button);
+        final Spinner subversionContainer = (Spinner) view.findViewById(R.id.version_list_subversion_container);
+
+        versionText.setText("Python " + version);
+        actionButton.setImageResource(R.drawable.add);
+        actionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (actionHandler != null) {
+                    configureViewDuringDownload(view, version);
+                    PythonVersionDownloadable versionDownloadable;
+                    if (subversionContainer.getSelectedItem() != null) {
+                        versionDownloadable = (PythonVersionDownloadable) versions.get(subversionContainer.getSelectedItem().toString());
+                    } else {
+                        Log.d(MainActivity.TAG, "Installing " + getAllAvaliableSubVersions(version).get(0) + ", installable = " + versions.get(getAllAvaliableSubVersions(version).get(0)).isInstallable());
+                        versionDownloadable = (PythonVersionDownloadable) versions.get(getAllAvaliableSubVersions(version).get(0));
+                    }
+                    ArrayList<String> downloadUrls = new ArrayList<>();
+                    ArrayList<String> md5Hashes = new ArrayList<>();
+                    int numRequirements = 0;
+                    int numModules = 0;
+
+                    downloadUrls.add(versionDownloadable.downloadUrl);
+                    md5Hashes.add(versionDownloadable.md5CheckSum);
+                    downloadUrls.add(versionDownloadable.libZipUrl);
+                    md5Hashes.add(versionDownloadable.libZipMd5Checksum);
+
+                    if (versionDownloadable.moduleDependencies.containsKey("<General>")) {
+                        for (String requiredDependency : versionDownloadable.moduleDependencies.get("<General>")) {
+                            if (additionalLibData.keySet().contains(requiredDependency)
+                                    && !PackageManager.isAdditionalLibraryInstalled(context, requiredDependency)) {
+                                numRequirements++;
+                                downloadUrls.add(additionalLibData.get(requiredDependency)[0]);
+                                md5Hashes.add(additionalLibData.get(requiredDependency)[1]);
+                            }
+                        }
+                    }
+
+                    ArrayList<Boolean> modulesChosenForDownload = moduleConfiguration.get(versionDownloadable.version);
+                    ArrayList<String> dependencies = new ArrayList<>();
+                    for (int i = 0; i < versionDownloadable.modules.size(); i++) {
+                        if (modulesChosenForDownload.get(i)) {
+                            for (String dependency : versionDownloadable.getModuleDependencies(versionDownloadable.modules.get(i))) {
+                                if (!dependencies.contains(dependency)
+                                        && additionalLibData.keySet().contains(dependency)
+                                        && !PackageManager.isAdditionalLibraryInstalled(context, dependency)) {
+                                    dependencies.add(dependency);
+                                    downloadUrls.add(additionalLibData.get(dependency)[0]);
+                                    md5Hashes.add(additionalLibData.get(dependency)[1]);
+                                }
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < versionDownloadable.modules.size(); i++) {
+                        if (modulesChosenForDownload.get(i)) {
+                            numModules++;
+                            downloadUrls.add(versionDownloadable.moduleUrls.get(i));
+                            md5Hashes.add(versionDownloadable.modulesMd5Checksum.get(i));
+                        }
+                    }
+                    ProgressHandler.Factory.TwoLevelProgressHandler progressHandler = (ProgressHandler.Factory.TwoLevelProgressHandler) progressHandlerList.get(version);
+                    progressHandler.setTotalSteps(2 + numRequirements + dependencies.size() + numModules);
+                    totalProgressView.setIndeterminate(true);
+                    totalProgressView.setVisibility(View.VISIBLE);
+                    progressView.setIndeterminate(true);
+                    progressView.setVisibility(View.VISIBLE);
+                    actionHandler.onDownload(versionDownloadable.version,
+                                             downloadUrls.toArray(new String[downloadUrls.size()]),
+                                             md5Hashes.toArray(new String[md5Hashes.size()]),
+                                             numRequirements, dependencies.size(), numModules,
+                                             progressHandler);
+                }
+            }
+        });
+    }
+
+    protected void configureViewDuringDownload(View view, String version) {
+        final ImageView actionButton = (ImageView) view.findViewById(R.id.version_list_action_button);
+
+        actionButton.setImageResource(R.drawable.downloading_icon);
+        AnimationDrawable animation = (AnimationDrawable) actionButton.getDrawable();
+        animation.start();
+    }
+
+    protected void configureViewWhileInstalled(View view, String version) {
+        final TextView versionText = (TextView) view.findViewById(R.id.version_list_main_version_text);
+        final ImageView actionButton = (ImageView) view.findViewById(R.id.version_list_action_button);
+
+        versionText.setText("Python " + PackageManager.getDetailedInstalledVersion(context, version));
+        actionButton.setImageResource(R.drawable.installed);
+        actionButton.setClickable(false);
     }
 
     public void setActionHandler(ActionHandler actionHandler) {
@@ -401,22 +452,76 @@ public class PythonVersionListAdapter extends BaseAdapter {
         notifyDataSetChanged();
     }
 
-    private ArrayList<String> getAllAvaliableSubVersions(String majorMinorVersion) {
+    private ArrayList<String> getAllAvaliableSubVersions(String mainVersion) {
         ArrayList<String> result = new ArrayList<>();
         for (String version : versions.keySet()) {
-            if (version.startsWith(majorMinorVersion)) {
+            if (version.startsWith(mainVersion)) {
                 result.add(version);
             }
         }
         return result;
     }
 
-    public void parseJSONData(JSONObject root) {
-        JSONArray versionsData = root.names();
+    public void removeVersion(String version) {
+        Log.d(MainActivity.TAG, "Removing " + version);
+        versions.remove(version);
+        int index = simpleVersionList.indexOf(Util.getMainVersionPart(version));
+        simpleVersionList.remove(index);
+        views.remove(index);
+        filteredVersionList.remove(Util.getMainVersionPart(version));
+        notifyDataSetChanged();
+    }
+
+    public void invalidateVersionList() {
         versions.clear();
         simpleVersionList.clear();
         filteredVersionList.clear();
         additionalLibraries.clear();
+    }
+
+    private void invalidateDownloadedVersionItems() {
+        ArrayList<String> invalidVersions = new ArrayList<>();
+        for (String version : versions.keySet()) {
+            if (versions.get(version).isInstallable()) {
+                invalidVersions.add(version);
+            }
+        }
+        for (String invalidVersion : invalidVersions) {
+            versions.remove(invalidVersion);
+        }
+        for (String invalidVersion : invalidVersions) {
+            String mainVersion = Util.getMainVersionPart(invalidVersion);
+            if (getAllAvaliableSubVersions(mainVersion).isEmpty()) {
+                simpleVersionList.remove(mainVersion);
+                filteredVersionList.remove(mainVersion);
+            }
+
+        }
+        additionalLibraries.clear();
+    }
+
+    public void updateInstalledVersionsList() {
+        ArrayList<String> installedVersions = PackageManager.getInstalledPythonVersions(context);
+        boolean changedUI = false;
+        for (String installedVersion : installedVersions) {
+            String version = PackageManager.getDetailedInstalledVersion(context, installedVersion);
+            if (!versions.containsKey(version)) {
+                versions.put(version, new PythonVersionObject(context, version));
+                changedUI = true;
+            }
+            if (!simpleVersionList.contains(installedVersion)) {
+                simpleVersionList.add(installedVersion);
+            }
+        }
+        if (changedUI) {
+            filteredVersionList.addAll(simpleVersionList);
+            notifyDataSetChanged();
+        }
+    }
+
+    public void parseJSONData(JSONObject root) {
+        JSONArray versionsData = root.names();
+        invalidateDownloadedVersionItems();
         // Get the data version
         int dataVersion = 1;
         try {
@@ -491,17 +596,18 @@ public class PythonVersionListAdapter extends BaseAdapter {
                 versions.put(versionString, downloadable);
                 ArrayList<Boolean> moduleConfig = new ArrayList<>(Collections.nCopies(downloadable.modules.size(), Boolean.FALSE));
                 moduleConfiguration.put(versionString, moduleConfig);
-                if (!simpleVersionList.contains(Util.getMajorMinorVersionPart(versionString))) {
-                    simpleVersionList.add(Util.getMajorMinorVersionPart(versionString));
+                if (!simpleVersionList.contains(Util.getMainVersionPart(versionString))) {
+                    simpleVersionList.add(Util.getMainVersionPart(versionString));
                 }
             } catch (JSONException e) {
                 Log.e(MainActivity.TAG, "(Version " + dataVersion + ") An entry in downloaded JSON file has an unexpected format. Skipping entry.", e);
             }
         }
+        filteredVersionList.clear();
         filteredVersionList.addAll(simpleVersionList);
     }
 
     public ProgressHandler getProgressHandler(String version) {
-        return progressHandlerList.get(Util.getMajorMinorVersionPart(version));
+        return progressHandlerList.get(version);
     }
 }

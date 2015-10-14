@@ -22,11 +22,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -40,7 +42,7 @@ public class Util {
 
     /**
      * Ensures that a file or directory can be accessed from other apps.
-     * More specific, ensures that other apps have rad and execute,
+     * More specific, ensures that other apps have read and execute,
      * but not write permission.
      *
      * @param file The file or directory, that should be made accessible.
@@ -173,6 +175,9 @@ public class Util {
     public static boolean installFromInputStream(File destination, InputStream resourceLocation, long inputLength, ProgressHandler progressHandler) {
         byte[] buffer = new byte[1024];
         int count;
+        long startTime;
+        long timeDiff;
+        int secCount = 0;
         try {
             int totalCount = 0;
             float nextUpdate = 0;
@@ -185,12 +190,27 @@ public class Util {
                 progressHandler.setProgress(0);
             }
             FileOutputStream outputFile = new FileOutputStream(destination);
+            startTime = System.currentTimeMillis();
             while ((count = resourceLocation.read(buffer)) != -1) {
                 outputFile.write(buffer, 0, count);
                 if (progressHandler != null) {
                     totalCount += count;
+                    secCount += count;
                     if (totalCount >= nextUpdate) {
-                        progressHandler.setProgress((float) totalCount / inputLength);
+                        timeDiff = System.currentTimeMillis() - startTime;
+                        float progress = (float) totalCount / inputLength;
+                        if (timeDiff >= 1000L) {
+                            int bytesPerSecond = Math.round(secCount * (timeDiff / 1000.0f));
+                            progressHandler.setProgress(
+                                    progress,
+                                    bytesPerSecond,
+                                    Math.round(Math.max(inputLength - totalCount, 0) / Math.max(0.0001f, bytesPerSecond))
+                            );
+                            startTime = System.currentTimeMillis();
+                            secCount = 0;
+                        } else {
+                            progressHandler.setProgress(progress);
+                        }
                         nextUpdate += onePercent;
                     }
                 }
@@ -262,7 +282,7 @@ public class Util {
     /**
      * Converts a hash into a hex string.
      *
-     * @param hash The hash to convert
+     * @param hash The hash to convert.
      * @return A hexadecimal representation of the hash.
      */
     public static String hashToHex(byte[] hash) {
@@ -373,7 +393,7 @@ public class Util {
      * Converts the content of a given {@code InputStream} to a string.
      *
      * @param input An {@code InputStream} to read from.
-     * @return The content of the given {@code InputStream} as a {@code String}
+     * @return The content of the given {@code InputStream} as a {@code String}.
      */
     public static String convertStreamToString(InputStream input) {
         if (input == null) { return ""; }
@@ -382,24 +402,70 @@ public class Util {
     }
 
     /**
-     * Returns the first and the second part of a python version.
+     * Returns the first and the second part of a Python version.
      *
-     * @param version A python Version
-     * @return The first and the second part of a python version.
+     * @param version A Python version.
+     * @return The first and the second part of a Python version.
      */
-    public static String getMajorMinorVersionPart(@NonNull String version) {
+    public static String getMainVersionPart(@NonNull String version) {
         String[] versionParts = version.split("\\.");
+        if (version.equals(versionParts[0] + "." + versionParts[1])) { // TODO: Remove debugging
+            Log.w(MainActivity.TAG, "Version given to Util.getMainVersionPart was already just main version part: " + version, new IllegalArgumentException());
+        }
         return versionParts[0] + "." + versionParts[1];
     }
 
     /**
      * Converts a library File to the library name.
      *
-     * @param libFile the library file
-     * @return The name of the library
+     * @param libFile the library file.
+     * @return The name of the library (without {@code lib} and {@code .so}).
      */
     public static String getLibraryName(File libFile) {
         String libFileName = libFile.getName();
         return libFileName.substring(3, libFileName.lastIndexOf('.'));
+    }
+
+    /**
+     * Like {@link Math#round(float)}, but takes an additional parameter to specify at which
+     * decimal should be rounded.
+     *
+     * @param number The float to be rounded.
+     * @param decimalPlace The number of digits after the decimal point that the rounded float should have.
+     * @return The rounded float with the specified number of digits after the decimal point.
+     */
+    public static float round(float number, int decimalPlace) {
+        BigDecimal decimal = new BigDecimal(Float.toString(number));
+        decimal = decimal.setScale(decimalPlace, BigDecimal.ROUND_HALF_UP);
+        return decimal.floatValue();
+    }
+
+    /**
+     * Generates a string which contains information about a download progress.
+     * The returned String can be used in the UI.
+     *
+     * @param context The current context.
+     * @param bytesPerSecond The amount of bytes read over the last second.
+     * @param remainingSeconds The amount of seconds remaining until the action has finished.
+     * @return A human readable string which contains the provided information.
+     */
+    public static String generateDownloadInfoText(Context context, int bytesPerSecond, int remainingSeconds) {
+        float bytesAmount = bytesPerSecond;
+        String bytesUnit = "B";
+        DecimalFormat decimalFormatter = new DecimalFormat();
+        if (bytesAmount >= 1000000000) {
+            bytesAmount = round(bytesAmount / 1000000000, 2);
+            bytesUnit = "GB";
+        } else if (bytesAmount >= 1000000) {
+            bytesAmount = round(bytesAmount / 1000000, 2);
+            bytesUnit = "MB";
+        } else if (bytesAmount >= 1000) {
+            bytesAmount = round(bytesAmount / 1000, 2);
+            bytesUnit = "kB";
+        }
+        decimalFormatter.setMaximumFractionDigits(2);
+        decimalFormatter.setMinimumFractionDigits(0);
+        decimalFormatter.setGroupingUsed(false);
+        return context.getString(R.string.progress_download, decimalFormatter.format(bytesAmount), bytesUnit, remainingSeconds);
     }
 }

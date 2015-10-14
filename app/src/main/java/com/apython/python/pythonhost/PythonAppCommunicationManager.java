@@ -34,6 +34,8 @@ public class PythonAppCommunicationManager {
     private String launchClass;
     // The path to a requirements.txt file which contains all the requirements for this App
     private String requirements = null;
+    // The python version this App needs to run
+    private String pythonVersion = null;
 
     public PythonAppCommunicationManager(final Activity activity) {
         this.activity = activity;
@@ -43,10 +45,11 @@ public class PythonAppCommunicationManager {
         PROTOCOL_VERSION = args.getIntExtra("protocolVersion", -1);
         switch (PROTOCOL_VERSION) {
         case 0:
-            this.appPackage   = args.getStringExtra("package");
-            this.launchClass  = args.getStringExtra("launchClass");
-            this.requirements = args.getStringExtra("requirements");
-            // TODO: Handle Python Version
+            this.appPackage    = args.getStringExtra("package");
+            this.launchClass   = args.getStringExtra("launchClass");
+            this.requirements  = args.getStringExtra("requirements");
+            this.pythonVersion = args.getStringExtra("pythonVersion");
+            // TODO: Handle Python Version if not installed (min max or download)
             break;
         case -1:
             Log.e(TAG, "Client did not send protocol version!");
@@ -78,25 +81,26 @@ public class PythonAppCommunicationManager {
         args.setComponent(new ComponentName(this.appPackage, this.launchClass));
 
         if (this.requirements != null) { // TODO: Add more checks to speed up startup time
-            PackageManager.installRequirements(context, this.requirements, progressHandler);
+            PackageManager.installRequirements(context, this.requirements, this.pythonVersion, progressHandler);
         }
-        PackageManager.checkSitePackagesAvailability(context, progressHandler);
+        PackageManager.checkSitePackagesAvailability(context, this.pythonVersion, progressHandler);
 
-        String libPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
+        String stdLibPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
+        String pythonDynamicLibPath = PackageManager.getDynamicLibraryPath(context).getAbsolutePath() + "/";
         ArrayList<String> pythonLibs = new ArrayList<>();
-        pythonLibs.add(libPath + System.mapLibraryName("pythonPatch"));
-        pythonLibs.add(libPath + System.mapLibraryName("bzip"));
-        pythonLibs.add(libPath + System.mapLibraryName("ffi"));
-        pythonLibs.add(libPath + System.mapLibraryName("openSSL"));
-        pythonLibs.add(libPath + System.mapLibraryName("python" + PackageManager.pythonVersion));
-        pythonLibs.add(libPath + System.mapLibraryName("pyLog"));
-        pythonLibs.add(libPath + System.mapLibraryName("pyInterpreter"));
-        pythonLibs.add(libPath + System.mapLibraryName("application"));
+        pythonLibs.add(pythonDynamicLibPath + System.mapLibraryName("pythonPatch"));
+        pythonLibs.add(stdLibPath + System.mapLibraryName("bzip"));
+        pythonLibs.add(stdLibPath + System.mapLibraryName("ffi"));
+        pythonLibs.add(stdLibPath + System.mapLibraryName("openSSL"));
+        pythonLibs.add(pythonDynamicLibPath + System.mapLibraryName("python" + Util.getMainVersionPart(this.pythonVersion)));
+        pythonLibs.add(stdLibPath + System.mapLibraryName("pyLog"));
+        pythonLibs.add(stdLibPath + System.mapLibraryName("pyInterpreter"));
+        pythonLibs.add(stdLibPath + System.mapLibraryName("application"));
         args.putExtra("pythonLibs", pythonLibs);
         args.putExtra("pythonHome", this.activity.getApplicationContext().getFilesDir().getAbsolutePath());
         args.putExtra("pythonExecutablePath", PackageManager.getPythonExecutable(context).getAbsolutePath());
         args.putExtra("xdgBasePath", PackageManager.getXDCBase(context).getAbsolutePath());
-        args.putExtra("pythonVersion", PackageManager.pythonVersion);
+        args.putExtra("pythonVersion", this.pythonVersion);
         this.activity.startActivity(args);
     }
 }

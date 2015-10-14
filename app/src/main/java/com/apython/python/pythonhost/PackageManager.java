@@ -8,6 +8,7 @@ package com.apython.python.pythonhost;
 
 import android.content.Context;
 import android.os.Build;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -18,13 +19,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
 public class PackageManager {
-
-    public static String pythonVersion = "2.7";
 
     public static File getSharedLibrariesPath(Context context) {
         return new File(context.getApplicationInfo().dataDir, "lib");
@@ -42,7 +42,7 @@ public class PackageManager {
         return context.getCacheDir();
     }
 
-    public static File getSitePackages(Context context) {
+    public static File getSitePackages(Context context, String pythonVersion) {
         return new File(getStandardLibPath(context), "python" + pythonVersion + "/site-packages");
     }
 
@@ -87,6 +87,18 @@ public class PackageManager {
     }
 
     /**
+     * Returns the detailed version string of the main Python version which is currently installed.
+     *
+     * @param context The current Application context
+     * @param mainVersion The version which detailed version should be checked.
+     * @return The detailed version string.
+     */
+
+    public static String getDetailedInstalledVersion(Context context, String mainVersion) {
+        return new PythonInterpreter(context, mainVersion).getPythonVersion();
+    }
+
+    /**
      * Get the ABIs supported by this device.
      *
      * @return a list of supported ABIs.
@@ -117,15 +129,71 @@ public class PackageManager {
             Log.e(MainActivity.TAG, "Failed to delete the Python version + " + pythonVersion + ": Could not delete the Python library!");
             return false;
         }
+        if (pythonVersion.equals(PreferenceManager.getDefaultSharedPreferences(context).getString( // TODO: main version?
+                PythonSettingsActivity.KEY_PYTHON_VERSION,
+                PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED))) {
+            PreferenceManager.getDefaultSharedPreferences(context).edit().putString(
+                    PythonSettingsActivity.KEY_PYTHON_VERSION,
+                    PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED
+            ).commit();
+        }
         return true;
     }
 
+    /**
+     * Load a library that was downloaded and was not bundled with the Python Host apk.
+     *
+     * @param context The current context.
+     * @param libraryName The name of the library to load.
+     *
+     * @throws LinkageError if the library was not downloaded or it is not in the usual directory.
+     */
+    public static void loadDynamicLibrary(Context context, String libraryName) {
+        System.load(new File(PackageManager.getDynamicLibraryPath(context),
+                             System.mapLibraryName(libraryName)).getAbsolutePath());
+    }
+
+    /**
+     * Loads all additional libraries that are installed for the given Python version.
+     *
+     * @param context The current context.
+     * @param pythonVersion The Python version whose additional libraries will get loaded.
+     */
+    public static void loadAdditionalLibraries(Context context, String pythonVersion) {
+        File[] additionalPythonLibraries = getLibDynLoad(context, pythonVersion).listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String filename) {
+                return filename.endsWith(".so");
+            }
+        });
+        if (additionalPythonLibraries == null) {
+            if (!getLibDynLoad(context, pythonVersion).mkdirs()) {
+                Log.w(MainActivity.TAG, "Failed to create the libDynLoad directory.");
+            }
+            return;
+        }
+        File[] additionalLibraries = getDynamicLibraryPath(context).listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String filename) {
+                return filename.endsWith(".so") && !filename.matches(".*python\\d+\\.\\d+\\.so") && !filename.endsWith("pythonPatch.so");
+            }
+        });
+        if (additionalLibraries != null) {
+            for (File additionalLibrary : additionalLibraries) {
+                System.load(additionalLibrary.getAbsolutePath());
+            }
+        }
+        for (File additionalLibrary : additionalPythonLibraries) {
+            System.load(additionalLibrary.getAbsolutePath());
+        }
+    }
+
     // Checks that all components of this Python installation are present.
-    public static boolean ensurePythonInstallation(Context context, ProgressHandler progressHandler) {
+    public static boolean ensurePythonInstallation(Context context, String pythonVersion, ProgressHandler progressHandler) {
         return installPythonExecutable(context, progressHandler)
-                && installPythonLibraries(context, progressHandler)
+                //&& installPythonLibraries(context, progressHandler)
                 //&& installPip(context, progressHandler)
-                && checkSitePackagesAvailability(context, progressHandler);
+                && checkSitePackagesAvailability(context, pythonVersion, progressHandler);
     }
 
     public static boolean installPythonExecutable(Context context, ProgressHandler progressHandler) {
@@ -142,25 +210,7 @@ public class PackageManager {
         return executable.exists() || Util.installFromInputStream(executable, context.getResources().openRawResource(R.raw.python), progressHandler);
     }
 
-    public static boolean installPythonLibraries(Context context, ProgressHandler progressHandler) {
-        File libDest = getStandardLibPath(context);
-        if (!(libDest.mkdirs() || libDest.isDirectory())) {
-            Log.e(MainActivity.TAG, "Failed to create the 'lib' directory!");
-            return false;
-        }
-        File libZip = new File(libDest, "python" + pythonVersion.replace(".", "") + ".zip");
-        if (libZip.exists()) {
-            return true;
-        }
-        if (progressHandler != null) {
-            progressHandler.enable(context.getString(R.string.install_pythonLibs));
-        }
-        Util.makeFileAccessible(libDest, false);
-        InputStream libLocation = context.getResources().openRawResource(R.raw.lib);
-        return Util.installFromInputStream(libZip, libLocation, progressHandler);
-    }
-
-    public static boolean installRequirements(final Context context, String requirements, final ProgressHandler progressHandler) {
+    public static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
         File reqFile;
         try {
             reqFile = File.createTempFile("python-", "-requirements.txt", getTempDir(context));
@@ -193,8 +243,8 @@ public class PackageManager {
         return result == 0;
     }
 
-    public static boolean checkSitePackagesAvailability(Context context, ProgressHandler progressHandler) {
-        File sitePackages = getSitePackages(context);
+    public static boolean checkSitePackagesAvailability(Context context, String pythonVersion, ProgressHandler progressHandler) {
+        File sitePackages = getSitePackages(context, pythonVersion);
         if (sitePackages.exists()) {
             if (!(Util.makeFileAccessible(sitePackages.getParentFile(), false)
                     && Util.makeFileAccessible(sitePackages, false))) { return false; }
@@ -219,9 +269,9 @@ public class PackageManager {
         return true;
     }
 
-    public static boolean installPip(final Context context, final ProgressHandler progressHandler) {
+    public static boolean installPip(final Context context, String pythonVersion, final ProgressHandler progressHandler) {
         File downloadDir = getTempDir(context);
-        File sitePackages = getSitePackages(context);
+        File sitePackages = getSitePackages(context, pythonVersion);
         if (!sitePackages.exists()) {// TODO: This is temporary
             if (progressHandler != null) {
                 progressHandler.enable(context.getString(R.string.install_pip));

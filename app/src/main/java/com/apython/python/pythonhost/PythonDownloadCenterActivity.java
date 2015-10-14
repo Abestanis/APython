@@ -21,6 +21,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -213,6 +214,10 @@ public class PythonDownloadCenterActivity extends Activity {
             return;
         }
         this.isUpdateRunning = true;
+        pythonVersionListAdapter.invalidateVersionList();
+        // Update installed versions
+        pythonVersionListAdapter.updateInstalledVersionsList();
+        // Update remote versions
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -222,8 +227,15 @@ public class PythonDownloadCenterActivity extends Activity {
                     isUpdateRunning = false;
                     return;
                 }
+                if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                    Log.w(MainActivity.TAG, "Updating python versions failed with status code "
+                            + response.getStatusLine().getStatusCode() + ": "
+                            + response.getStatusLine().getReasonPhrase());
+                    isUpdateRunning = false; // TODO: Add Dialog for failures
+                    return;
+                }
                 try {
-                    InputStream input = response.getEntity().getContent(); // TODO: Check for file not found
+                    InputStream input = response.getEntity().getContent();
                     indexString = Util.convertStreamToString(input);
                     input.close();
                 } catch (IOException e) {
@@ -231,7 +243,7 @@ public class PythonDownloadCenterActivity extends Activity {
                     isUpdateRunning = false;
                     return;
                 }
-                JSONObject data;
+                final JSONObject data;
                 try {
                     data = new JSONObject(indexString);
                 } catch (JSONException e) {
@@ -239,11 +251,11 @@ public class PythonDownloadCenterActivity extends Activity {
                     isUpdateRunning = false;
                     return;
                 }
-                pythonVersionListAdapter.parseJSONData(data);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         // TODO: Update inner GridView adapter.
+                        pythonVersionListAdapter.parseJSONData(data);
                         pythonVersionListAdapter.notifyDataSetChanged();
                         updateProgressHandler();
                         isUpdateRunning = false;
@@ -279,7 +291,7 @@ public class PythonDownloadCenterActivity extends Activity {
 
         startService(serviceIntent);
         bindService(serviceIntent, downloadServiceConnection, 0);
-        downloadServiceConnection.registerProgressHandler(Util.getMajorMinorVersionPart(version), progressHandler);
+        downloadServiceConnection.registerProgressHandler(Util.getMainVersionPart(version), progressHandler);
     }
 
 }

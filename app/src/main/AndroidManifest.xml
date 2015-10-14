@@ -8,7 +8,7 @@
         android:description="@string/pythonHostPermission_description"
         android:icon="@drawable/python_grey_icon"
         android:protectionLevel="dangerous" />
-    <!-- Should the permission declaration be here, in the app or both? Should we define a permission tree? -->
+    <!-- TODO: Should the permission declaration be here, in the app or both? Should we define a permission tree? -->
     <uses-permission android:name="com.python.permission.PYTHONHOST" />
     <uses-permission android:name="android.permission.INTERNET" />
     <application
@@ -17,7 +17,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".MainActivity"
+            android:name="com.apython.python.pythonhost.MainActivity"
             android:label="@string/app_name" >
             <intent-filter >
                 <action android:name="android.intent.action.MAIN" />
@@ -25,11 +25,11 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".PythonInterpreterActivity"
+            android:name="com.apython.python.pythonhost.PythonInterpreterActivity"
             android:label="PythonInterpreter"
             android:windowSoftInputMode="stateAlwaysVisible"/>
         <activity
-            android:name=".GetPythonAppExecutionInfoActivity"
+            android:name="com.apython.python.pythonhost.GetPythonAppExecutionInfoActivity"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.NoDisplay" >
             <intent-filter>
@@ -38,16 +38,18 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".PythonDownloadCenterActivity"
+            android:name="com.apython.python.pythonhost.PythonDownloadCenterActivity"
             android:label="DownloadPythonSources"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName="com.apython.python.pythonhost.MainActivity"
             tools:ignore="UnusedAttribute">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value="com.apython.python.pythonhost.MainActivity"/>
         </activity>
+        <activity android:name="com.apython.python.pythonhost.PythonSettingsActivity"
+                  android:label="Settings"/>
         <service
-            android:name=".PythonDownloadService"
+            android:name="com.apython.python.pythonhost.PythonDownloadService"
             android:exported="false"/>
     </application>
 

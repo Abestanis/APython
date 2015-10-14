@@ -15,4 +15,7 @@
     <string name="module_installation_downloading">Lade %1$s herunter…</string>
     <string name="module_installation_installing">Installiere %1$s…</string>
     <string name="module_installation_searching">Suche nach %1$s…</string>
+    <string name="getPython_title">Lade Python herunter</string>
+    <string name="search_hint">Suche…</string>
+    <string name="progress_download">%1$s %2$s/s, fertig in %3$d Sekunden.</string>
 </resources>

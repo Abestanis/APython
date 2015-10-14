@@ -34,7 +34,7 @@ public class PythonVersionObject {
 
 
     public String getMainVersion() {
-        return Util.getMajorMinorVersionPart(version);
+        return Util.getMainVersionPart(version);
     }
 
     public ArrayList<String> getModuleDependencies(String moduleName) {
@@ -50,5 +50,9 @@ public class PythonVersionObject {
 
     public boolean isModuleInstalled(String moduleName) {
         return new File(PackageManager.getLibDynLoad(context, version), moduleName + ".so").exists();
+    }
+
+    public boolean isInstallable() {
+        return false;
     }
 }

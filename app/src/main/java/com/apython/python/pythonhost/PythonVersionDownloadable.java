@@ -30,6 +30,11 @@ public class PythonVersionDownloadable extends PythonVersionObject {
         parseData(data, dataVersion);
     }
 
+    @Override
+    public boolean isInstallable() {
+        return downloadUrl != null && libZipUrl != null;
+    }
+
     private void parseData(JSONObject data, int dataVersion) throws JSONException {
         // Get the libZip data
         JSONArray pythonLibData = data.optJSONArray("lib");
