@@ -15,7 +15,10 @@ Additionally, the user can choose which python versions and which additional mod
 It also provides these additional features:
 * A Python interpreter to freely explore the possibilities of Python.
 * A download manager to download Python versions and additional modules.
-* See the issues for unimplemented features.
+
+_See the issues for unimplemented features._
+
+Information: This app, while functional, is **not finished yet**. Bugs may occur and some needed functionality may not yet be implemented.
 
 ### The PyToApk-Tool
 
