@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -41,8 +42,6 @@ public class PythonDownloadCenterActivity extends Activity {
     private PythonVersionListAdapter pythonVersionListAdapter;
     volatile boolean isUpdateRunning = false;
 
-    public static String serverUrl = "https://abestanis.github.io/APython-Libs/";
-    //public static String serverUrl = "http://10.0.2.2:8000";
     public static String indexPath = "index.json";
 
     private PythonDownloadServiceConnection downloadServiceConnection = new PythonDownloadServiceConnection();
@@ -209,6 +208,12 @@ public class PythonDownloadCenterActivity extends Activity {
         downloadServiceConnection.disconnect();
     }
 
+    private String getDownloadServerUrl() {
+        return PreferenceManager.getDefaultSharedPreferences(PythonDownloadCenterActivity.this)
+                .getString(PythonSettingsActivity.KEY_PYTHON_DOWNLOAD_URL,
+                           getString(R.string.pref_default_python_download_url));
+    }
+
     public void updatePythonVersions() {
         if (this.isUpdateRunning) {
             return;
@@ -221,7 +226,7 @@ public class PythonDownloadCenterActivity extends Activity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                HttpResponse response = Util.connectToUrl(serverUrl + "/" + indexPath, 15);
+                HttpResponse response = Util.connectToUrl(getDownloadServerUrl() + "/" + indexPath, 15);
                 String indexString;
                 if (response == null) {
                     isUpdateRunning = false;
@@ -282,7 +287,7 @@ public class PythonDownloadCenterActivity extends Activity {
         final Intent serviceIntent = new Intent(this, PythonDownloadService.class);
         serviceIntent.putExtra("waitForProgressHandler", true);
         serviceIntent.putExtra("version", version);
-        serviceIntent.putExtra("serverUrl", serverUrl);
+        serviceIntent.putExtra("serverUrl", getDownloadServerUrl());
         serviceIntent.putExtra("downloadUrls", downloadUrls);
         serviceIntent.putExtra("md5Hashes", md5Hashes);
         serviceIntent.putExtra("numRequirements", numRequirements);

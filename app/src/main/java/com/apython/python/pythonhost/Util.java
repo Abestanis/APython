@@ -135,10 +135,10 @@ public class Util {
             HttpGet request = new HttpGet();
             request.setURI(new URI(url));
             response = client.execute(request);
-        } catch (URISyntaxException uriE) {
-            Log.e(MainActivity.TAG, "Failed to connect to '" + url + "': Invalid url!", uriE);
-        } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to connect to '" + url + "'!", e);
+        } catch (URISyntaxException | IllegalArgumentException e) {
+            Log.e(MainActivity.TAG, "Failed to connect to '" + url + "': Invalid url!", e);
+        } catch (IOException IOe) {
+            Log.e(MainActivity.TAG, "Failed to connect to '" + url + "'!", IOe);
         }
         return response;
     }
@@ -467,5 +467,20 @@ public class Util {
         decimalFormatter.setMinimumFractionDigits(0);
         decimalFormatter.setGroupingUsed(false);
         return context.getString(R.string.progress_download, decimalFormatter.format(bytesAmount), bytesUnit, remainingSeconds);
+    }
+
+    /**
+     * Checks if an url is valid.
+     *
+     * @param url The url to check.
+     * @return {@code true} if the url is valid, {@code false} otherwise.
+     */
+    public static boolean isValidUrl(String url) {
+        try {
+            URI uri = new URI(url);
+            return uri.getHost() != null;
+        } catch (URISyntaxException e) {
+            return false;
+        }
     }
 }

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -18,6 +19,12 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // This is just for debugging on localhost
+//        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(
+//                PythonSettingsActivity.KEY_PYTHON_DOWNLOAD_URL,
+//                "http://10.0.2.2:8000"
+//        ).commit();
 
         final LinearLayout progressContainer = (LinearLayout) findViewById(R.id.progressContainer);
         final TextView progressTextView = (TextView) findViewById(R.id.updateText);
@@ -81,6 +88,14 @@ public class MainActivity extends Activity {
 //            return;
 //        }
         findViewById(R.id.progressContainer).setVisibility(View.GONE);
+        boolean skipSplashScreen = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
+                PythonSettingsActivity.KEY_SKIP_SPLASH_SCREEN,
+                getResources().getBoolean(R.bool.pref_default_skip_splash_screen)
+        );
+        if (skipSplashScreen) {
+            setupMainMenu();
+            return;
+        }
 
         // Get the python version.
         TextView pythonVersionView = (TextView) findViewById(R.id.pythonVersionText);

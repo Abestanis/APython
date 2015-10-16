@@ -7,5 +7,14 @@
             android:title="Default Python version"
             android:key="pref_key_default_python_version"
             android:defaultValue="Always ask"/>
+        <CheckBoxPreference
+            android:title="Skip Splash Screen"
+            android:key="pref_key_skip_splash_screen"
+            android:defaultValue="@bool/pref_default_skip_splash_screen"/>
+        <EditTextPreference
+            android:title="Download Url"
+            android:key="pref_key_python_download_url"
+            android:defaultValue="@string/pref_default_python_download_url"
+            android:inputType="textUri"/>
     </PreferenceCategory>
 </PreferenceScreen>

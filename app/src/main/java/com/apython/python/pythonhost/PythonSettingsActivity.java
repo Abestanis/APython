@@ -2,10 +2,12 @@ package com.apython.python.pythonhost;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -20,7 +22,9 @@ public class PythonSettingsActivity extends PreferenceActivity
 
     public static final String PYTHON_VERSION_NOT_SELECTED = "";
 
-    public static final String KEY_PYTHON_VERSION = "pref_key_default_python_version";
+    public static final String KEY_PYTHON_VERSION      = "pref_key_default_python_version";
+    public static final String KEY_SKIP_SPLASH_SCREEN  = "pref_key_skip_splash_screen";
+    public static final String KEY_PYTHON_DOWNLOAD_URL = "pref_key_python_download_url";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +37,11 @@ public class PythonSettingsActivity extends PreferenceActivity
         super.onStart();
         ListPreference listPreference = (ListPreference) findPreference(KEY_PYTHON_VERSION);
         initializeVersionSetting(listPreference);
-
+        Preference pyDownloadUrlPreference = findPreference(KEY_PYTHON_DOWNLOAD_URL);
+        pyDownloadUrlPreference.setSummary(
+                PreferenceManager.getDefaultSharedPreferences(this).getString(
+                KEY_PYTHON_DOWNLOAD_URL, getString(R.string.pref_default_python_download_url))
+        );
     }
 
     @Override
@@ -67,9 +75,30 @@ public class PythonSettingsActivity extends PreferenceActivity
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (KEY_PYTHON_VERSION.equals(key)) {
+        switch (key) {
+        case KEY_PYTHON_VERSION:
             Preference pyVersionPreference = findPreference(KEY_PYTHON_VERSION);
-            pyVersionPreference.setSummary(sharedPreferences.getString(key, "Always Ask"));
+            pyVersionPreference.setSummary(sharedPreferences.getString(
+                    KEY_PYTHON_VERSION, "Always Ask"));
+            break;
+        case KEY_PYTHON_DOWNLOAD_URL:
+            Preference pyDownloadUrlPreference = findPreference(KEY_PYTHON_DOWNLOAD_URL);
+            String value = sharedPreferences.getString(
+                    KEY_PYTHON_DOWNLOAD_URL,
+                    getString(R.string.pref_default_python_download_url));
+            if (Util.isValidUrl(value)) {
+                pyDownloadUrlPreference.setSummary(value);
+            } else {
+                value = getString(R.string.pref_default_python_download_url);
+                pyDownloadUrlPreference.setSummary(R.string.pref_default_python_download_url);
+                ((EditTextPreference) pyDownloadUrlPreference).setText(value);
+                sharedPreferences.edit().putString(
+                        KEY_PYTHON_DOWNLOAD_URL,
+                        value
+                ).commit();
+                Toast.makeText(this, "Invalid url!", Toast.LENGTH_SHORT).show();
+            }
+            break;
         }
     }
 }
