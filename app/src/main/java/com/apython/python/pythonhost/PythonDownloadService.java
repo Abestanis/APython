@@ -337,6 +337,7 @@ public class PythonDownloadService extends IntentService {
                 Log.w(MainActivity.TAG, "Failed to install module '" + moduleName + "'.");
             }
         }
+        Util.makeFileAccessible(getApplicationContext().getFilesDir(), true);
         return true;
     }
 

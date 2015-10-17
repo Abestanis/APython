@@ -98,11 +98,20 @@ static JNINativeMethod methods[] = {
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     JNIEnv *env = NULL;
+    const char* javaClasspath = NULL;
+    static const char* propertyName = "python.android.entry.class";
+
     if((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) {
         return -1;
     }
-    const char* javaClasspath = getenv("JAVA_PYTHON_MAIN_CLASSPATH");
-    ASSERT(javaClasspath != NULL, "Environment variable 'JAVA_PYTHON_MAIN_CLASSPATH' not set!");
+
+    jclass systemClass = (*env)->FindClass(env, "java/lang/System");
+    jmethodID getPropertyMethod = (*env)->GetStaticMethodID(env, systemClass, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
+    jstring propertyNameString = (*env)->NewStringUTF(env, propertyName);
+    jstring jJavaClassPath = (*env)->CallStaticObjectMethod(env, systemClass, getPropertyMethod, propertyNameString);
+    ASSERT(jJavaClassPath != NULL, "System variable '%s' is not set! You must set this variable to point to the java class of your app that implements the native 'startApp' function.", propertyName);
+    javaClasspath = (*env)->GetStringUTFChars(env, jJavaClassPath, 0);
     jniRegisterNativeMethods(env, javaClasspath, methods, sizeof(methods)/sizeof(methods[0]));
+    (*env)->ReleaseStringUTFChars(env, jJavaClassPath, javaClasspath);
     return JNI_VERSION_1_6;
 }

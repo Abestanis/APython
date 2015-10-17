@@ -86,13 +86,14 @@ public class PythonAppCommunicationManager {
         PackageManager.checkSitePackagesAvailability(context, this.pythonVersion, progressHandler);
 
         String stdLibPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
-        String pythonDynamicLibPath = PackageManager.getDynamicLibraryPath(context).getAbsolutePath() + "/";
+        String dynamicLibPath = PackageManager.getDynamicLibraryPath(context).getAbsolutePath() + "/";
         ArrayList<String> pythonLibs = new ArrayList<>();
-        pythonLibs.add(pythonDynamicLibPath + System.mapLibraryName("pythonPatch"));
-        pythonLibs.add(stdLibPath + System.mapLibraryName("bzip"));
-        pythonLibs.add(stdLibPath + System.mapLibraryName("ffi"));
-        pythonLibs.add(stdLibPath + System.mapLibraryName("openSSL"));
-        pythonLibs.add(pythonDynamicLibPath + System.mapLibraryName("python" + Util.getMainVersionPart(this.pythonVersion)));
+        // TODO: Make function
+        pythonLibs.add(dynamicLibPath + System.mapLibraryName("pythonPatch"));
+        pythonLibs.add(dynamicLibPath + System.mapLibraryName("bzip"));
+        pythonLibs.add(dynamicLibPath + System.mapLibraryName("ffi"));
+        pythonLibs.add(dynamicLibPath + System.mapLibraryName("openSSL"));
+        pythonLibs.add(dynamicLibPath + System.mapLibraryName("python" + Util.getMainVersionPart(this.pythonVersion)));
         pythonLibs.add(stdLibPath + System.mapLibraryName("pyLog"));
         pythonLibs.add(stdLibPath + System.mapLibraryName("pyInterpreter"));
         pythonLibs.add(stdLibPath + System.mapLibraryName("application"));
