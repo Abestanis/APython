@@ -38,31 +38,7 @@
         android:singleLine="false"
         android:gravity="top|center"
         android:minHeight="40dp"
-        android:visibility="invisible"/>
+        android:visibility="visible"
+        android:text="@string/app_name"/>
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:id="@+id/progressContainer"
-        android:layout_alignTop="@+id/pythonVersionText"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/updateText"
-            android:gravity="center_horizontal"
-            android:singleLine="true"
-            android:textColor="@android:color/white"/>
-
-        <ProgressBar
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/progressBar"/>
-
-    </LinearLayout>
 </RelativeLayout>

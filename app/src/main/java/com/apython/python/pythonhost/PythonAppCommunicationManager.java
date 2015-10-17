@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import java.io.File;
 import java.util.ArrayList;
 
 /*
@@ -88,11 +89,10 @@ public class PythonAppCommunicationManager {
         String stdLibPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
         String dynamicLibPath = PackageManager.getDynamicLibraryPath(context).getAbsolutePath() + "/";
         ArrayList<String> pythonLibs = new ArrayList<>();
-        // TODO: Make function
         pythonLibs.add(dynamicLibPath + System.mapLibraryName("pythonPatch"));
-        pythonLibs.add(dynamicLibPath + System.mapLibraryName("bzip"));
-        pythonLibs.add(dynamicLibPath + System.mapLibraryName("ffi"));
-        pythonLibs.add(dynamicLibPath + System.mapLibraryName("openSSL"));
+        for (File libFile : PackageManager.getAdditionalLibraries(context)) {
+            pythonLibs.add(libFile.getAbsolutePath());
+        }
         pythonLibs.add(dynamicLibPath + System.mapLibraryName("python" + Util.getMainVersionPart(this.pythonVersion)));
         pythonLibs.add(stdLibPath + System.mapLibraryName("pyLog"));
         pythonLibs.add(stdLibPath + System.mapLibraryName("pyInterpreter"));

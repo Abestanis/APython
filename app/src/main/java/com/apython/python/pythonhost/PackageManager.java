@@ -154,36 +154,48 @@ public class PackageManager {
     }
 
     /**
+     * Returns a list of all additional libraries installed.
+     *
+     * @param context The current context.
+     * @return A list of {@link File} objects pointing to the library files.
+     */
+    public static File[] getAdditionalLibraries(Context context) {
+        File[] additionalLibraries = getDynamicLibraryPath(context).listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String filename) {
+                return filename.endsWith(".so")
+                        && !filename.matches(".*python\\d+\\.\\d+\\.so")
+                        && !filename.endsWith("pythonPatch.so");
+            }
+        });
+        return additionalLibraries != null ? additionalLibraries : new File[0];
+    }
+
+    /**
+     * Returns a list of all additional Python modules installed for the given Python version.
+     *
+     * @param context The current context.
+     * @param pythonVersion The Python version for which to search for libraries.
+     * @return A list of {@link File} objects pointing to the library files.
+     */
+    public static File[] getAdditionalModules(Context context, String pythonVersion) {
+        File[] additionalModules = getLibDynLoad(context, pythonVersion).listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String filename) {
+                return filename.endsWith(".so");
+            }
+        });
+        return additionalModules != null ? additionalModules : new File[0];
+    }
+
+    /**
      * Loads all additional libraries that are installed for the given Python version.
      *
      * @param context The current context.
      * @param pythonVersion The Python version whose additional libraries will get loaded.
      */
     public static void loadAdditionalLibraries(Context context, String pythonVersion) {
-        File[] additionalPythonLibraries = getLibDynLoad(context, pythonVersion).listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String filename) {
-                return filename.endsWith(".so");
-            }
-        });
-        if (additionalPythonLibraries == null) {
-            if (!getLibDynLoad(context, pythonVersion).mkdirs()) {
-                Log.w(MainActivity.TAG, "Failed to create the libDynLoad directory.");
-            }
-            return;
-        }
-        File[] additionalLibraries = getDynamicLibraryPath(context).listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String filename) {
-                return filename.endsWith(".so") && !filename.matches(".*python\\d+\\.\\d+\\.so") && !filename.endsWith("pythonPatch.so");
-            }
-        });
-        if (additionalLibraries != null) {
-            for (File additionalLibrary : additionalLibraries) {
-                System.load(additionalLibrary.getAbsolutePath());
-            }
-        }
-        for (File additionalLibrary : additionalPythonLibraries) {
+        for (File additionalLibrary : getAdditionalLibraries(context)) {
             System.load(additionalLibrary.getAbsolutePath());
         }
     }
