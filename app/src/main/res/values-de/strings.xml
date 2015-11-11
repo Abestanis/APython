@@ -18,4 +18,6 @@
     <string name="getPython_title">Lade Python herunter</string>
     <string name="search_hint">Suche…</string>
     <string name="progress_download">%1$s %2$s/s, fertig in %3$d Sekunden.</string>
+    <string name="no_matches">Keine Treffer</string>
+    <string name="used_starage_space">Speicherverbrauch</string>
 </resources>

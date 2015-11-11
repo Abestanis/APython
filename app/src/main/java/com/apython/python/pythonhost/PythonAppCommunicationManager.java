@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.apython.python.pythonhost.downloadcenter.PythonDownloadCenterActivity;
+
 import java.io.File;
 import java.util.ArrayList;
 
@@ -37,6 +39,9 @@ public class PythonAppCommunicationManager {
     private String requirements = null;
     // The python version this App needs to run
     private String pythonVersion = null;
+    private String minPythonVersion = null;
+    private String maxPythonVersion = null;
+    private String[] disallowedPythonVersions = null;
 
     public PythonAppCommunicationManager(final Activity activity) {
         this.activity = activity;
@@ -46,11 +51,13 @@ public class PythonAppCommunicationManager {
         PROTOCOL_VERSION = args.getIntExtra("protocolVersion", -1);
         switch (PROTOCOL_VERSION) {
         case 0:
-            this.appPackage    = args.getStringExtra("package");
-            this.launchClass   = args.getStringExtra("launchClass");
-            this.requirements  = args.getStringExtra("requirements");
-            this.pythonVersion = args.getStringExtra("pythonVersion");
-            // TODO: Handle Python Version if not installed (min max or download)
+            this.appPackage       = args.getStringExtra("package");
+            this.launchClass      = args.getStringExtra("launchClass");
+            this.requirements     = args.getStringExtra("requirements");
+            this.pythonVersion    = args.getStringExtra("pythonVersion");
+            this.minPythonVersion = args.getStringExtra("minPythonVersion");
+            this.maxPythonVersion = args.getStringExtra("maxPythonVersion");
+            this.disallowedPythonVersions = args.getStringArrayExtra("disallowedPythonVersions");
             break;
         case -1:
             Log.e(TAG, "Client did not send protocol version!");
@@ -81,10 +88,23 @@ public class PythonAppCommunicationManager {
         Intent args = new Intent();
         args.setComponent(new ComponentName(this.appPackage, this.launchClass));
 
-        if (this.requirements != null) { // TODO: Add more checks to speed up startup time
-            PackageManager.installRequirements(context, this.requirements, this.pythonVersion, progressHandler);
+        // Determine the python version to use
+        // TODO: This should consider the installed requirements
+        String determinedPythonVersion = PackageManager.getOptimalInstalledPythonVersion(
+                context, this.pythonVersion, this.minPythonVersion, this.maxPythonVersion,
+                this.disallowedPythonVersions);
+        if (determinedPythonVersion == null) {
+            // TODO: This must work automatically without the interaction from the user
+            this.activity.startActivity(new Intent(context, PythonDownloadCenterActivity.class));
+            // FIXME: This is temporary
+            exitWithError("No suitable Python version installed, try again!");
+            return;
         }
-        PackageManager.checkSitePackagesAvailability(context, this.pythonVersion, progressHandler);
+        PackageManager.installPythonExecutable(context, progressHandler);
+        if (this.requirements != null) {
+            PackageManager.installRequirements(context, this.requirements, determinedPythonVersion, progressHandler);
+        }
+        PackageManager.checkSitePackagesAvailability(context, determinedPythonVersion, progressHandler);
 
         String stdLibPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
         String dynamicLibPath = PackageManager.getDynamicLibraryPath(context).getAbsolutePath() + "/";
@@ -93,15 +113,15 @@ public class PythonAppCommunicationManager {
         for (File libFile : PackageManager.getAdditionalLibraries(context)) {
             pythonLibs.add(libFile.getAbsolutePath());
         }
-        pythonLibs.add(dynamicLibPath + System.mapLibraryName("python" + Util.getMainVersionPart(this.pythonVersion)));
+        pythonLibs.add(dynamicLibPath + System.mapLibraryName("python" + Util.getMainVersionPart(determinedPythonVersion)));
         pythonLibs.add(stdLibPath + System.mapLibraryName("pyLog"));
         pythonLibs.add(stdLibPath + System.mapLibraryName("pyInterpreter"));
         pythonLibs.add(stdLibPath + System.mapLibraryName("application"));
         args.putExtra("pythonLibs", pythonLibs);
         args.putExtra("pythonHome", this.activity.getApplicationContext().getFilesDir().getAbsolutePath());
         args.putExtra("pythonExecutablePath", PackageManager.getPythonExecutable(context).getAbsolutePath());
-        args.putExtra("xdgBasePath", PackageManager.getXDCBase(context).getAbsolutePath());
-        args.putExtra("pythonVersion", this.pythonVersion);
+        args.putExtra("xdgBasePath", PackageManager.getXDGBase(context).getAbsolutePath());
+        args.putExtra("pythonVersion", determinedPythonVersion);
         this.activity.startActivity(args);
     }
 }

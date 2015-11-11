@@ -11,18 +11,13 @@ import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
+import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class PackageManager {
 
@@ -46,7 +41,11 @@ public class PackageManager {
         return new File(getStandardLibPath(context), "python" + pythonVersion + "/site-packages");
     }
 
-    public static File getXDCBase(Context context) {
+    public static File getGlobalSitePackages(Context context) {
+        return new File(getStandardLibPath(context), "site-packages");
+    }
+
+    public static File getXDGBase(Context context) {
         return new File(context.getFilesDir(), "pythonApps");
     }
 
@@ -75,15 +74,73 @@ public class PackageManager {
         }
         for (File libFile : libPath.listFiles()) {
             String name = libFile.getName();
-            if (!name.startsWith("libpython") || !name.endsWith(".so") || name.contains("pythonPatch")) {
+            if (!name.startsWith("lib" + "python") || !name.endsWith(".so") || name.contains("pythonPatch")) {
                 continue;
             }
-            String version = name.replace("libpython", "").replace(".so", "");
+            String version = name.replace("lib" + "python", "").replace(".so", "");
             if (new File(getStandardLibPath(context), "python" + version.replace(".", "") + ".zip").exists()) {
                 versions.add(version);
             }
         }
         return versions;
+    }
+
+    /**
+     * Returns the installed Python version with the highest version number.
+     *
+     * @param context The current context.
+     * @return The newest Python version.
+     */
+    public static String getNewestInstalledPythonVersion(Context context) {
+        String newestVersion = null;
+        int[] newestVersionNumbers = {0, 0};
+        for (String version : getInstalledPythonVersions(context)) {
+            String[] versionParts = version.split("\\.");
+            int[] versionNumbers = {Integer.valueOf(versionParts[0]), Integer.valueOf(versionParts[1])};
+            if (versionNumbers[0] > newestVersionNumbers[0]
+                    || (versionNumbers[0] == newestVersionNumbers[0] && versionNumbers[1] > newestVersionNumbers[1])) {
+                newestVersion = version;
+                newestVersionNumbers = versionNumbers;
+            }
+        }
+        return newestVersion;
+    }
+
+    /**
+     * Return the optimal installed Python version.
+     *
+     * @param context The current context.
+     * @param requestedPythonVersion A requested specific Python version.
+     * @param minPythonVersion The minimum Python version to use.
+     * @param maxPythonVersion The maximum Python version to use.
+     * @param disallowedPythonVersions A list of disallowed Python versions.
+     * @return The optimal Python version or {@code null} if no optimal version was found.
+     */
+    public static String getOptimalInstalledPythonVersion(Context context, String requestedPythonVersion,
+                                                          String minPythonVersion, String maxPythonVersion,
+                                                          String[] disallowedPythonVersions) {
+        if (requestedPythonVersion != null) {
+            return isPythonVersionInstalled(context, requestedPythonVersion) ? requestedPythonVersion : null;
+        }
+
+        ArrayList<String> installedPythonVersions = getInstalledPythonVersions(context);
+        if (disallowedPythonVersions != null) {
+            installedPythonVersions.removeAll(Arrays.asList(disallowedPythonVersions));
+        }
+        Collections.sort(installedPythonVersions, Collections.reverseOrder());
+        int[] minPyVersion = minPythonVersion != null ? Util.getNumericPythonVersion(minPythonVersion) : new int[] {-1, -1, -1};
+        int[] maxPyVersion = maxPythonVersion != null ? Util.getNumericPythonVersion(maxPythonVersion) : new int[] {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE};
+        for (String installedPythonVersion : installedPythonVersions) {
+            int[] version = Util.getNumericPythonVersion(installedPythonVersion);
+            if (version[0] <= maxPyVersion[0] && version[0] >= minPyVersion[0]) {
+                if (version[1] <= maxPyVersion[1] && version[1] >= minPyVersion[1]) {
+                    if (version[2] <= maxPyVersion[2] && version[2] >= minPyVersion[2]) {
+                        return installedPythonVersion;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -93,8 +150,8 @@ public class PackageManager {
      * @param mainVersion The version which detailed version should be checked.
      * @return The detailed version string.
      */
-
     public static String getDetailedInstalledVersion(Context context, String mainVersion) {
+        // TODO: This must be faster
         return new PythonInterpreter(context, mainVersion).getPythonVersion();
     }
 
@@ -189,15 +246,28 @@ public class PackageManager {
     }
 
     /**
-     * Loads all additional libraries that are installed for the given Python version.
+     * Loads all additional libraries that are installed.
      *
      * @param context The current context.
-     * @param pythonVersion The Python version whose additional libraries will get loaded.
      */
-    public static void loadAdditionalLibraries(Context context, String pythonVersion) {
+    public static void loadAdditionalLibraries(Context context) {
         for (File additionalLibrary : getAdditionalLibraries(context)) {
             System.load(additionalLibrary.getAbsolutePath());
         }
+    }
+
+    /**
+     * Calculates the storage space currently used by the given Python version.
+     *
+     * @param context The current context.
+     * @param pythonVersion The Python version to calculate the used storage space for.
+     * @return The used storage space in bytes.
+     */
+    public static long getUsedStorageSpace(Context context, String pythonVersion) {
+        File pythonDir = new File(getStandardLibPath(context), "python" + pythonVersion);
+        File pythonLib = new File(PackageManager.getDynamicLibraryPath(context),
+                                  System.mapLibraryName("python" + Util.getMainVersionPart(pythonVersion)));
+        return pythonLib.length() + Util.calculateDirectorySize(pythonDir);
     }
 
     // Checks that all components of this Python installation are present.
@@ -223,36 +293,8 @@ public class PackageManager {
     }
 
     public static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
-        File reqFile;
-        try {
-            reqFile = File.createTempFile("python-", "-requirements.txt", getTempDir(context));
-            FileWriter fw = new FileWriter(reqFile.getAbsoluteFile());
-            BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(requirements);
-            bw.close();
-        } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to write requirements to a temporary file!");
-            e.printStackTrace();
-            return false;
-        }
-        PythonInterpreter.IOHandler ioHandler = null;
-        if (progressHandler != null) {
-            progressHandler.setProgress(-1);
-            progressHandler.enable(context.getString(R.string.install_requirements));
-            ioHandler = new PythonInterpreter.IOHandler() {
-                @Override
-                public void addOutput(String text) { Util.parsePipOutput(context, progressHandler, text); }
-
-                @Override
-                public void setupInput(String prompt) {}
-            };
-        }
-        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-        int result = interpreter.runPythonModule("pip", new String[] {"install", "-r", reqFile.getAbsolutePath()});
-        if (!reqFile.delete()) {
-            Log.w(MainActivity.TAG, "Cannot delete temporary file '" + reqFile.getAbsolutePath() + "'!");
-        }
-        return result == 0;
+        return Pip.install(context, pythonVersion, progressHandler)
+                && Pip.installRequirements(context, requirements, pythonVersion, progressHandler);
     }
 
     public static boolean checkSitePackagesAvailability(Context context, String pythonVersion, ProgressHandler progressHandler) {
@@ -279,102 +321,5 @@ public class PackageManager {
             }
         }
         return true;
-    }
-
-    public static boolean installPip(final Context context, String pythonVersion, final ProgressHandler progressHandler) {
-        File downloadDir = getTempDir(context);
-        File sitePackages = getSitePackages(context, pythonVersion);
-        if (!sitePackages.exists()) {// TODO: This is temporary
-            if (progressHandler != null) {
-                progressHandler.enable(context.getString(R.string.install_pip));
-            }
-            String url = "https://bootstrap.pypa.io/get-pip.py";
-            HttpResponse response = Util.connectToUrl(url, 20);
-            InputStream stream;
-            long totalDownloadSize;
-            try {
-                HttpEntity entity = response.getEntity();
-                stream = entity.getContent();
-                totalDownloadSize = entity.getContentLength();
-            } catch (IOException e) {
-                e.printStackTrace();
-                return false;
-            }
-            int count;
-            final int BUFFER_SIZE = 2048;
-            byte data[] = new byte[BUFFER_SIZE];
-            FileOutputStream fos;
-            if (!(downloadDir.mkdirs() || downloadDir.isDirectory())) {
-                Log.e(MainActivity.TAG, "Failed to create the 'downloads' directory!");
-                return false;
-            }
-            for (String child : downloadDir.list()) {
-                if (!(new File(downloadDir, child).delete())) {
-                    Log.w(MainActivity.TAG, "Could not delete file '" + child + "' in '" + downloadDir.getAbsolutePath() + "'.");
-                }
-            }
-            if (progressHandler != null) {
-                progressHandler.setText(context.getString(R.string.download_pip));
-            }
-            File file = new File(downloadDir, "get-pip.py");
-            int totalCount = 0;
-            float nextUpdate = 0;
-            float onePercent = (float) totalDownloadSize / 100;
-            try {
-                fos = new FileOutputStream(file);
-                BufferedOutputStream dest = new BufferedOutputStream(fos, BUFFER_SIZE);
-                while ((count = stream.read(data, 0, BUFFER_SIZE)) != -1) {
-                    dest.write(data, 0, count);
-                    if (progressHandler != null) {
-                        totalCount += count;
-                        if (totalCount >= nextUpdate) {
-                            progressHandler.setProgress((float) totalCount / totalDownloadSize);
-                            nextUpdate += onePercent;
-                        }
-                    }
-                }
-                dest.close();
-            } catch (IOException ioE) {
-                Log.e(MainActivity.TAG, "Failed to save the pip installation file at '" + file.getAbsolutePath() + "'!");
-                ioE.printStackTrace();
-                return false;
-            }
-            PythonInterpreter.IOHandler ioHandler = null;
-            if (progressHandler != null) {
-                progressHandler.setProgress(-1);
-                progressHandler.setText(context.getString(R.string.run_pip_installer));
-                ioHandler = new PythonInterpreter.IOHandler() {
-                    @Override
-                    public void addOutput(String text) { Util.parsePipOutput(context, progressHandler, text); }
-
-                    @Override
-                    public void setupInput(String prompt) {}
-                };
-            }
-            PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-            int res = interpreter.runPythonFile(file, null);
-            if (!file.delete()) {
-                Log.w(MainActivity.TAG, "Failed to delete '" + file.getAbsolutePath() + "'!");
-            }
-            if (res != 0) {
-                Log.e(MainActivity.TAG, "Installing pip failed ith exit status " + res + "!");
-                return false;
-            }
-        }
-        return configurePip(context, progressHandler);
-    }
-
-    public static boolean configurePip(Context context, ProgressHandler progressHandler) {
-        File config = new File(context.getFilesDir(), "pythonApps/.config/pip");
-        if (!(config.exists() || config.mkdirs())) {
-            Log.e(MainActivity.TAG, "Could not make directories for path '" + config.getAbsolutePath() + "'!");
-            return false;
-        }
-        config = new File(config, "pip.conf");
-        if (config.exists()) { return true; }
-        if (progressHandler != null) {
-            progressHandler.enable(context.getString(R.string.configure_pip));
-        }
-        return Util.installFromInputStream(config, context.getResources().openRawResource(R.raw.pip_conf), progressHandler) && Util.makeFileAccessible(new File(context.getFilesDir(), "pythonApps"), true);
     }
 }

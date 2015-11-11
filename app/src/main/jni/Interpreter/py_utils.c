@@ -13,8 +13,8 @@ static int saved_stdout;
 static int saved_stderr;
 
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHome, const char* pythonTemp, const char* xdgBasePath) {
-
     const char* value = (const char*) getenv("LD_LIBRARY_PATH");
+    if (value == NULL) { value = ""; }
     if (strstr(value, pythonLibs) == NULL) { // Check if our Path is already in LD_LIBRARY_PATH
         const char* newValue = malloc(sizeof(char) * (strlen(pythonLibs) + strlen(value) + 2));
         ASSERT(newValue != NULL, "Not enough memory to change 'LD_LIBRARY_PATH'!");
@@ -68,10 +68,8 @@ static void cleanupPythonThread(void* arg) {
 void* startPythonInterpreter(void* arg) {
     pthread_cleanup_push(cleanupPythonThread, NULL);
 
-    struct pythonThreadArguments *args = (struct pythonThreadArguments *)arg;
+    struct pythonThreadArguments *args = (struct pythonThreadArguments*) arg;
 
-    //Py_VerboseFlag = 1;
-    //Py_DebugFlag = 1;
     LOG("Starting...");
     fflush(stdout);
     exit(call_Py_Main(args->argc, args->argv));

@@ -1,4 +1,4 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.downloadcenter;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -25,6 +25,12 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.ProgressHandler;
+import com.apython.python.pythonhost.R;
+import com.apython.python.pythonhost.Util;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -59,6 +65,7 @@ public class PythonVersionListAdapter extends BaseAdapter {
         void onDownload(String version, String[] downloadUrls, String[] md5Hashes,
                         int numRequirements, int numDependencies, int numModules,
                         ProgressHandler progressHandler);
+
         void onUpdateProgressHandler(String pythonVersion, ProgressHandler progressHandler);
     }
 
@@ -126,10 +133,8 @@ public class PythonVersionListAdapter extends BaseAdapter {
 
     protected View getVersionItemView(final String version, ViewGroup parent) {
         final View view = LayoutInflater.from(context).inflate(R.layout.python_version_list_item, parent, false);
-        final TextView versionText = (TextView) view.findViewById(R.id.version_list_main_version_text);
         final ProgressBar totalProgressView = (ProgressBar) view.findViewById(R.id.version_list_total_progress_view);
         final ProgressBar progressView = (ProgressBar) view.findViewById(R.id.version_list_progress_view);
-        final ImageView actionButton = (ImageView) view.findViewById(R.id.version_list_action_button);
         final ImageView deleteButton = (ImageView) view.findViewById(R.id.version_list_delete_button);
         ImageView dropdownButton = (ImageView) view.findViewById(R.id.version_list_dropdown_button);
         final RelativeLayout infoContainer = (RelativeLayout) view.findViewById(R.id.version_list_info_container);
@@ -423,9 +428,14 @@ public class PythonVersionListAdapter extends BaseAdapter {
 
     protected void configureViewWhileInstalled(View view, String version) {
         final TextView versionText = (TextView) view.findViewById(R.id.version_list_main_version_text);
+        final TextView infoText = (TextView) view.findViewById(R.id.version_list_info_text);
+        final TextView infoValueText = (TextView) view.findViewById(R.id.version_list_info_value_text);
         final ImageView actionButton = (ImageView) view.findViewById(R.id.version_list_action_button);
 
         versionText.setText("Python " + PackageManager.getDetailedInstalledVersion(context, version));
+        infoText.setText(R.string.used_starage_space);
+        String[] storageUsage = Util.getFormattedBytes(PackageManager.getUsedStorageSpace(context, version));
+        infoValueText.setText(storageUsage[0] + " " + storageUsage[1]);
         actionButton.setImageResource(R.drawable.installed);
         actionButton.setClickable(false);
     }

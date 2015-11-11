@@ -16,6 +16,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 void redirectOutputToJava(const char *string) {
     if (jPyInterpreter == NULL) { return; }
     JNIEnv* env = NULL;
+    jstring jOutputStr   = NULL;
     static jclass *cls   = NULL;
     static jmethodID mid = NULL;
     int detached = (*Jvm)->GetEnv(Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
@@ -30,7 +31,9 @@ void redirectOutputToJava(const char *string) {
         mid = (*env)->GetMethodID(env, cls, "addTextToOutput", "(Ljava/lang/String;)V");
         ASSERT(mid, "Could not find the function 'addTextToOutput' in the Android class!");
     }
-    (*env)->CallVoidMethod(env, jPyInterpreter, mid, (*env)->NewStringUTF(env, string));
+    jOutputStr = (*env)->NewStringUTF(env, string);
+    (*env)->CallVoidMethod(env, jPyInterpreter, mid, jOutputStr);
+    (*env)->DeleteLocalRef(env, jOutputStr);
     if (detached) {
         (*Jvm)->DetachCurrentThread(Jvm);
     }
@@ -73,14 +76,14 @@ char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, char *prompt) {
 /* JNI functions */
 
 
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_nativeGetPythonVersion(JNIEnv *env, jclass clazz, jstring jPythonLibName) {
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_nativeGetPythonVersion(JNIEnv *env, jclass clazz, jstring jPythonLibName) {
     const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
     setPythonLibrary(pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
     return (*env)->NewStringUTF(env, getPythonVersion());
 }
 
-JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runInterpreter(
+JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_runInterpreter(
            JNIEnv *env, jobject obj, jstring jPythonLibName, jstring jProgramPath, jstring jLibPath, jstring jPythonHome,
            jstring jPythonTemp, jstring jXDGBasePath, jstring jAppTag, jobjectArray jArgs, jboolean redirectOutput) {
     jPyInterpreter = (*env)->NewGlobalRef(env, obj);
@@ -151,9 +154,9 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_runI
     return result;
 }
 
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_PythonInterpreter_dispatchKey(JNIEnv *env, jobject obj, jint character) {
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_dispatchKey(JNIEnv *env, jobject obj, jint character) {
     if (stdin_writer == NULL) {
-        LOG_WARN("Tried to dispatch kex event to the Python interpreter, but the input pipe is not initialized yet.");
+        LOG_WARN("Tried to dispatch key event to the Python interpreter, but the input pipe is not initialized yet.");
         return;
     }
     putc(character, stdin_writer);

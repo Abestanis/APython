@@ -1,4 +1,4 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.interpreter;
 
 /*
  * The Python interpreter.
@@ -9,6 +9,10 @@ package com.apython.python.pythonhost;
 import android.content.Context;
 import android.util.Log;
 import android.view.KeyEvent;
+
+import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.Util;
 
 import java.io.File;
 
@@ -25,7 +29,7 @@ public class PythonInterpreter {
     protected String    pythonVersion;
     protected IOHandler ioHandler;
 
-    interface IOHandler {
+    public interface IOHandler {
         void addOutput(String text);
         void setupInput(String prompt);
     }
@@ -37,7 +41,7 @@ public class PythonInterpreter {
     public PythonInterpreter(Context context, String pythonVersion, IOHandler ioHandler) {
         PackageManager.loadDynamicLibrary(context, "pythonPatch");
         PackageManager.loadDynamicLibrary(context, "python" + pythonVersion);
-        PackageManager.loadAdditionalLibraries(context, pythonVersion);
+        PackageManager.loadAdditionalLibraries(context);
         this.context = context;
         this.pythonVersion = pythonVersion;
         this.ioHandler = ioHandler;
@@ -53,7 +57,7 @@ public class PythonInterpreter {
                                    PackageManager.getStandardLibPath(this.context).getAbsolutePath(),
                                    this.context.getFilesDir().getAbsolutePath(),
                                    PackageManager.getTempDir(this.context).getAbsolutePath(),
-                                   PackageManager.getXDCBase(this.context).getAbsolutePath(),
+                                   PackageManager.getXDGBase(this.context).getAbsolutePath(),
                                    MainActivity.TAG,
                                    interpreterArgs,
                                    this.ioHandler != null);

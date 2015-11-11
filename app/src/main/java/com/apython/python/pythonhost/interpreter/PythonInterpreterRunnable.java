@@ -1,8 +1,10 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.interpreter;
 
 import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
+
+import com.apython.python.pythonhost.MainActivity;
 
 /*
  * A Python Interpreter which can run in an different thread.

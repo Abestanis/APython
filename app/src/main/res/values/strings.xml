@@ -19,4 +19,6 @@
     <string name="search_hint">Search…</string>
     <string name="progress_download">%1$s %2$s/s, %3$d seconds left.</string>
     <string name="pref_default_python_download_url" translatable="false">https://abestanis.github.io/APython-Libs/</string>
+    <string name="no_matches">No matches</string>
+    <string name="used_starage_space">Storage space used</string>
 </resources>

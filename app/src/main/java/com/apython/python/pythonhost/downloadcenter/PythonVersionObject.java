@@ -1,6 +1,9 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.downloadcenter;
 
 import android.content.Context;
+
+import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.Util;
 
 import java.io.File;
 import java.util.ArrayList;

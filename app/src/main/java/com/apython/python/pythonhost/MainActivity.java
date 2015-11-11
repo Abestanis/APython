@@ -9,6 +9,9 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
+import com.apython.python.pythonhost.downloadcenter.PythonDownloadCenterActivity;
+import com.apython.python.pythonhost.interpreter.PythonInterpreterActivity;
+
 public class MainActivity extends Activity {
 
     public static final String TAG = "PythonHost";

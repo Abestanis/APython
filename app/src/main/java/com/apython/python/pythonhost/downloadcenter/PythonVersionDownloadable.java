@@ -1,7 +1,10 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.downloadcenter;
 
 import android.content.Context;
 import android.util.Log;
+
+import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.PackageManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;

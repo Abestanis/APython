@@ -1,4 +1,4 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.downloadcenter;
 
 import android.app.IntentService;
 import android.app.Notification;
@@ -10,6 +10,12 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+
+import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.ProgressHandler;
+import com.apython.python.pythonhost.R;
+import com.apython.python.pythonhost.Util;
 
 import java.io.File;
 import java.util.Map;
@@ -38,8 +44,8 @@ public class PythonDownloadService extends IntentService {
 
     private Map<String, ProgressHandler> progressHandlerList = new ConcurrentHashMap<>();
 
-    private ProgressHandlerProxy currentProxy = null;
-    private String currentPythonVersion = null;
+    private ProgressHandlerProxy currentProxy         = null;
+    private String               currentPythonVersion = null;
 
     class PythonDownloadServiceBinder extends Binder {
         PythonDownloadService getService() {
@@ -50,8 +56,8 @@ public class PythonDownloadService extends IntentService {
     class ProgressHandlerProxy implements ProgressHandler {
 
         ProgressHandler progressHandler;
-        String pythonVersion;
-        int downloadSteps = 0;
+        String          pythonVersion;
+        int    downloadSteps = 0;
         String text          = null;
         String progressText  = null;
         float  totalProgress = -1.0f;

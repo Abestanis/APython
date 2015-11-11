@@ -325,42 +325,6 @@ public class Util {
     }
 
     /**
-     * Parse output given by pip.
-     *
-     * @param context The current context.
-     * @param progressHandler A progressHandler to report the output to.
-     * @param text A line of output from pip.
-     */
-    public static void parsePipOutput(Context context, ProgressHandler progressHandler, String text) {
-        text = text.trim().replace("[?25h", "");
-        if (text.startsWith("[K")) {
-            String[] parts = text.split(" ");
-            try {
-                if (parts.length >= 4) {
-                    progressHandler.setProgress((float) Integer.valueOf(parts[4].substring(0, parts[4].length() - 1)) / 100.0f);
-                }
-            } catch (NumberFormatException e) {
-                Log.w(MainActivity.TAG, "Failed to extract percentage from '" + text + "'.");
-            }
-        } else if (text.startsWith("Collecting")) {
-            String name = text.substring(11);
-            name = name.replaceFirst("(<|>|!|=| \\()+.*", "");
-            progressHandler.setProgress(-1);
-            progressHandler.setText(context.getString(R.string.module_installation_searching, name));
-        } else if (text.startsWith("Downloading")) {
-            progressHandler.setProgress(-1);
-            progressHandler.setText(context.getString(R.string.module_installation_downloading, text.substring(12)));
-        } else if (text.startsWith("Installing collected packages:")) {
-            progressHandler.setProgress(-1);
-            progressHandler.setText(context.getString(R.string.module_installation_installing, text.substring(31)));
-        } else if (text.startsWith("Building")) {
-            progressHandler.setProgress(-1);
-            progressHandler.setText(context.getString(R.string.module_installation_building));
-        }
-        Log.d(MainActivity.TAG, text);
-    }
-
-    /**
      * Delete a directory and all it's content.
      *
      * @param directory The directory to delete.
@@ -470,6 +434,24 @@ public class Util {
     }
 
     /**
+     * Returns a formatted version of the given amount bytes with a unit.
+     *
+     * @param bytes The amount of bytes.
+     * @return The formatted amount of bytes and a unit name.
+     */
+    public static String[] getFormattedBytes(long bytes) {
+        if (bytes >= 1000000000) {
+            return new String[] {String.valueOf(round(bytes / 1000000000, 2)), "GB"};
+        } else if (bytes >= 1000000) {
+            return new String[] {String.valueOf(round(bytes / 1000000, 2)), "MB"};
+        } else if (bytes >= 1000) {
+            return new String[] {String.valueOf(round(bytes / 1000, 2)), "kB"};
+        } else {
+            return new String[] {String.valueOf(bytes), "B"};
+        }
+    }
+
+    /**
      * Checks if an url is valid.
      *
      * @param url The url to check.
@@ -482,5 +464,45 @@ public class Util {
         } catch (URISyntaxException e) {
             return false;
         }
+    }
+
+    /**
+     * Calculates the size of the given directory.
+     *
+     * @param directory The directory to calculate the size for.
+     * @return The size in bytes
+     */
+    public static long calculateDirectorySize(File directory) {
+        long size = 0;
+        File[] fileList = directory.listFiles();
+        if (fileList != null) {
+            for (File file : fileList) {
+                if (file.isDirectory()) {
+                    size += calculateDirectorySize(file);
+                } else {
+                    size += file.length();
+                }
+            }
+        }
+        return size;
+    }
+
+    /**
+     * Convert the String pythonVersion to an Array of ints where the first element is the
+     * major, the second is the minor and the third is the micro version-part.
+     *
+     * @param pythonVersion The Python version to convert.
+     * @return The int[] representation of the given Python version.
+     */
+    public static int[] getNumericPythonVersion(String pythonVersion) {
+        String[] versionParts = pythonVersion.split("\\.");
+        int[] version = {Integer.valueOf(versionParts[0]), 0, 0};
+        if (versionParts.length >= 3) {
+            version[1] = Integer.valueOf(versionParts[1]);
+            version[2] = Integer.valueOf(versionParts[2]);
+        } else if (versionParts.length == 2) {
+            version[1] = Integer.valueOf(versionParts[1]);
+        }
+        return version;
     }
 }

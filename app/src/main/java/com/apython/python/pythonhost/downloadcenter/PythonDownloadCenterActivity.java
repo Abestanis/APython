@@ -1,4 +1,4 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.downloadcenter;
 
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -20,6 +20,12 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.ProgressHandler;
+import com.apython.python.pythonhost.PythonSettingsActivity;
+import com.apython.python.pythonhost.R;
+import com.apython.python.pythonhost.Util;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -126,7 +132,7 @@ public class PythonDownloadCenterActivity extends Activity {
         });
         pythonVersionsContainer.setAdapter(pythonVersionListAdapter);
         TextView emptyTextView = new TextView(getApplicationContext());
-        emptyTextView.setText("No matches");
+        emptyTextView.setText(R.string.no_matches);
         ((ViewGroup) pythonVersionsContainer.getParent()).addView(emptyTextView);
         pythonVersionsContainer.setEmptyView(emptyTextView);
         refreshButton.setOnClickListener(new View.OnClickListener() {
@@ -279,11 +285,10 @@ public class PythonDownloadCenterActivity extends Activity {
         }
     }
 
-
-
     protected void download(String version, String[] downloadUrls, String[] md5Hashes,
                             int numRequirements, int numDependencies, int numModules,
                             final ProgressHandler progressHandler) {
+        // TODO: Display licences?
         final Intent serviceIntent = new Intent(this, PythonDownloadService.class);
         serviceIntent.putExtra("waitForProgressHandler", true);
         serviceIntent.putExtra("version", version);
@@ -298,5 +303,4 @@ public class PythonDownloadCenterActivity extends Activity {
         bindService(serviceIntent, downloadServiceConnection, 0);
         downloadServiceConnection.registerProgressHandler(Util.getMainVersionPart(version), progressHandler);
     }
-
 }

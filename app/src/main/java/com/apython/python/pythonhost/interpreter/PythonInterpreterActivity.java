@@ -1,4 +1,4 @@
-package com.apython.python.pythonhost;
+package com.apython.python.pythonhost.interpreter;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -17,6 +17,12 @@ import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.PythonSettingsActivity;
+import com.apython.python.pythonhost.R;
+import com.apython.python.pythonhost.Util;
 
 import java.util.ArrayList;
 

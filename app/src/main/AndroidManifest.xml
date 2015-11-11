@@ -25,12 +25,13 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.apython.python.pythonhost.PythonInterpreterActivity"
+            android:name=".interpreter.PythonInterpreterActivity"
             android:label="PythonInterpreter"
             android:windowSoftInputMode="stateAlwaysVisible"/>
         <activity
             android:name="com.apython.python.pythonhost.GetPythonAppExecutionInfoActivity"
             android:excludeFromRecents="true"
+            android:noHistory="true"
             android:theme="@android:style/Theme.NoDisplay" >
             <intent-filter>
                 <action android:name="com.python.pythonhost.PYTHON_APP_GET_EXECUTION_INFO" />
@@ -38,7 +39,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.apython.python.pythonhost.PythonDownloadCenterActivity"
+            android:name=".downloadcenter.PythonDownloadCenterActivity"
             android:label="DownloadPythonSources"
             android:parentActivityName="com.apython.python.pythonhost.MainActivity"
             tools:ignore="UnusedAttribute">
@@ -49,7 +50,7 @@
         <activity android:name="com.apython.python.pythonhost.PythonSettingsActivity"
                   android:label="Settings"/>
         <service
-            android:name="com.apython.python.pythonhost.PythonDownloadService"
+            android:name=".downloadcenter.PythonDownloadService"
             android:exported="false"/>
     </application>
 

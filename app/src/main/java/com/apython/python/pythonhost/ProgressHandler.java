@@ -120,7 +120,7 @@ public interface ProgressHandler {
             }
         }
 
-        static class TwoLevelProgressHandler extends SimpleProgressHandler {
+        public static class TwoLevelProgressHandler extends SimpleProgressHandler {
 
             private float lastProgress  = 0.0f;
             private float totalProgress = 0.0f;
