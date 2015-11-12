@@ -31,6 +31,14 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_dispatchKey
   (JNIEnv *, jobject, jint);
 
+/*
+ * Class:     com_apython_python_pythonhost_interpreter_PythonInterpreter
+ * Method:    getEnqueueInputTillNewLine
+ * Signature: (V)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInputTillNewLine
+        (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

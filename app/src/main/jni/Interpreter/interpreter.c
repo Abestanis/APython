@@ -162,3 +162,14 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     putc(character, stdin_writer);
     fflush(stdin_writer);
 }
+
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInputTillNewLine(JNIEnv *env, jclass obj) {
+    static const int INPUT_BUFFER_LENGTH = 2048;
+    char* input = malloc(sizeof(char) * INPUT_BUFFER_LENGTH);
+    if (input == NULL) {
+        LOG_ERROR("Failed to read enqueued input: Out of memory!");
+        return NULL;
+    }
+    readFromStdin(input, INPUT_BUFFER_LENGTH);
+    return (*env)->NewStringUTF(env, input);
+}

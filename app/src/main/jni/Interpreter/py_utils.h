@@ -6,7 +6,8 @@
 extern FILE *stdin_writer;
 
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHome, const char* pythonTemp, const char* xdgBasePath);
-int setupStdinEmulation(void);
+void setupStdinEmulation(void);
+void readFromStdin(char* inputBuffer, int bufferSize);
 int runPythonInterpreter(int argc, char** argv);
 
 #endif // PY_UTILS_H //

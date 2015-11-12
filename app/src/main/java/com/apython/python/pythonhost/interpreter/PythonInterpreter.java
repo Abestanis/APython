@@ -94,7 +94,11 @@ public class PythonInterpreter {
 
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            this.dispatchKey(event.getUnicodeChar());
+            int unicodeChar = event.getUnicodeChar();
+            // TODO: Handle special events (like delete)
+            if (unicodeChar != 0) {
+                this.dispatchKey(event.getUnicodeChar());
+            }
         }
         return true;
     }
@@ -127,11 +131,11 @@ public class PythonInterpreter {
             Log.w(MainActivity.TAG, "Did not receive input!");
             return null;
         }
-        line = line.substring(prompt.length());
         return line;
     }
 
     private native String nativeGetPythonVersion(String pythonLibName);
     public  native void   dispatchKey(int character);
+    public  native String getEnqueueInputTillNewLine();
     private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
 }

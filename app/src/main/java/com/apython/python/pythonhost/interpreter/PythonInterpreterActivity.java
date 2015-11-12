@@ -6,13 +6,10 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -34,15 +31,9 @@ import java.util.ArrayList;
 
 public class PythonInterpreterActivity extends Activity {
 
-    /**
-     * A boolean that is required in order to show the soft keyboard at any time.
-     * If we would call {@code pythonInput.setEnabled(false)}, we would hide the soft keyboard every time.
-     * Instead, we don't disable pythonInput, but we handle the input after it has occurred.
-     */
-    boolean    pythonInputEnabled = false;
-    TextView   pythonOutput;
-    EditText   pythonInput;
-    ScrollView scrollContainer;
+    TextView      pythonOutput;
+    TerminalInput pythonInput;
+    ScrollView    scrollContainer;
     PythonInterpreterRunnable interpreter;
 
     @Override
@@ -117,32 +108,20 @@ public class PythonInterpreterActivity extends Activity {
 
     private void startInterpreter(String pythonVersion) {
         this.setContentView(R.layout.activity_python_interpreter);
-        this.pythonOutput    = (TextView)   findViewById(R.id.pythonOutput);
-        this.pythonInput     = (EditText)   findViewById(R.id.pythonInput);
-        this.scrollContainer = (ScrollView) findViewById(R.id.scrollContainer);
-        this.pythonInput.addTextChangedListener(new TextWatcher() {
+        this.pythonOutput    = (TextView)      findViewById(R.id.pythonOutput);
+        this.pythonInput     = (TerminalInput) findViewById(R.id.pythonInput);
+        this.scrollContainer = (ScrollView)    findViewById(R.id.scrollContainer);
+        this.pythonInput.setCommitHandler(new TerminalInput.onCommitHandler() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                String input = s.toString();
-                if (input.length() > 0) {
-                    if (!pythonInputEnabled) {
-                        interpreter.dispatchKey(input.charAt(input.length() - 1));
-                        pythonInput.setText(input.substring(0, input.length() - 1));
-                    } else if (input.charAt(input.length() - 1) == '\n') {
-                        pythonOutput.append(input);
-                        pythonInput.setText("");
-                        pythonInput.setCursorVisible(false);
-                        pythonInputEnabled = false;
-                        interpreter.notifyInput(input);
-                    }
+            public void onCommit(TerminalInput terminalInput) {
+                String[] input = pythonInput.popCurrentInput();
+                pythonInput.disableInput();
+                int splitIndex = input[1].indexOf('\n') + 1;
+                pythonOutput.append(input[0] + input[1].substring(0, splitIndex));
+                interpreter.notifyInput(input[1].substring(0, splitIndex));
+                // Anything after the first newline must be send to stdin
+                for (char character : input[1].substring(splitIndex).toCharArray()) {
+                    interpreter.dispatchKey(character);
                 }
             }
         });
@@ -186,10 +165,12 @@ public class PythonInterpreterActivity extends Activity {
 
             @Override
             public void setupInput(String prompt) {
-                pythonInputEnabled = true;
-                pythonInput.append(prompt);
-                pythonInput.setSelection(prompt.length());
-                pythonInput.setCursorVisible(true);
+                String enqueuedInput = interpreter.getEnqueueInputTillNewLine();
+                if (enqueuedInput == null) {
+                    // TODO: Handle such a situation?
+                    enqueuedInput = "";
+                }
+                pythonInput.enableInput(prompt, enqueuedInput);
             }
         }, this);
 
@@ -202,7 +183,7 @@ public class PythonInterpreterActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        if (!this.pythonInputEnabled && this.interpreter != null) {
+        if (!this.pythonInput.isEnabled() && this.interpreter != null) {
             // input via stdin pipe
             return this.interpreter.dispatchKeyEvent(event);
         } else {

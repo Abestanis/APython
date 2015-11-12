@@ -1,5 +1,6 @@
 #include "py_utils.h"
 #include <stdlib.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include "Log/log.h"
 #include "py_compatibility.h"
@@ -49,15 +50,30 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     free((char*) configHome);
 }
 
-int setupStdinEmulation() {
+void setupStdinEmulation() {
     int p[2];
 
     // error return checks omitted
     pipe(p);
 
     stdin_writer = fdopen(p[1], "w");
+    dup2(p[0], fileno(stdin));
+}
 
-    return  p[0];
+void readFromStdin(char* inputBuffer, int bufferSize) {
+    int count = 0;
+    int character;
+    int flags = fcntl(fileno(stdin), F_GETFL);
+    fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
+    while ((character = fgetc(stdin)) != EOF) {
+        *inputBuffer++ = character;
+        count++;
+        if (count == bufferSize - 1 || character == '\n') {
+            break;
+        }
+    }
+    fcntl(fileno(stdin), F_SETFL, flags);
+    *inputBuffer++ = 0;
 }
 
 static void cleanupPythonThread(void* arg) {
@@ -78,7 +94,6 @@ void* startPythonInterpreter(void* arg) {
 
 int runPythonInterpreter(int argc, char** argv) {
     int outputPipe[2];
-    int redirectedStdInFD;
     void *status = NULL;
     pthread_t pythonThread;
 
@@ -90,8 +105,7 @@ int runPythonInterpreter(int argc, char** argv) {
     saved_stderr = dup(fileno(stderr));
     saved_stdout = dup(fileno(stdout));
     setupOutputRedirection(outputPipe);
-    redirectedStdInFD = setupStdinEmulation();
-    dup2(redirectedStdInFD, fileno(stdin));
+    setupStdinEmulation();
 
     struct pythonThreadArguments args;
     args.argc = argc;
