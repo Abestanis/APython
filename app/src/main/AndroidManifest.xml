@@ -27,7 +27,8 @@
         <activity
             android:name=".interpreter.PythonInterpreterActivity"
             android:label="PythonInterpreter"
-            android:windowSoftInputMode="stateAlwaysVisible"/>
+            android:windowSoftInputMode="stateAlwaysVisible"
+            android:theme="@style/TerminalTheme"/>
         <activity
             android:name="com.apython.python.pythonhost.GetPythonAppExecutionInfoActivity"
             android:excludeFromRecents="true"

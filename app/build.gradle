@@ -1,12 +1,12 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 import java.security.KeyException
-import java.util.zip.ZipException
 
 apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 21
     buildToolsVersion "21.1.2"
-
     defaultConfig {
         applicationId "com.apython.python.pythonhost"
         minSdkVersion 8
@@ -20,12 +20,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
-    sourceSets.main{
+    sourceSets.main {
         jniLibs.srcDirs = ['src/main/libs']
         jni.srcDirs = [] //disable automatic ndk-build
     }
-
     tasks.whenTaskAdded {
         task ->
             if (task.name == 'compileDebugJava') {
@@ -33,33 +31,42 @@ android {
                 task.dependsOn ndkBuild
             }
     }
-
     Properties properties = new Properties()
     properties.load(project.rootProject.file('local.properties').newDataInputStream())
     def ndkDir = properties.getProperty('ndk.dir')
+    def executable = 'sh'
+    def firstArg   = '-c'
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        executable = 'cmd'
+        firstArg   = '/c'
+    }
     //noinspection GroovyAssignabilityCheck
     task ndkBuild(type: Exec, description: 'Compile JNI source via NDK.') {
         workingDir file('src/main')
         inputs.dir file('src/main/jni')
         outputs.dir file('src/main/libs')
-        commandLine 'cmd', '/c', "$ndkDir\\ndk-build", 'NDK_OUT=' + getBuildDir().absolutePath.replace('\\', '/') + '/intermediates/ndk/obj'
+        commandLine executable, firstArg, new File("$ndkDir", 'ndk-build').getAbsolutePath(), 'NDK_OUT=' + getBuildDir().absolutePath.replace('\\', '/') + '/intermediates/ndk/obj'
     }
     ndkBuild.onlyIf {
-        if (ndkDir == null) { throw new KeyException('NDK location not found! Define the location with ndk.dir in the local.properties file.')}
+        if (ndkDir == null) {
+            throw new KeyException('NDK location not found! Define the location with ndk.dir in the local.properties file.')
+        }
         true
     }
     ndkBuild.finalizedBy {
         copyPythonExecutable
     }
-
     //noinspection GroovyAssignabilityCheck
     task copyPythonExecutable(type: Copy, description: 'Copys the Python executable to the raw directory.', dependsOn: 'ndkBuild') {
+        // TODO: Must be downloaded like the other additional libraries.
         from new File(project.getProjectDir().absolutePath + '\\src\\main\\libs\\armeabi-v7a\\python')
         into 'src/main/res/raw'
+    }
+    productFlavors {
     }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:21.0.0'
 }

@@ -1,41 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:background="#ff000000"
-                  android:id="@+id/scrollContainer">
-
-    <LinearLayout
-        android:orientation="vertical"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             android:background="#ff000000"
+             android:theme="@android:style/Theme">
+    <ListView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@android:style/Theme">
+        android:id="@+id/scrollContainer"
+        android:descendantFocusability="afterDescendants">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/pythonOutput"
-            android:layout_gravity="center_horizontal"
-            android:textColor="@android:color/white"
-            android:focusable="false"
-            android:typeface="monospace"
-            android:textSize="20sp"/>
-
-        <com.apython.python.pythonhost.interpreter.TerminalInput
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/pythonInput"
-            android:layout_gravity="center_horizontal"
-            android:background="@null"
-            android:textCursorDrawable="@null"
-            android:textColor="@android:color/white"
-            android:typeface="monospace"
-            android:textSize="20sp"
-            android:textIsSelectable="false"
-            android:inputType="textNoSuggestions|text|textMultiLine"
-            android:singleLine="false"
-            android:cursorVisible="false"
-            android:enabled="true"/>
-
-    </LinearLayout>
-</ScrollView>
+    </ListView>
+</FrameLayout>

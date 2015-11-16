@@ -7,12 +7,13 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ListView;
-import android.widget.ScrollView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.apython.python.pythonhost.MainActivity;
@@ -31,10 +32,9 @@ import java.util.ArrayList;
 
 public class PythonInterpreterActivity extends Activity {
 
-    TextView      pythonOutput;
-    TerminalInput pythonInput;
-    ScrollView    scrollContainer;
-    PythonInterpreterRunnable interpreter;
+    private TerminalInput pythonInput;
+    private TerminalAdapter pythonOutput;
+    private PythonInterpreterRunnable interpreter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,59 +108,88 @@ public class PythonInterpreterActivity extends Activity {
 
     private void startInterpreter(String pythonVersion) {
         this.setContentView(R.layout.activity_python_interpreter);
-        this.pythonOutput    = (TextView)      findViewById(R.id.pythonOutput);
-        this.pythonInput     = (TerminalInput) findViewById(R.id.pythonInput);
-        this.scrollContainer = (ScrollView)    findViewById(R.id.scrollContainer);
-        this.pythonInput.setCommitHandler(new TerminalInput.onCommitHandler() {
+        ListView scrollContainer = (ListView)    findViewById(R.id.scrollContainer);
+        this.pythonOutput        = new TerminalAdapter(getApplicationContext());
+        this.pythonInput         = (TerminalInput) LayoutInflater.from(getApplicationContext())
+                                   .inflate(R.layout.terminal_input, scrollContainer, false);
+        scrollContainer.addFooterView(this.pythonInput);
+        scrollContainer.setAdapter(this.pythonOutput);
+        scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
+        scrollContainer.setItemsCanFocus(true);
+        scrollContainer.setOnTouchListener(new View.OnTouchListener() {
+            GestureDetector detector = new GestureDetector(getApplicationContext(), new GestureDetector.OnGestureListener() {
+                @Override
+                public boolean onDown(MotionEvent e) {
+                    return true;
+                }
+
+                @Override
+                public void onShowPress(MotionEvent e) {
+                }
+
+                @Override
+                public boolean onSingleTapUp(MotionEvent e) {
+                    return false;
+                }
+
+                @Override
+                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                    return false;
+                }
+
+                @Override
+                public void onLongPress(MotionEvent e) {
+                }
+
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    if (e1 == null || e2 == null) { return false; }
+                    if (e1.getPointerCount() == 2 && e2.getPointerCount() == 2) {
+                        if (Math.abs(e1.getY() - e2.getY()) > 30) {
+                            if (e1.getY() - e2.getY() < 0) {
+                                pythonInput.loadNextCommand();
+                            } else {
+                                pythonInput.loadLastCommand();
+                            }
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            });
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                // TODO: This intercepts the scrolling of the listView
+                // return detector.onTouchEvent(event);
+                return false;
+            }
+        });
+
+        this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {
             @Override
             public void onCommit(TerminalInput terminalInput) {
-                String[] input = pythonInput.popCurrentInput();
-                pythonInput.disableInput();
-                int splitIndex = input[1].indexOf('\n') + 1;
-                pythonOutput.append(input[0] + input[1].substring(0, splitIndex));
-                interpreter.notifyInput(input[1].substring(0, splitIndex));
+                String[] inputList = terminalInput.popCurrentInput();
+                String prompt = inputList[0], input = inputList[1];
+                int splitIndex = input.indexOf('\n') + 1;
+                pythonOutput.addOutput(prompt + input.substring(0, splitIndex));
+                interpreter.notifyInput(input.substring(0, splitIndex));
                 // Anything after the first newline must be send to stdin
-                for (char character : input[1].substring(splitIndex).toCharArray()) {
+                for (char character : input.substring(splitIndex).toCharArray()) {
                     interpreter.dispatchKey(character);
                 }
+            }
+
+            @Override
+            public void onKeyEventWhileDisabled(KeyEvent event) {
+                dispatchKeyEvent(event);
             }
         });
 
         this.interpreter = new PythonInterpreterRunnable(this, pythonVersion, new PythonInterpreter.IOHandler() {
             @Override
             public void addOutput(String text) {
-                scrollContainer.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        scrollContainer.fullScroll(View.FOCUS_DOWN);
-                    }
-                }, 100);
-                int specialCharacterIndex = text.indexOf(String.valueOf('\r'));
-                if (specialCharacterIndex == -1) {
-                    pythonOutput.append(text);
-                    return;
-                }
-                String output = pythonOutput.getText().toString();
-                int lastLineStart = output.lastIndexOf("\n");
-                String line = output.substring(lastLineStart + 1) + text.substring(0, specialCharacterIndex);
-                output = output.substring(0, lastLineStart + 1);
-                text = text.substring(specialCharacterIndex);
-                while (specialCharacterIndex != -1) {
-                    char specialCharacter = text.charAt(0);
-                    text = text.substring(1);
-                    specialCharacterIndex = text.indexOf(String.valueOf('\r'));
-                    switch (specialCharacter) {
-                    case '\r':
-                        String str = text.substring(0, specialCharacterIndex == -1 ? text.length() : specialCharacterIndex);
-                        text = text.substring(str.length());
-                        line = str + line.substring(Math.min(str.length(), line.length()));
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                output += line;
-                pythonOutput.setText(output);
+                pythonOutput.addOutput(text);
             }
 
             @Override
@@ -183,9 +212,9 @@ public class PythonInterpreterActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        if (!this.pythonInput.isEnabled() && this.interpreter != null) {
+        if (!pythonInput.isInputEnabled() && interpreter != null) {
             // input via stdin pipe
-            return this.interpreter.dispatchKeyEvent(event);
+            return interpreter.dispatchKeyEvent(event);
         } else {
             // Normal input (with delete, copy, paste etc.)
             return super.dispatchKeyEvent(event);

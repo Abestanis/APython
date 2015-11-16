@@ -22,10 +22,10 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         // This is just for debugging on localhost
-        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(
-                PythonSettingsActivity.KEY_PYTHON_DOWNLOAD_URL,
-                "http://10.0.2.2:8000"
-        ).commit();
+//        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(
+//                PythonSettingsActivity.KEY_PYTHON_DOWNLOAD_URL,
+//                "http://10.0.2.2:8000"
+//        ).commit();
 
         boolean skipSplashScreen = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
                 PythonSettingsActivity.KEY_SKIP_SPLASH_SCREEN,
@@ -35,7 +35,6 @@ public class MainActivity extends Activity {
             setupMainMenu();
         } else {
             // Display the splash screen
-
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
                 public void run() {

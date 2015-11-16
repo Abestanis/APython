@@ -5,4 +5,8 @@
         <item name="android:windowBackground">@color/background_color</item>
     </style>
 
+    <style name="TerminalTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
 </resources>

@@ -1,5 +1,7 @@
 #include "py_utils.h"
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include "Log/log.h"
@@ -52,12 +54,9 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
 
 void setupStdinEmulation() {
     int p[2];
-
-    // error return checks omitted
-    pipe(p);
-
+    ASSERT(pipe(p) != -1, "Could not create the input pipe to replace stdin: %s", strerror(errno));
     stdin_writer = fdopen(p[1], "w");
-    dup2(p[0], fileno(stdin));
+    ASSERT(dup2(p[0], fileno(stdin)) != -1, "Could not link the input pipe with stdin: %s", strerror(errno));
 }
 
 void readFromStdin(char* inputBuffer, int bufferSize) {

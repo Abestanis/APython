@@ -505,4 +505,15 @@ public class Util {
         }
         return version;
     }
+
+    /**
+     * Count how often the given character occurs in the given string.
+     *
+     * @param string The string to search in.
+     * @param character The character to search for.
+     * @return The number of times the character was found in the string.
+     */
+    public static int countCharacterOccurrence(String string, char character) {
+        return string.length() - string.replace(String.valueOf(character), "").length();
+    }
 }
