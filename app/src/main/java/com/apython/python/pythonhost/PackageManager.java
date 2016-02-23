@@ -74,10 +74,10 @@ public class PackageManager {
         }
         for (File libFile : libPath.listFiles()) {
             String name = libFile.getName();
-            if (!name.startsWith("lib" + "python") || !name.endsWith(".so") || name.contains("pythonPatch")) {
+            if (!name.startsWith("libpython") || !name.endsWith(".so") || name.contains("pythonPatch")) {
                 continue;
             }
-            String version = name.replace("lib" + "python", "").replace(".so", "");
+            String version = name.replace("libpython", "").replace(".so", "");
             if (new File(getStandardLibPath(context), "python" + version.replace(".", "") + ".zip").exists()) {
                 versions.add(version);
             }

@@ -12,8 +12,8 @@ static int outputPipe[2];
 pthread_mutex_t mutex;
 pthread_cond_t condition;
 int outputCaptureThreadStarted = 0;
-void (*stdout_write)(const char*) = NULL;
-void (*stderr_write)(const char*) = NULL;
+void (*stdout_write)(const char*, int len) = NULL;
+void (*stderr_write)(const char*, int len) = NULL;
 
 int _log_write_(int priority, const char *text, ...) {
     va_list argP;
@@ -39,18 +39,18 @@ void setApplicationTag(const char* newAppTag) {
     appTag = newAppTag;
 }
 
-void setStdoutRedirect(void (*f)(const char*)) {
+void setStdoutRedirect(void (*f)(const char*, int)) {
     stdout_write = f;
 }
 
-void setStderrRedirect(void (*f)(const char*)) {
+void setStderrRedirect(void (*f)(const char*, int)) {
     stderr_write = f;
 }
 
 void captureOutput(int streamFD) {
     ssize_t outputSize;
     char buffer[4096];
-    while((outputSize = read(streamFD, buffer, sizeof(buffer) - 1)) != 0) {
+    while ((outputSize = read(streamFD, buffer, sizeof(buffer) - 1)) != 0) {
         if (outputSize == -1) {
             if (errno != EINTR) {
                 LOG_WARN("Failed to read from output pipe:");
@@ -62,10 +62,15 @@ void captureOutput(int streamFD) {
         }
         buffer[outputSize] = 0; // add null-terminator
         if (stdout_write != NULL) {
-            stdout_write(buffer);
+            stdout_write(buffer, outputSize);
         } else {
             // Remove trailing newline
-            if (buffer[outputSize - 1] == '\n') { buffer[outputSize - 1] = 0; }
+            if (outputSize > 0 && buffer[outputSize - 1] == '\n') {
+                buffer[outputSize - 1] = 0;
+                if (outputSize > 1 && buffer[outputSize - 2] == '\r') {
+                    buffer[outputSize - 2] = 0;
+                }
+            }
             LOG(buffer);
         }
     }

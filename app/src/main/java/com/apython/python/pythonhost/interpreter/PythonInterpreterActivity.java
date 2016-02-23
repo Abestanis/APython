@@ -1,18 +1,14 @@
 package com.apython.python.pythonhost.interpreter;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.WindowManager;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -21,6 +17,8 @@ import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.views.interfaces.TerminalWindowManagerInterface;
+import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
 import java.util.ArrayList;
 
@@ -30,11 +28,11 @@ import java.util.ArrayList;
  * Created by Sebastian on 08.06.2015.
  */
 
-public class PythonInterpreterActivity extends Activity {
+public class PythonInterpreterActivity extends FragmentActivity {
 
-    private TerminalInput pythonInput;
-    private TerminalAdapter pythonOutput;
     private PythonInterpreterRunnable interpreter;
+    private TerminalInterface terminalView;
+    private TerminalWindowManagerInterface terminalWindowManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,116 +106,47 @@ public class PythonInterpreterActivity extends Activity {
 
     private void startInterpreter(String pythonVersion) {
         this.setContentView(R.layout.activity_python_interpreter);
-        ListView scrollContainer = (ListView)    findViewById(R.id.scrollContainer);
-        this.pythonOutput        = new TerminalAdapter(getApplicationContext());
-        this.pythonInput         = (TerminalInput) LayoutInflater.from(getApplicationContext())
-                                   .inflate(R.layout.terminal_input, scrollContainer, false);
-        scrollContainer.addFooterView(this.pythonInput);
-        scrollContainer.setAdapter(this.pythonOutput);
-        scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
-        scrollContainer.setItemsCanFocus(true);
-        scrollContainer.setOnTouchListener(new View.OnTouchListener() {
-            GestureDetector detector = new GestureDetector(getApplicationContext(), new GestureDetector.OnGestureListener() {
-                @Override
-                public boolean onDown(MotionEvent e) {
-                    return true;
-                }
-
-                @Override
-                public void onShowPress(MotionEvent e) {
-                }
-
-                @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    return false;
-                }
-
-                @Override
-                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                    return false;
-                }
-
-                @Override
-                public void onLongPress(MotionEvent e) {
-                }
-
-                @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                    if (e1 == null || e2 == null) { return false; }
-                    if (e1.getPointerCount() == 2 && e2.getPointerCount() == 2) {
-                        if (Math.abs(e1.getY() - e2.getY()) > 30) {
-                            if (e1.getY() - e2.getY() < 0) {
-                                pythonInput.loadNextCommand();
-                            } else {
-                                pythonInput.loadLastCommand();
-                            }
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-            });
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                // TODO: This intercepts the scrolling of the listView
-                // return detector.onTouchEvent(event);
-                return false;
-            }
-        });
-
-        this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {
-            @Override
-            public void onCommit(TerminalInput terminalInput) {
-                String[] inputList = terminalInput.popCurrentInput();
-                String prompt = inputList[0], input = inputList[1];
-                int splitIndex = input.indexOf('\n') + 1;
-                pythonOutput.addOutput(prompt + input.substring(0, splitIndex));
-                interpreter.notifyInput(input.substring(0, splitIndex));
-                // Anything after the first newline must be send to stdin
-                for (char character : input.substring(splitIndex).toCharArray()) {
-                    interpreter.dispatchKey(character);
-                }
-            }
-
-            @Override
-            public void onKeyEventWhileDisabled(KeyEvent event) {
-                dispatchKeyEvent(event);
-            }
-        });
-
         this.interpreter = new PythonInterpreterRunnable(this, pythonVersion, new PythonInterpreter.IOHandler() {
             @Override
             public void addOutput(String text) {
-                pythonOutput.addOutput(text);
+                terminalView.addOutput(text);
             }
 
             @Override
             public void setupInput(String prompt) {
-                String enqueuedInput = interpreter.getEnqueueInputTillNewLine();
+                String enqueuedInput = PythonInterpreterActivity.this.interpreter.getEnqueueInputTillNewLine();
                 if (enqueuedInput == null) {
                     // TODO: Handle such a situation?
                     enqueuedInput = "";
                 }
-                pythonInput.enableInput(prompt, enqueuedInput);
+                terminalView.enableInput(prompt, enqueuedInput);
             }
         }, this);
-
-        // Make the keyboard always visible
-        this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
 
         // Start the interpreter thread
         new Thread(this.interpreter).start();
     }
 
     @Override
-    public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        if (!pythonInput.isInputEnabled() && interpreter != null) {
-            // input via stdin pipe
-            return interpreter.dispatchKeyEvent(event);
-        } else {
-            // Normal input (with delete, copy, paste etc.)
-            return super.dispatchKeyEvent(event);
+    public void onAttachFragment(Fragment fragment) {
+        super.onAttachFragment(fragment);
+        if (fragment instanceof TerminalInterface) {
+            terminalView = (TerminalInterface) fragment;
+            terminalView.registerInputHandler(interpreter);
+        } else if (fragment instanceof TerminalWindowManagerInterface) {
+            terminalWindowManager = (TerminalWindowManagerInterface) fragment;
         }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+        Fragment currentWindow = terminalWindowManager.getCurrentWindow();
+        if (currentWindow instanceof TerminalInterface) {
+            if (!terminalView.isInputEnabled()) {
+                // input via stdin pipe
+                return interpreter.dispatchKeyEvent(event);
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 }

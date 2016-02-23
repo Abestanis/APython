@@ -79,7 +79,7 @@ void callCharSetterFunction(const char* funcName, char* arg) {
         if (func != NULL) {
             return func(_Py_char2wchar(arg, NULL));
         }
-        LOG_ERROR("Py_compability: Didn't found method 'oldPy_Main' in python library.");
+        LOG_ERROR("Py_compability: Didn't found method '%s' in python library.", funcName);
     }
     LOG_ERROR("Py_compability: Didn't found '%s' in the python library.", funcName);
 }
@@ -113,8 +113,17 @@ void* call_PyMem_Malloc(size_t length) {
     return NULL;
 }
 
-void set_PyOS_ReadlineFunctionPointer(char *(*func)(FILE *, FILE *, char *)) {
-    void (*set_PyOS_ReadlineFunctionPointer)(char *(*func)(FILE *, FILE *, char *));
+PyOS_InputHookFunc get_PyOS_InputHook() {
+    PyOS_InputHookFunc (*get_PyOS_InputHook_func)(void) = dlsym(pythonLib, "get_PyOS_InputHook");
+    if (get_PyOS_InputHook_func == NULL) {
+        LOG_ERROR("Could not find 'get_PyOS_InputHook'");
+        return NULL;
+    }
+    return get_PyOS_InputHook_func();
+}
+
+void set_PyOS_ReadlineFunctionPointer(char *(*func)(FILE *, FILE *, const char *)) {
+    void (*set_PyOS_ReadlineFunctionPointer)(char *(*func)(FILE *, FILE *, const char *));
     set_PyOS_ReadlineFunctionPointer = dlsym(pythonLib, "set_PyOS_ReadlineFunctionPointer");
     if (set_PyOS_ReadlineFunctionPointer != NULL) {
         set_PyOS_ReadlineFunctionPointer(func);

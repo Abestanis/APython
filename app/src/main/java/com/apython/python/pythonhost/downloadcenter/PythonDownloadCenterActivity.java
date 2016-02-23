@@ -46,7 +46,7 @@ import java.util.Map;
 public class PythonDownloadCenterActivity extends Activity {
 
     private PythonVersionListAdapter pythonVersionListAdapter;
-    volatile boolean isUpdateRunning = false;
+    private volatile boolean isUpdateRunning = false;
 
     public static String indexPath = "index.json";
 
@@ -132,7 +132,7 @@ public class PythonDownloadCenterActivity extends Activity {
         });
         pythonVersionsContainer.setAdapter(pythonVersionListAdapter);
         TextView emptyTextView = new TextView(getApplicationContext());
-        emptyTextView.setText(R.string.no_matches);
+        emptyTextView.setText(R.string.downloadManager_no_matches);
         ((ViewGroup) pythonVersionsContainer.getParent()).addView(emptyTextView);
         pythonVersionsContainer.setEmptyView(emptyTextView);
         refreshButton.setOnClickListener(new View.OnClickListener() {

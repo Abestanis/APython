@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.apython.python.pythonhost.interpreter.TerminalInput
+<com.apython.python.pythonhost.views.terminal.TerminalInput
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -13,4 +13,4 @@
     android:singleLine="false"
     android:cursorVisible="false"
     android:enabled="true">
-</com.apython.python.pythonhost.interpreter.TerminalInput>
+</com.apython.python.pythonhost.views.terminal.TerminalInput>

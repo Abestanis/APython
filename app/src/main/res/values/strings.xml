@@ -15,10 +15,22 @@
     <string name="module_installation_building">Building module…</string>
     <string name="module_installation_downloading">Downloading %1$s…</string>
     <string name="module_installation_installing">Installing %1$s…</string>
-    <string name="getPython_title">Download Python sources</string>
-    <string name="search_hint">Search…</string>
-    <string name="progress_download">%1$s %2$s/s, %3$d seconds left.</string>
+    <string name="downloadManager_title">Download Python sources</string>
+    <string name="downloadManager_search_hint">Search…</string>
+    <plurals name="downloadManager_progress_download">
+        <item quantity="one">%1$s %2$s/s, %3$d second left.</item>
+        <item quantity="other">%1$s %2$s/s, %3$d seconds left.</item>
+    </plurals>
     <string name="pref_default_python_download_url" translatable="false">https://abestanis.github.io/APython-Libs/</string>
-    <string name="no_matches">No matches</string>
-    <string name="used_starage_space">Storage space used</string>
+    <string name="downloadManager_no_matches">No matches</string>
+    <string name="downloadManager_used_storage_space">Storage space used</string>
+    <string name="downloadManager_no_modules">No modules available.</string>
+    <string name="downloadManager_subversion">Subversion</string>
+    <string name="main_menu_python_interpreter_link">Python Interpreter</string>
+    <string name="downloadManager_no_modules_selected">No modules selected</string>
+    <string name="main_menu_download_manager_link">Download manager</string>
+    <string name="downloadManager_download_size">Download size</string>
+    <string name="main_menu_about_link">About</string>
+    <string name="main_menu_help_link">Help</string>
+    <string name="main_menu_settings_link">Settings</string>
 </resources>

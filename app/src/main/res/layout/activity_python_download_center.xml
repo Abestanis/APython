@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/getPython_title"
+        android:text="@string/downloadManager_title"
         android:id="@+id/textView"
         android:layout_gravity="center_horizontal"
         android:paddingLeft="10dp"
@@ -30,7 +30,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/search_input"
-            android:completionHint="@string/search_hint"
+            android:completionHint="@string/downloadManager_search_hint"
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:textIsSelectable="true"
@@ -38,7 +38,7 @@
             android:enabled="true"
             android:layout_weight="1"
             android:drawableLeft="@android:drawable/ic_menu_search"
-            android:hint="@string/search_hint"
+            android:hint="@string/downloadManager_search_hint"
             android:inputType="text"
             android:clickable="true"/>
 

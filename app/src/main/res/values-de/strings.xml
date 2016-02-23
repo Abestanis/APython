@@ -9,15 +9,27 @@
     <string name="install_pip">Installiere das Abhängigkeitssystem (Pip)…</string>
     <string name="download_pip">Lade die Installationsdatei für Pip herunter…</string>
     <string name="configure_pip">Configuriere Pip…</string>
-    <string name="run_in_background">Im Hintergund laufen</string>
+    <string name="run_in_background">Im Hintergrund laufen</string>
     <string name="run_pip_installer">Führe den Pip Installer aus…</string>
     <string name="module_installation_building">Erstelle Modul…</string>
     <string name="module_installation_downloading">Lade %1$s herunter…</string>
     <string name="module_installation_installing">Installiere %1$s…</string>
     <string name="module_installation_searching">Suche nach %1$s…</string>
-    <string name="getPython_title">Lade Python herunter</string>
-    <string name="search_hint">Suche…</string>
-    <string name="progress_download">%1$s %2$s/s, fertig in %3$d Sekunden.</string>
-    <string name="no_matches">Keine Treffer</string>
-    <string name="used_starage_space">Speicherverbrauch</string>
+    <string name="downloadManager_title">Lade Python herunter</string>
+    <string name="downloadManager_search_hint">Suche…</string>
+    <plurals name="downloadManager_progress_download">
+        <item quantity="one">%1$s %2$s/s, fertig in einer Sekunde.</item>
+        <item quantity="other">%1$s %2$s/s, fertig in %3$d Sekunden.</item>
+    </plurals>
+    <string name="downloadManager_no_matches">Keine Treffer</string>
+    <string name="downloadManager_used_storage_space">Speicherverbrauch</string>
+    <string name="downloadManager_no_modules">Keine Module verfügbar.</string>
+    <string name="downloadManager_download_size">Downloadgröße</string>
+    <string name="downloadManager_no_modules_selected">Keine Module ausgewählt</string>
+    <string name="downloadManager_subversion">Subversion</string>
+    <string name="main_menu_about_link">Über</string>
+    <string name="main_menu_download_manager_link">Download Manager</string>
+    <string name="main_menu_help_link">Hilfe</string>
+    <string name="main_menu_python_interpreter_link">Python Interpreter</string>
+    <string name="main_menu_settings_link">Einstellungen</string>
 </resources>

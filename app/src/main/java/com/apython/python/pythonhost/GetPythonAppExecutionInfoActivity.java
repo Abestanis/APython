@@ -24,7 +24,7 @@ import android.widget.TextView;
 public class GetPythonAppExecutionInfoActivity extends Activity {
 
     // The communication manager which handles the communication with the Python apps.
-    PythonAppCommunicationManager communicationManager;
+    private PythonAppCommunicationManager communicationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

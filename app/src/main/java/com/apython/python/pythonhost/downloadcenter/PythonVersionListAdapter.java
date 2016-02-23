@@ -433,7 +433,7 @@ public class PythonVersionListAdapter extends BaseAdapter {
         final ImageView actionButton = (ImageView) view.findViewById(R.id.version_list_action_button);
 
         versionText.setText("Python " + PackageManager.getDetailedInstalledVersion(context, version));
-        infoText.setText(R.string.used_starage_space);
+        infoText.setText(R.string.downloadManager_used_storage_space);
         String[] storageUsage = Util.getFormattedBytes(PackageManager.getUsedStorageSpace(context, version));
         infoValueText.setText(storageUsage[0] + " " + storageUsage[1]);
         actionButton.setImageResource(R.drawable.installed);

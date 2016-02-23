@@ -3,6 +3,8 @@ package com.apython.python.pythonhost;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -430,7 +432,9 @@ public class Util {
         decimalFormatter.setMaximumFractionDigits(2);
         decimalFormatter.setMinimumFractionDigits(0);
         decimalFormatter.setGroupingUsed(false);
-        return context.getString(R.string.progress_download, decimalFormatter.format(bytesAmount), bytesUnit, remainingSeconds);
+        return context.getResources().getQuantityString(
+                R.plurals.downloadManager_progress_download, remainingSeconds,
+                decimalFormatter.format(bytesAmount), bytesUnit, remainingSeconds);
     }
 
     /**
@@ -441,11 +445,11 @@ public class Util {
      */
     public static String[] getFormattedBytes(long bytes) {
         if (bytes >= 1000000000) {
-            return new String[] {String.valueOf(round(bytes / 1000000000, 2)), "GB"};
+            return new String[] {String.valueOf(round(bytes / 1000000000.0f, 2)), "GB"};
         } else if (bytes >= 1000000) {
-            return new String[] {String.valueOf(round(bytes / 1000000, 2)), "MB"};
+            return new String[] {String.valueOf(round(bytes / 1000000.0f, 2)), "MB"};
         } else if (bytes >= 1000) {
-            return new String[] {String.valueOf(round(bytes / 1000, 2)), "kB"};
+            return new String[] {String.valueOf(round(bytes / 1000.0f, 2)), "kB"};
         } else {
             return new String[] {String.valueOf(bytes), "B"};
         }
@@ -515,5 +519,15 @@ public class Util {
      */
     public static int countCharacterOccurrence(String string, char character) {
         return string.length() - string.replace(String.valueOf(character), "").length();
+    }
+
+    public static KeyEvent[] stringToKeyEvents(String input) {
+        KeyCharacterMap charMap;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
+            charMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
+        } else {
+            charMap = KeyCharacterMap.load(KeyCharacterMap.ALPHA);
+        }
+        return charMap.getEvents(input.toCharArray());
     }
 }

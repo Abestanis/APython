@@ -1,4 +1,4 @@
-package com.apython.python.pythonhost.interpreter;
+package com.apython.python.pythonhost.views.terminal;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -6,12 +6,13 @@ import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+
+import com.apython.python.pythonhost.Util;
 
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -68,7 +69,7 @@ public class TerminalInput extends EditText {
         void onKeyEventWhileDisabled(KeyEvent event);
     }
 
-    private boolean            inputEnabled        = true;
+    private boolean            inputEnabled        = false;
     private String             prompt              = "";
     private int                currentCommandIndex = 0;
     private TextWatcher        inputWatcher;
@@ -99,7 +100,7 @@ public class TerminalInput extends EditText {
         this.commandHistoryAccessor = this.commandHistory.listIterator();
         this.setEditableFactory(promptEditableFactory);
         inputWatcher = new TextWatcher() {
-            int start, count;
+            int start;
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -108,7 +109,6 @@ public class TerminalInput extends EditText {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 this.start = start;
-                this.count = count;
             }
 
             @Override
@@ -181,10 +181,12 @@ public class TerminalInput extends EditText {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+        if (inputEnabled && event.getAction() == MotionEvent.ACTION_DOWN) {
             if (!isInputMethodTarget()) {
+                requestFocus();
                 tryRegainSoftInputFocus();
             }
+            setCursorVisible(true);
         }
         return super.onTouchEvent(event);
     }
@@ -202,6 +204,7 @@ public class TerminalInput extends EditText {
         this.promptEditableFactory.setPromptLength(prompt.length());
         setText(prompt + enqueuedInput);
         setSelection(getText().length());
+        requestFocus();
         setCursorVisible(true);
         if (!isInputMethodTarget()) {
             tryRegainSoftInputFocus();
@@ -284,7 +287,7 @@ public class TerminalInput extends EditText {
     }
 
     /**
-     * Tries t regain the focus of the soft input method.
+     * Tries to regain the focus of the soft input method.
      */
     private void tryRegainSoftInputFocus() {
         this.inputManager.restartInput(this);
@@ -306,13 +309,7 @@ public class TerminalInput extends EditText {
      */
     private void dispatchInputToMainWindow(String input) {
         if (commitHandler != null) {
-            KeyCharacterMap charMap;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
-                charMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
-            } else {
-                charMap = KeyCharacterMap.load(KeyCharacterMap.ALPHA);
-            }
-            for (KeyEvent event : charMap.getEvents(input.toCharArray())) {
+            for (KeyEvent event : Util.stringToKeyEvents(input)) {
                 commitHandler.onKeyEventWhileDisabled(event);
             }
         }

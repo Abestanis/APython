@@ -13,24 +13,28 @@ import android.view.KeyEvent;
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 
-public class PythonInterpreter {
+public class PythonInterpreter implements TerminalInterface.ProgramHandler {
 
     static {
         System.loadLibrary("pyLog");
         System.loadLibrary("pyInterpreter");
     }
 
-    public final Object inputUpdater = new Object();
-    public       String inputLine    = null;
+    private final Object  inputUpdater  = new Object();
+    private       String  inputLine     = null;
+    protected     boolean blockingInput = true;
     protected Context   context;
     protected String    pythonVersion;
     protected IOHandler ioHandler;
 
     public interface IOHandler {
         void addOutput(String text);
+
         void setupInput(String prompt);
     }
 
@@ -80,16 +84,19 @@ public class PythonInterpreter {
         return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
     }
 
-    public boolean notifyInput(String input) {
-        synchronized (this.inputUpdater) {
-            if (this.inputLine != null) {
-                Log.w(MainActivity.TAG, "Interpreter still has input queued up!");
-                return false;
+    public void notifyInput(String input) {
+        if (blockingInput) {
+            synchronized (this.inputUpdater) {
+                if (this.inputLine != null) {
+                    Log.w(MainActivity.TAG, "Interpreter still has input queued up!");
+                    input = this.inputLine + input;
+                }
+                this.inputLine = input;
+                this.inputUpdater.notify();
             }
-            this.inputLine = input;
-            this.inputUpdater.notify();
+        } else {
+            sendStringToStdin(input);
         }
-        return true;
     }
 
     public boolean dispatchKeyEvent(KeyEvent event) {
@@ -97,25 +104,33 @@ public class PythonInterpreter {
             int unicodeChar = event.getUnicodeChar();
             // TODO: Handle special events (like delete)
             if (unicodeChar != 0) {
-                this.dispatchKey(event.getUnicodeChar());
+                this.dispatchKey(unicodeChar);
             }
         }
         return true;
     }
 
     @SuppressWarnings("unused")
-    protected void addTextToOutput(String text) {
+    protected void addTextToOutput(byte[] text) {
         if (ioHandler != null) {
-            ioHandler.addOutput(text);
+            try {
+                ioHandler.addOutput(new String(text, "Utf-8"));
+            } catch (UnsupportedEncodingException e) {
+                Log.wtf(MainActivity.TAG, "Utf-8 encoding is not supported?!", e);
+            }
         }
     }
 
     @SuppressWarnings("unused")
-    protected String readLine(String prompt) {
+    protected String readLine(String prompt, boolean blockingInput) {
+        this.blockingInput = blockingInput;
         if (ioHandler != null) {
             ioHandler.setupInput(prompt);
         }
 
+        if (!blockingInput) {
+            return null; // Do not wait for input
+        }
         // Wait for line
         synchronized (inputUpdater) {
             try {
@@ -136,6 +151,7 @@ public class PythonInterpreter {
 
     private native String nativeGetPythonVersion(String pythonLibName);
     public  native void   dispatchKey(int character);
+    public  native void   sendStringToStdin(String string);
     public  native String getEnqueueInputTillNewLine();
     private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
 }

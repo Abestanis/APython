@@ -1,6 +1,7 @@
 package com.apython.python.pythonhost;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
@@ -30,6 +31,7 @@ public class PythonSettingsActivity extends PreferenceActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preferences);
+        getWindow().getDecorView().setBackgroundColor(Color.WHITE);
     }
 
     @Override

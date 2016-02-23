@@ -6,8 +6,8 @@
 int _log_write_(int priority, const char *text, ...);
 void _assert_(const char*, const char*, int, const char*, ...);
 void setApplicationTag(const char*);
-void setStdoutRedirect(void (*f)(const char*));
-void setStderrRedirect(void (*f)(const char*));
+void setStdoutRedirect(void (*f)(const char*, int));
+void setStderrRedirect(void (*f)(const char*, int));
 int startOutputCapturing(int);
 int setupOutputRedirection(int pipe[2]);
 

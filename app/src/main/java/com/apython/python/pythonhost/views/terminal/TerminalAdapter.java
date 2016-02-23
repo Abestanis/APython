@@ -1,4 +1,4 @@
-package com.apython.python.pythonhost.interpreter;
+package com.apython.python.pythonhost.views.terminal;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -19,6 +19,7 @@ import com.apython.python.pythonhost.Util;
 public class TerminalAdapter extends BaseAdapter {
 
     private static final int INITIAL_SCREEN_DATA_BUFFER_SIZE = 2048;
+    private static final int LAST_CHAR_OF_SCREEN_DATA = -1;
 
     private StringBuffer screenData = new StringBuffer(INITIAL_SCREEN_DATA_BUFFER_SIZE);
     private int lines = 1;
@@ -28,8 +29,7 @@ public class TerminalAdapter extends BaseAdapter {
      * but lastStringEndIndex can never be -1!
      **/
     private int lastStringStartIndex = -1, lastStringEndIndex = 0;
-    /** -1 indicates the last character of the screen data. **/
-    private int cursorPosition = -1;
+    private int cursorPosition = LAST_CHAR_OF_SCREEN_DATA;
     private Context context;
 
     public TerminalAdapter(Context context) {
@@ -48,7 +48,7 @@ public class TerminalAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
-        return position; // TODO: Improve
+        return position;
     }
 
     @Override
@@ -173,7 +173,7 @@ public class TerminalAdapter extends BaseAdapter {
             switch (text.charAt(specialCharacterIndex)) {
             case '\r':
                 internalAddToScreenData(text.substring(0, specialCharacterIndex));
-                int endIndex = cursorPosition == -1 ? screenData.length() : cursorPosition;
+                int endIndex = cursorPosition == LAST_CHAR_OF_SCREEN_DATA ? screenData.length() : cursorPosition;
                 cursorPosition = screenData.substring(0, endIndex).lastIndexOf("\n") + 1;
                 text = text.substring(specialCharacterIndex + 1);
                 break;
@@ -195,7 +195,7 @@ public class TerminalAdapter extends BaseAdapter {
      */
     private void internalAddToScreenData(String text) {
         if (text.length() == 0) { return; }
-        if (cursorPosition == -1) {
+        if (cursorPosition == LAST_CHAR_OF_SCREEN_DATA) {
             // Just append the text
             if (lines == 1 || (screenData.charAt(screenData.length() - 1) != '\n' && lastIndex == lines)) {
                 // Recalculate lastStringEndIndex if we add to the last accessed line
@@ -233,7 +233,7 @@ public class TerminalAdapter extends BaseAdapter {
                 lastStringEndIndex = lastStringEndIndex == -1 ? screenData.length() : lastStringEndIndex;
             }
             // Recalculate cursorPosition and lines
-            cursorPosition = nextPosition == screenData.length() ? -1 : nextPosition;
+            cursorPosition = nextPosition == screenData.length() ? LAST_CHAR_OF_SCREEN_DATA : nextPosition;
             lines += Util.countCharacterOccurrence(text, '\n') - deletedLines;
         }
     }

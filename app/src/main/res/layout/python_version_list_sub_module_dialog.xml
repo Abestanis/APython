@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="No modules avaliable."
+        android:text="@string/downloadManager_no_modules"
         android:id="@+id/python_version_list_no_modules"
         android:layout_gravity="center_horizontal"
         android:textSize="20sp"

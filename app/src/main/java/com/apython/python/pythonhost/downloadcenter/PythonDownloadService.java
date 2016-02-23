@@ -40,7 +40,7 @@ public class PythonDownloadService extends IntentService {
     private final IBinder binder = new PythonDownloadServiceBinder();
 
     private boolean displayNotification = false;
-    NotificationManager notificationManager;
+    private NotificationManager notificationManager;
 
     private Map<String, ProgressHandler> progressHandlerList = new ConcurrentHashMap<>();
 
