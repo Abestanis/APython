@@ -17,6 +17,7 @@ import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
 import com.apython.python.pythonhost.views.interfaces.TerminalWindowManagerInterface;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
@@ -30,9 +31,10 @@ import java.util.ArrayList;
 
 public class PythonInterpreterActivity extends FragmentActivity {
 
-    private PythonInterpreterRunnable interpreter;
-    private TerminalInterface terminalView;
+    private PythonInterpreterRunnable      interpreter;
+    private TerminalInterface              terminalView;
     private TerminalWindowManagerInterface terminalWindowManager;
+    private String enqueuedOutput = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,12 +111,16 @@ public class PythonInterpreterActivity extends FragmentActivity {
         this.interpreter = new PythonInterpreterRunnable(this, pythonVersion, new PythonInterpreter.IOHandler() {
             @Override
             public void addOutput(String text) {
-                terminalView.addOutput(text);
+                if (terminalView == null) {
+                    enqueuedOutput += text;
+                } else {
+                    terminalView.addOutput(text);
+                }
             }
 
             @Override
             public void setupInput(String prompt) {
-                String enqueuedInput = PythonInterpreterActivity.this.interpreter.getEnqueueInputTillNewLine();
+                String enqueuedInput = PythonInterpreterActivity.this.interpreter.getEnqueueInput();
                 if (enqueuedInput == null) {
                     // TODO: Handle such a situation?
                     enqueuedInput = "";
@@ -133,6 +139,9 @@ public class PythonInterpreterActivity extends FragmentActivity {
         if (fragment instanceof TerminalInterface) {
             terminalView = (TerminalInterface) fragment;
             terminalView.registerInputHandler(interpreter);
+            if (!enqueuedOutput.equals("")) {
+                terminalView.addOutput(enqueuedOutput);
+            }
         } else if (fragment instanceof TerminalWindowManagerInterface) {
             terminalWindowManager = (TerminalWindowManagerInterface) fragment;
         }
@@ -144,7 +153,13 @@ public class PythonInterpreterActivity extends FragmentActivity {
         if (currentWindow instanceof TerminalInterface) {
             if (!terminalView.isInputEnabled()) {
                 // input via stdin pipe
-                return interpreter.dispatchKeyEvent(event);
+                if (interpreter.dispatchKeyEvent(event)) {
+                    return true;
+                }
+            }
+        } else if (currentWindow instanceof SDLWindowInterface) {
+            if (((SDLWindowInterface) currentWindow).dispatchKeyEvent(event)) {
+                return true;
             }
         }
         return super.dispatchKeyEvent(event);

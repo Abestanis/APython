@@ -41,10 +41,10 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhos_interpretert_PythonInte
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
- * Method:    getEnqueueInputTillNewLine
+ * Method:    getEnqueueInput
  * Signature: (V)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInputTillNewLine
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInput
         (JNIEnv *, jclass);
 
 #ifdef __cplusplus

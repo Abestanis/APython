@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <libgen.h>
 #include "Log/log.h"
 #include "py_compatibility.h"
 
@@ -28,6 +29,14 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
         free((char*) newValue);
     }
 
+    char cwd[32];
+    if (getcwd(cwd, sizeof(cwd)) == NULL || strcmp(cwd, "/") == 0) {
+        // '/' is the default working dir for a java process, but it is unusable for the python program
+        char* newCwd = dirname(pythonProgramPath);
+        chdir(newCwd);
+        free(newCwd);
+    }
+
     call_Py_SetPythonHome((char*) pythonHome);
     call_Py_SetProgramName((char*) pythonProgramPath);
 
@@ -50,6 +59,9 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     strcat((char*) configHome, configAppendix);
     setenv("XDG_CONFIG_HOME", configHome, 1);
     free((char*) configHome);
+
+    // TODO: Temporary
+    setenv("TCL_LIBRARY", "/data/data/com.apython.python.pythonhost/files/data/tcl8.4.6/library", 1);
 }
 
 void setupStdinEmulation() {
@@ -67,7 +79,7 @@ void readFromStdin(char* inputBuffer, int bufferSize) {
     while ((character = fgetc(stdin)) != EOF) {
         *inputBuffer++ = character;
         count++;
-        if (count == bufferSize - 1 || character == '\n') {
+        if (count == bufferSize - 1) {
             break;
         }
     }

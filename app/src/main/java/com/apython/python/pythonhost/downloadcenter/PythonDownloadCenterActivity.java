@@ -38,7 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * An activity where the user can download and delete python versions and modules.
+ * An activity which allows the user to download and delete python versions and modules.
  *
  * Created by Sebastian on 09.08.2015.
  */

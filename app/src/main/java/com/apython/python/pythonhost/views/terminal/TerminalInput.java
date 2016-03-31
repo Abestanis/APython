@@ -17,6 +17,8 @@ import com.apython.python.pythonhost.Util;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
+// TODO: Fix crash when deleting first character when there are other characters following.
+
 /**
  * An input view to use within a terminal.
  *
@@ -50,7 +52,7 @@ public class TerminalInput extends EditText {
 
     public interface OnCommitHandler {
         /**
-         * This method gets called when the "Enter" key is pressed (or a newline is somehow
+         * This method gets called when the "Enter" key is pressed (or a newline is
          * inserted into the input).
          * Keep in mind that:
          * <p>
@@ -202,10 +204,10 @@ public class TerminalInput extends EditText {
         this.setEnabled(true);
         this.prompt = prompt;
         this.promptEditableFactory.setPromptLength(prompt.length());
+        setCursorVisible(true);
         setText(prompt + enqueuedInput);
         setSelection(getText().length());
         requestFocus();
-        setCursorVisible(true);
         if (!isInputMethodTarget()) {
             tryRegainSoftInputFocus();
         }

@@ -65,7 +65,6 @@ public class PythonVersionListAdapter extends BaseAdapter {
         void onDownload(String version, String[] downloadUrls, String[] md5Hashes,
                         int numRequirements, int numDependencies, int numModules,
                         ProgressHandler progressHandler);
-
         void onUpdateProgressHandler(String pythonVersion, ProgressHandler progressHandler);
     }
 
