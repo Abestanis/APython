@@ -122,7 +122,6 @@ public class PythonInterpreterActivity extends FragmentActivity {
             public void setupInput(String prompt) {
                 String enqueuedInput = PythonInterpreterActivity.this.interpreter.getEnqueueInput();
                 if (enqueuedInput == null) {
-                    // TODO: Handle such a situation?
                     enqueuedInput = "";
                 }
                 terminalView.enableInput(prompt, enqueuedInput);

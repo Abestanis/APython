@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="pythonHostPermission_description">Diese Berechtigung erlaubt dieser Anwendung als Python Host zu fungieren. Das bedeutet, dass diese Anwendung Dateien bereitstellt, die von anderen Python-Andwendungen ausgeführt werden.</string>
+    <string name="pythonHostPermission_description">Diese Berechtigung erlaubt dieser Anwendung Dateien bereitzustellen, die von anderen Python-Andwendungen ausgeführt werden.</string>
     <string name="pythonHostPermission_label">Als Python Host agieren</string>
     <string name="install_executable">Installiere die ausführbare Datei für Python…</string>
-    <string name="install_pythonLibs">Installiere Python\'s Standardmodule…</string>
     <string name="install_requirements">Installiere benötigte Module…</string>
     <string name="changing_sitePackages_permissions">Ändere die Berechtigungen der Dateien im site-packages Ordner…</string>
     <string name="install_pip">Installiere das Abhängigkeitssystem (Pip)…</string>
@@ -21,15 +20,36 @@
         <item quantity="one">%1$s %2$s/s, fertig in einer Sekunde.</item>
         <item quantity="other">%1$s %2$s/s, fertig in %3$d Sekunden.</item>
     </plurals>
+    <string name="downloadManager_module_info_download">%1$s zum herunterladen ausgewählt</string>
     <string name="downloadManager_no_matches">Keine Treffer</string>
     <string name="downloadManager_used_storage_space">Speicherverbrauch</string>
     <string name="downloadManager_no_modules">Keine Module verfügbar.</string>
     <string name="downloadManager_download_size">Downloadgröße</string>
-    <string name="downloadManager_no_modules_selected">Keine Module ausgewählt</string>
+    <string name="downloadManager_no_modules_selected">Keine Module zum herunterladen ausgewählt</string>
     <string name="downloadManager_subversion">Subversion</string>
     <string name="main_menu_about_link">Über</string>
     <string name="main_menu_download_manager_link">Download Manager</string>
     <string name="main_menu_help_link">Hilfe</string>
     <string name="main_menu_python_interpreter_link">Python Interpreter</string>
     <string name="main_menu_settings_link">Einstellungen</string>
+    <string name="downloadManager_update_failed">Aktualisierung der Versionsliste fehlgeschlagen</string>
+    <string name="downloading_object">Lade %1$s herunter…</string>
+    <string name="extracting_object">Entpacke %1$s…</string>
+    <string name="removing_object">Entferne %1$s…</string>
+    <string name="downloadManager_module_info_installed">%1$s installiert</string>
+    <string name="downloadManager_module_info_remove">%1$s zum entfernen ausgewählt</string>
+    <string name="downloadManager_no_modules_installed">Keine Module installiert.</string>
+    <string name="content_description_about_icon">Über Icon</string>
+    <string name="content_description_action_button">Aktionsknopf</string>
+    <string name="content_description_close_button">Schließen Knopf</string>
+    <string name="content_description_download_manager_icon">Download Manager Icon</string>
+    <string name="content_description_expand_toggle">Erweitern Knopf</string>
+    <string name="content_description_help_icon">Hilfe Icon</string>
+    <string name="content_description_python_icon">Python Icon</string>
+    <string name="content_description_python_modules_configuration_button">Python Module Konfigurationsknopf</string>
+    <string name="content_description_refresh_list_button">Aktualisiere die Liste Knopf</string>
+    <string name="content_description_separator">Sepperator</string>
+    <string name="content_description_settings_icon">Einstellungs Icon</string>
+    <string name="content_description_tab_icon">Tab Icon</string>
+    <string name="unknown">Unbekannt</string>
 </resources>

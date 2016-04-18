@@ -18,10 +18,10 @@ JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
 /*
  * Class:     com_apython_python_pythonhost_interpreter_PythonInterpreter
  * Method:    runInterpreter
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Z)I
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Z)I
  */
 JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_runInterpreter
-  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jboolean);
+  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jboolean);
 
 /*
  * Class:     com_apython_python_pythonhost_interpreter_PythonInterpreter
@@ -36,7 +36,7 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
  * Method:    sendStringToStdin
  * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhos_interpretert_PythonInterpreter_sendStringToStdin
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_sendStringToStdin
 (JNIEnv *, jobject, jstring);
 
 /*

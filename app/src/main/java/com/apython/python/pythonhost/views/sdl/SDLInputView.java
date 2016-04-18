@@ -8,10 +8,12 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
 /**
+ * A view that acts as an input target for the SDL surface.
+ * 
  * Created by Sebastian on 21.11.2015.
  */
 public class SDLInputView extends View implements View.OnKeyListener {
-    InputConnection inputConnection;
+    private InputConnection   inputConnection;
     private SDLWindowFragment sdlWindow;
 
     public SDLInputView(Context context) {
@@ -57,8 +59,7 @@ public class SDLInputView extends View implements View.OnKeyListener {
         // FIXME: And determine the keyboard presence doing this: http://stackoverflow.com/questions/2150078/how-to-check-visibility-of-software-keyboard-in-android
         // FIXME: An even more effective way would be if Android provided this out of the box, but where would the fun be in that :)
         if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-            // TODO: Check this
-            if (/*sdlWindow.mTextEdit != null && sdlWindow.mTextEdit.*/getVisibility() == View.VISIBLE) {
+            if (getVisibility() == View.VISIBLE) {
                 sdlWindow.onNativeKeyboardFocusLost();
             }
         }

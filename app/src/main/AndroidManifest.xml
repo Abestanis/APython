@@ -52,7 +52,7 @@
         <activity android:name="com.apython.python.pythonhost.PythonSettingsActivity"
                   android:label="Settings"/>
         <service
-            android:name=".downloadcenter.PythonDownloadService"
+            android:name=".downloadcenter.PythonDownloadCenterService"
             android:exported="false"/>
     </application>
 

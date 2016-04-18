@@ -17,6 +17,7 @@ import org.apache.http.params.HttpParams;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +33,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /*
  * This class provides a bunch of general useful utility functions.
@@ -282,6 +287,67 @@ public class Util {
     }
 
     /**
+     * Extracts a given archive into the given directory.
+     * Progress is reported via the optional {@code ProgressHandler}.
+     * 
+     * @param archive The archive to extract.
+     * @param destDir The directory to extract the archive into.
+     * @param progressHandler An optional progress handler (can be {@code null}).
+     * @return {@code true} if the data was successfully extracted.
+     */
+    public static boolean extractArchive(File archive, File destDir, ProgressHandler progressHandler) {
+        if (archive.getName().endsWith(".zip")) {
+            try {
+                ZipFile zipFile = new ZipFile(archive);
+                int numEntries = 0;
+                if (progressHandler != null) {
+                    numEntries = zipFile.size();
+                    progressHandler.setProgress(0);
+                }
+                Enumeration<? extends ZipEntry> zipEntries = zipFile.entries();
+                ZipEntry zipEntry;
+                float entryCount = 1.0f;
+                byte[] buffer = new byte[8192];
+                while (zipEntries.hasMoreElements()) {
+                    zipEntry = zipEntries.nextElement();
+                    File file = new File(destDir, zipEntry.getName());
+                    File dir = zipEntry.isDirectory() ? file : file.getParentFile();
+                    if (!dir.isDirectory() && !dir.mkdirs()) {
+                        throw new FileNotFoundException("Failed to ensure directory: " +
+                                                                dir.getAbsolutePath());
+                    }
+                    if (!zipEntry.isDirectory()) {
+                        FileOutputStream outputStream = new FileOutputStream(file);
+                        InputStream inputStream = zipFile.getInputStream(zipEntry);
+                        int count;
+                        try {
+                            while ((count = inputStream.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, count);
+                            }
+                        } finally {
+                            outputStream.close();
+                            inputStream.close();
+                        }
+                    }
+                    if (progressHandler != null) progressHandler.setProgress(entryCount / numEntries);
+                    entryCount++;
+                }
+                zipFile.close();
+                Util.makeFileAccessible(destDir, true);
+            } catch (IOException e) {
+                Log.e(MainActivity.TAG, "Extracting archive " + archive.getAbsolutePath() + " to "
+                        + destDir.getAbsolutePath() + " failed!", e);
+                return false;
+            }
+        } else {
+            Log.w(MainActivity.TAG, "Could not extract archive from " + archive.getAbsolutePath()
+                    + ": Unknown archive format!");
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Converts a hash into a hex string.
      *
      * @param hash The hash to convert.
@@ -521,6 +587,13 @@ public class Util {
         return string.length() - string.replace(String.valueOf(character), "").length();
     }
 
+    /**
+     * Translates a string into a list of key events, which, executed on an
+     * {@link android.widget.EditText} would produce the given string.
+     * 
+     * @param input The string which should be converted into key events.
+     * @return A list of key events.
+     */
     public static KeyEvent[] stringToKeyEvents(String input) {
         KeyCharacterMap charMap;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
@@ -529,5 +602,50 @@ public class Util {
             charMap = KeyCharacterMap.load(KeyCharacterMap.ALPHA);
         }
         return charMap.getEvents(input.toCharArray());
+    }
+
+    /**
+     * Returns the file extension of a given file.
+     * <p>
+     * Examples:
+     * <br>
+     * test.txt -> txt
+     * <br>
+     * archive.tar.gz -> tar.gz
+     * 
+     * @param file The file who's extension should be returned. 
+     * @return The file extension of the given file.
+     */
+    public static String getFileExt(File file) {
+        final String[] SECONDARY_EXTENSIONS = {"tar"}; // For tar.gz
+        String extension = null;
+        String[] parts = file.getName().split("\\.");
+        if (parts.length > 2) {
+            for (String secondaryExtension : SECONDARY_EXTENSIONS) {
+                if (secondaryExtension.equals(parts[1])) {
+                    extension = parts[1] + parts[2];
+                    break;
+                }
+            }
+            if (extension == null) extension = parts[2];
+        } else if (parts.length > 1) {
+            extension = parts[1];
+        }
+        return extension;
+    }
+
+    /**
+     * Joins all given strings with the connector. 
+     * 
+     * @param connector A string which should connect all given strings.
+     * @param parts A list of strings which should be concatenated.
+     * @return The joined string.
+     */
+    public static String join(String connector, ArrayList<String> parts) {
+        Iterator<String> partsIterator = parts.iterator();
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(partsIterator.next());
+        while (partsIterator.hasNext()) stringBuilder.append(connector).append(partsIterator.next());
+        return stringBuilder.toString();
     }
 }

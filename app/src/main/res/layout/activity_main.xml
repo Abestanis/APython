@@ -21,7 +21,7 @@
             android:id="@+id/pythonImage"
             android:src="@drawable/python_icon"
             android:layout_gravity="center"
-            android:contentDescription="Python Icon"
+            android:contentDescription="@string/content_description_python_icon"
             android:adjustViewBounds="true"
             android:maxHeight="255dp"
             android:maxWidth="255dp"/>

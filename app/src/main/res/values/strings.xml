@@ -1,9 +1,8 @@
 <resources>
     <string name="app_name" translatable="false">Python Host</string>
     <string name="pythonHostPermission_label">Act as the Python host</string>
-    <string name="pythonHostPermission_description">This permission enables this app to act as the Python host. This means that the app will provide executables, which Python apps will execute.</string>
+    <string name="pythonHostPermission_description">This permission enables this app to provide executables for other Python apps which they will execute.</string>
     <string name="install_executable">Installing the Python executable…</string>
-    <string name="install_pythonLibs">Installing Python libraries…</string>
     <string name="install_requirements">Installing Requirements…</string>
     <string name="changing_sitePackages_permissions">Changing the permissions of files in the site-packages directory…</string>
     <string name="install_pip">Installing dependency system (Pip)…</string>
@@ -21,16 +20,37 @@
         <item quantity="one">%1$s %2$s/s, %3$d second left.</item>
         <item quantity="other">%1$s %2$s/s, %3$d seconds left.</item>
     </plurals>
+    <string name="downloadManager_module_info_download">%1$s selected for download</string>
     <string name="pref_default_python_download_url" translatable="false">https://abestanis.github.io/APython-Libs/</string>
     <string name="downloadManager_no_matches">No matches</string>
     <string name="downloadManager_used_storage_space">Storage space used</string>
     <string name="downloadManager_no_modules">No modules available.</string>
     <string name="downloadManager_subversion">Subversion</string>
     <string name="main_menu_python_interpreter_link">Python Interpreter</string>
-    <string name="downloadManager_no_modules_selected">No modules selected</string>
+    <string name="downloadManager_no_modules_selected">No modules selected for download</string>
     <string name="main_menu_download_manager_link">Download manager</string>
     <string name="downloadManager_download_size">Download size</string>
     <string name="main_menu_about_link">About</string>
     <string name="main_menu_help_link">Help</string>
     <string name="main_menu_settings_link">Settings</string>
+    <string name="downloadManager_update_failed">Updating the version list failed</string>
+    <string name="downloading_object">Downloading %1$s…</string>
+    <string name="removing_object">Removing %1$s…</string>
+    <string name="extracting_object">Extracting %1$s…</string>
+    <string name="downloadManager_no_modules_installed">No modules installed</string>
+    <string name="downloadManager_module_info_remove">%1$s selected for removal</string>
+    <string name="downloadManager_module_info_installed">%1$s installed</string>
+    <string name="content_description_python_icon">Python icon</string>
+    <string name="content_description_expand_toggle">Expand toggle</string>
+    <string name="content_description_action_button">Action button</string>
+    <string name="content_description_refresh_list_button">Refresh list button</string>
+    <string name="content_description_download_manager_icon">Download manager icon</string>
+    <string name="content_description_about_icon">About icon</string>
+    <string name="content_description_help_icon">Help icon</string>
+    <string name="content_description_settings_icon">Settings icon</string>
+    <string name="unknown">Unknown</string>
+    <string name="content_description_tab_icon">Tab icon</string>
+    <string name="content_description_close_button">Close button</string>
+    <string name="content_description_separator">Separator</string>
+    <string name="content_description_python_modules_configuration_button">Python modules configuration button</string>
 </resources>

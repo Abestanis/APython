@@ -15,13 +15,12 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 
 /**
+ * A custom TabHost that allows the removal of single tabs. 
+ * 
  * Created by Sebastian on 29.01.2016.
  */
 public class WindowManagerTabHost extends LinearLayout {
-
-    private final HorizontalScrollView tabIndicatorScrollContainer;
-    protected     LinearLayout         tabIndicatorContainer;
-    protected     FrameLayout          tabContentContainer;
+    private static final int NO_INDEX = -1;
 
     protected class Tab {
         View                   view;
@@ -29,10 +28,12 @@ public class WindowManagerTabHost extends LinearLayout {
         String                 tag;
         Tab previousSelected = null;
     }
-
-    private ArrayList<Tab> tabs = new ArrayList<>();
-
-    int currTab = -1;
+    
+    private final HorizontalScrollView tabIndicatorScrollContainer;
+    protected     LinearLayout         tabIndicatorContainer;
+    protected     FrameLayout          tabContentContainer;
+    private ArrayList<Tab> tabs    = new ArrayList<>();
+    private int            currTab = NO_INDEX;
 
     public class TabSpec {
 
@@ -151,7 +152,7 @@ public class WindowManagerTabHost extends LinearLayout {
         tabIndicatorContainer.addView(newTab.tabIndicator);
         tabs.add(newTab);
         if (tabs.size() == 2) tabIndicatorContainer.setVisibility(VISIBLE);
-        if (currTab == -1) {
+        if (currTab == NO_INDEX) {
             setCurrentTab(newTab, 0);
         }
     }
@@ -176,7 +177,7 @@ public class WindowManagerTabHost extends LinearLayout {
 
     private void setCurrentTab(Tab tab, int index) {
         if (currTab == index) return;
-        if (currTab != -1) {
+        if (currTab != NO_INDEX) {
             Tab prevTab = tabs.get(currTab);
             unSetTab(prevTab);
             tab.previousSelected = prevTab;
@@ -224,19 +225,21 @@ public class WindowManagerTabHost extends LinearLayout {
     public void removeTab(Tab tab, int index) {
         tabs.remove(index);
         if (tabs.size() == 1) tabIndicatorContainer.setVisibility(GONE);
-        if (tab.previousSelected == null || tab.previousSelected.previousSelected == null) {
-            currTab = -1;
-        } else {
-            currTab = tabs.indexOf(tab.previousSelected.previousSelected);
-        }
-        if (tab.previousSelected != null) {
-            setCurrentTab(tabs.indexOf(tab.previousSelected));
-        } else if (tabs.size() != 0) {
-            setCurrentTab(0);
-        } else {
-            unSetTab(tab);
+        if (currTab == index) {
+            currTab = NO_INDEX;
+            removeTabContent(tab);
+            if (tab.previousSelected != null) {
+                setCurrentTab(tabs.indexOf(tab.previousSelected));
+            } else if (tabs.size() != 0) {
+                setCurrentTab(0);
+            }
         }
         tabIndicatorContainer.removeViewAt(index);
+        for (Tab tb : tabs) {
+            if (tb.previousSelected == tab) {
+                tb.previousSelected = tab.previousSelected;
+            }
+        }
     }
 
     public String getTabTitle(String tag) {

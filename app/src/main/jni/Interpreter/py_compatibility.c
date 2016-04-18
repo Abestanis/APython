@@ -20,7 +20,7 @@ int setPythonLibrary(const char* libName) {
             pythonVersion = (const char*) Py_getVersionString();
             return 1;
         } else {
-            LOG_ERROR("Py_compability: Didn't found method 'Py_getVersionString' in the python library.");
+            LOG_ERROR("Py_compatibility: Didn't found method 'Py_getVersionString' in the python library.");
             return 0;
         }
     } else {
@@ -31,7 +31,7 @@ int setPythonLibrary(const char* libName) {
 
 void closePythonLibrary() {
     if (pythonLib == NULL) {
-        LOG_WARN("Ignored an attempt to close the Python library while it was not opend.");
+        LOG_WARN("Ignored an attempt to close the Python library while it was not opened.");
         return;
     }
     dlclose(pythonLib);
@@ -48,14 +48,14 @@ int call_Py_Main(int argc, char** argv) {
         if (Py_Main != NULL) {
             return (int) Py_Main(argc, argv);
         }
-        LOG_ERROR("Py_compability: Didn't found method 'Py_Main' in the python library.");
+        LOG_ERROR("Py_compatibility: Didn't found method 'Py_Main' in the python library.");
     } else {
         int (*oldPy_Main)(int, char **);
         oldPy_Main = dlsym(pythonLib, "oldPy_Main");
         if (oldPy_Main != NULL) {
             return (int) oldPy_Main(argc, argv);
         }
-        LOG_ERROR("Py_compability: Didn't found method 'oldPy_Main' in the python library.");
+        LOG_ERROR("Py_compatibility: Didn't found method 'oldPy_Main' in the python library.");
     }
     return 1;
 }
@@ -72,16 +72,16 @@ void callCharSetterFunction(const char* funcName, char* arg) {
         wchar_t* (*_Py_char2wchar) (char*, size_t*);
         _Py_char2wchar = dlsym(pythonLib, "_Py_char2wchar");
         if (_Py_char2wchar == NULL) {
-            LOG_ERROR("Py_compability: Didn't found method '_Py_char2wchar' in the python library.");
+            LOG_ERROR("Py_compatibility: Didn't found method '_Py_char2wchar' in the python library.");
             return;
         }
         func = dlsym(pythonLib, funcName);
         if (func != NULL) {
             return func(_Py_char2wchar(arg, NULL));
         }
-        LOG_ERROR("Py_compability: Didn't found method '%s' in python library.", funcName);
+        LOG_ERROR("Py_compatibility: Didn't found method '%s' in python library.", funcName);
     }
-    LOG_ERROR("Py_compability: Didn't found '%s' in the python library.", funcName);
+    LOG_ERROR("Py_compatibility: Didn't found '%s' in the python library.", funcName);
 }
 
 void call_Py_SetPythonHome(char* arg) {
@@ -100,7 +100,7 @@ void* call_PyMem_Malloc(size_t length) {
             LOG("Running new PyMem_RawMalloc");
             return (void*) PyMem_RawMalloc(length);
         }
-        LOG_ERROR("Py_compability: Didn't found method 'PyMem_RawMalloc' in the python library.");
+        LOG_ERROR("Py_compatibility: Didn't found method 'PyMem_RawMalloc' in the python library.");
     } else {
         void* (*PyMem_Malloc)(size_t);
         PyMem_Malloc = dlsym(pythonLib, "PyMem_Malloc");
@@ -108,7 +108,7 @@ void* call_PyMem_Malloc(size_t length) {
             LOG("Running old PyMem_Malloc");
             return (void*) PyMem_Malloc(length); // TODO: Not thread safe
         }
-        LOG_ERROR("Py_compability: Didn't found method 'PyMem_Malloc' in the python library.");
+        LOG_ERROR("Py_compatibility: Didn't found method 'PyMem_Malloc' in the python library.");
     }
     return NULL;
 }
@@ -129,5 +129,5 @@ void set_PyOS_ReadlineFunctionPointer(char *(*func)(FILE *, FILE *, const char *
         set_PyOS_ReadlineFunctionPointer(func);
         return;
     }
-    LOG_ERROR("Py_compability: Didn't found method 'set_PyOS_ReadlineFunctionPointer' in the python library.");
+    LOG_ERROR("Py_compatibility: Didn't found method 'set_PyOS_ReadlineFunctionPointer' in the python library.");
 }

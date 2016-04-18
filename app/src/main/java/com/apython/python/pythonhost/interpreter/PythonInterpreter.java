@@ -57,6 +57,7 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
     public int runPythonInterpreter(String[] interpreterArgs) {
         return this.runInterpreter(System.mapLibraryName("python" + this.pythonVersion),
                                    PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
+                                   PackageManager.getDynamicLibraryPath(this.context).getAbsolutePath(),
                                    PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
                                    this.context.getFilesDir().getAbsolutePath(),
                                    PackageManager.getTempDir(this.context).getAbsolutePath(),
@@ -152,5 +153,5 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
     public  native void   dispatchKey(int character);
     public  native void   sendStringToStdin(String string);
     public  native String getEnqueueInput();
-    private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
+    private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pyHostLibPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
 }

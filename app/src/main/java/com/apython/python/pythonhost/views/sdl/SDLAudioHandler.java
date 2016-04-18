@@ -6,6 +6,8 @@ import android.media.AudioTrack;
 import android.util.Log;
 
 /**
+ * An Audio handler that enables sdl applications to play audio on Android devices.
+ * 
  * Created by Sebastian on 21.11.2015.
  */
 public class SDLAudioHandler {
@@ -55,8 +57,7 @@ public class SDLAudioHandler {
             } else if (result == 0) {
                 try {
                     Thread.sleep(1);
-                } catch(InterruptedException e) {
-                }
+                } catch (InterruptedException ignored) {}
             } else {
                 Log.w(TAG, "Error return from write(short)");
                 return;
@@ -72,8 +73,7 @@ public class SDLAudioHandler {
             } else if (result == 0) {
                 try {
                     Thread.sleep(1);
-                } catch(InterruptedException e) {
-                }
+                } catch (InterruptedException ignored) {}
             } else {
                 Log.w(TAG, "Error return from write(byte)");
                 return;

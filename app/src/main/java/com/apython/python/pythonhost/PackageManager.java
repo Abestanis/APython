@@ -6,9 +6,9 @@ package com.apython.python.pythonhost;
  * Created by Sebastian on 16.06.2015.
  */
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
@@ -61,6 +61,10 @@ public class PackageManager {
         return new File(context.getFilesDir(), "dynLibs");
     }
 
+    public static File getDataPath(Context context) {
+        return new File(context.getFilesDir(), "data");
+    }
+
     public static boolean isAdditionalLibraryInstalled(Context context, String libName) {
         return new File(getDynamicLibraryPath(context), System.mapLibraryName(libName)).exists();
     }
@@ -70,7 +74,7 @@ public class PackageManager {
                 && new File(getStandardLibPath(context), "python" + pythonVersion.replace(".", "") + ".zip").exists();
     }
 
-    public static ArrayList<String> getInstalledPythonVersions(Context context) { // TODO: Make this better
+    public static ArrayList<String> getInstalledPythonVersions(Context context) {
         File libPath = getDynamicLibraryPath(context);
         ArrayList<String> versions = new ArrayList<>();
         if (!libPath.exists() || !libPath.isDirectory()) {
@@ -173,34 +177,6 @@ public class PackageManager {
         }
     }
 
-    public static boolean deletePythonVersion(Context context, String pythonVersion) {
-        File pythonLib = new File(getDynamicLibraryPath(context), "libpython" + pythonVersion + ".so");
-        File moduleZip = new File(getStandardLibPath(context), "python" + pythonVersion.replace(".", "") + ".zip");
-        File moduleDir = getLibDynLoad(context, pythonVersion);
-
-        if (!Util.deleteDirectory(moduleDir)) {
-            Log.w(MainActivity.TAG, "Failed to delete the Python version + " + pythonVersion + ": Could not delete the lib-dynload directory!");
-            return false;
-        }
-        if (!moduleZip.delete()) {
-            Log.w(MainActivity.TAG, "Failed to delete the Python version + " + pythonVersion + ": Could not delete the module zip!");
-            return false;
-        }
-        if (!pythonLib.delete()) {
-            Log.e(MainActivity.TAG, "Failed to delete the Python version + " + pythonVersion + ": Could not delete the Python library!");
-            return false;
-        }
-        if (pythonVersion.equals(PreferenceManager.getDefaultSharedPreferences(context).getString( // TODO: main version?
-                PythonSettingsActivity.KEY_PYTHON_VERSION,
-                PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED))) {
-            PreferenceManager.getDefaultSharedPreferences(context).edit().putString(
-                    PythonSettingsActivity.KEY_PYTHON_VERSION,
-                    PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED
-            ).commit();
-        }
-        return true;
-    }
-
     /**
      * Load a library that was downloaded and was not bundled with the Python Host apk.
      *
@@ -209,6 +185,7 @@ public class PackageManager {
      *
      * @throws LinkageError if the library was not downloaded or it is not in the usual directory.
      */
+    @SuppressLint("UnsafeDynamicallyLoadedCode")
     public static void loadDynamicLibrary(Context context, String libraryName) {
         System.load(new File(PackageManager.getDynamicLibraryPath(context),
                              System.mapLibraryName(libraryName)).getAbsolutePath());
@@ -254,6 +231,7 @@ public class PackageManager {
      *
      * @param context The current context.
      */
+    @SuppressLint("UnsafeDynamicallyLoadedCode")
     public static void loadAdditionalLibraries(Context context) {
         for (File additionalLibrary : getAdditionalLibraries(context)) {
             System.load(additionalLibrary.getAbsolutePath());
@@ -270,8 +248,9 @@ public class PackageManager {
     public static long getUsedStorageSpace(Context context, String pythonVersion) {
         File pythonDir = new File(getStandardLibPath(context), "python" + pythonVersion);
         File pythonLib = new File(PackageManager.getDynamicLibraryPath(context),
-                                  System.mapLibraryName("python" + Util.getMainVersionPart(pythonVersion)));
-        return pythonLib.length() + Util.calculateDirectorySize(pythonDir);
+                                  System.mapLibraryName("python" + pythonVersion));
+        File pythonModules = new File(PackageManager.getStandardLibPath(context), pythonVersion.replace(".", "") + ".zip");
+        return pythonLib.length() + pythonModules.length() + Util.calculateDirectorySize(pythonDir);
     }
 
     // Checks that all components of this Python installation are present.
@@ -325,5 +304,16 @@ public class PackageManager {
             }
         }
         return true;
+    }
+
+    public static ArrayList<String> getInstalledDynLibraries(Context context) {
+        ArrayList<String> installedLibs = new ArrayList<>();
+        File[] files = getDynamicLibraryPath(context).listFiles();
+        if (files != null) {
+            for (File file : files) {
+                installedLibs.add(Util.getLibraryName(file));
+            }
+        }
+        return installedLibs;
     }
 }

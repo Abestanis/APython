@@ -12,7 +12,11 @@ import android.widget.TextView;
  */
 public interface ProgressHandler {
 
+    interface TwoLevelProgressHandler extends ProgressHandler {
+        void setTotalSteps(int totalSteps);
+    }
     class Factory {
+
         static class SimpleProgressHandler implements ProgressHandler {
             protected boolean enabled         = false;
             protected String text             = null;
@@ -23,7 +27,6 @@ public interface ProgressHandler {
             private   Runnable onEnable       = null;
             private   Runnable onSuccess      = null;
             private   Runnable onFailure      = null;
-
             SimpleProgressHandler(Activity activity, TextView output, ProgressBar progressBar,
                                   Runnable onEnable, Runnable onSuccess, Runnable onFailure) {
                 this.activity = activity;
@@ -80,7 +83,7 @@ public interface ProgressHandler {
             public void setProgress(float progress, int bytesPerSecond, int remainingSeconds) {
                 setProgress(progress, Util.generateDownloadInfoText(activity, bytesPerSecond, remainingSeconds));
             }
-
+            
             protected void setProgress(final float progress, String progressTextString) {
                 if (progressTextString != null || progress < 0) {
                     this.progressText = progressTextString;
@@ -118,24 +121,24 @@ public interface ProgressHandler {
                 }
                 enabled = false;
             }
-        }
 
-        public static class TwoLevelProgressHandler extends SimpleProgressHandler {
+        }
+        public static class SimpleTwoLevelProgressHandler extends SimpleProgressHandler
+                implements TwoLevelProgressHandler {
 
             private float lastProgress  = 0.0f;
             private float totalProgress = 0.0f;
             private ProgressBar totalProgressBar;
-            private int totalSteps = 0;
-
-            TwoLevelProgressHandler(Activity activity, TextView output,
-                                    ProgressBar totalProgressBar, ProgressBar secondaryProgressBar,
-                                    int totalSteps , Runnable onEnable,
-                                    Runnable onSuccess, Runnable onFailure) {
+            private int totalSteps = 1;
+            SimpleTwoLevelProgressHandler(Activity activity, TextView output,
+                                          ProgressBar totalProgressBar,
+                                          ProgressBar secondaryProgressBar, Runnable onEnable,
+                                          Runnable onSuccess, Runnable onFailure) {
                 super(activity, output, secondaryProgressBar, onEnable, onSuccess, onFailure);
                 this.totalProgressBar = totalProgressBar;
-                this.totalSteps = totalSteps;
             }
 
+            @Override
             public void setTotalSteps(int totalSteps) {
                 this.totalSteps = totalSteps;
                 totalProgressBar.setMax(100 * totalSteps);
@@ -171,8 +174,8 @@ public interface ProgressHandler {
                 lastProgress = 0.0f;
                 totalProgress = 0.0f;
             }
-        }
 
+        }
         public static ProgressHandler create(Activity activity, TextView output,
                                              ProgressBar progressBar, Runnable onEnable,
                                              Runnable onComplete) {
@@ -182,19 +185,21 @@ public interface ProgressHandler {
         public static ProgressHandler create(Activity activity, TextView output,
                                              ProgressBar progressBar, Runnable onEnable,
                                              Runnable onSuccess, Runnable onFailure) {
-            return new SimpleProgressHandler(activity, output, progressBar, onEnable, onSuccess, onFailure);
+            return new SimpleProgressHandler(activity, output, progressBar, onEnable,
+                                             onSuccess, onFailure);
         }
 
-        public static ProgressHandler createTwoLevel(Activity activity, TextView output,
-                                                     ProgressBar totalProgressBar,
-                                                     ProgressBar progressBar, int totalSteps,
-                                                     Runnable onEnable, Runnable onSuccess, Runnable onFailure) {
-            return new TwoLevelProgressHandler(activity, output, totalProgressBar, progressBar,
-                                               totalSteps, onEnable, onSuccess, onFailure);
+        public static TwoLevelProgressHandler createTwoLevel(Activity activity, TextView output,
+                                                             ProgressBar totalProgressBar,
+                                                             ProgressBar progressBar,
+                                                             Runnable onEnable, Runnable onSuccess,
+                                                             Runnable onFailure) {
+            return new SimpleTwoLevelProgressHandler(activity, output, totalProgressBar, progressBar,
+                                               onEnable, onSuccess, onFailure);
         }
+
     }
-
-
+    
     void enable(String text);
     void setText(String text);
     void setProgress(float progress);

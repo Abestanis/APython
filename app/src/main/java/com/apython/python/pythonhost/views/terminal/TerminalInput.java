@@ -3,7 +3,6 @@ package com.apython.python.pythonhost.views.terminal;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.Editable;
-import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
@@ -17,38 +16,12 @@ import com.apython.python.pythonhost.Util;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
-// TODO: Fix crash when deleting first character when there are other characters following.
-
 /**
  * An input view to use within a terminal.
  *
  * Created by Sebastian on 12.11.2015.
  */
 public class TerminalInput extends EditText {
-
-    /**
-     * A custom Editable factory that blocks all request to select a variable sized start of
-     * the produced Editable. Should only be used for one editable at any time. Calls to
-     * {@link #setPromptLength(int)} would impact all Editable produced by this factory.
-     */
-    private class PromptEditableFactory extends Editable.Factory {
-
-        private int promptLength = 0;
-
-        public void setPromptLength(int promptLength) {
-            this.promptLength = promptLength;
-        }
-
-        @Override
-        public Editable newEditable(CharSequence source) {
-            return new SpannableStringBuilder(source) {
-                @Override
-                public void setSpan(Object what, int start, int end, int flags) {
-                    super.setSpan(what, Math.max(start, promptLength), Math.max(end, promptLength), flags);
-                }
-            };
-        }
-    }
 
     public interface OnCommitHandler {
         /**
@@ -77,7 +50,6 @@ public class TerminalInput extends EditText {
     private TextWatcher        inputWatcher;
     private InputMethodManager inputManager;
     private OnCommitHandler    commitHandler;
-    private final PromptEditableFactory promptEditableFactory = new PromptEditableFactory();
     private LinkedList<String> commandHistory = new LinkedList<>();
     private ListIterator<String> commandHistoryAccessor;
 
@@ -100,9 +72,17 @@ public class TerminalInput extends EditText {
         this.inputManager = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         this.commandHistory.add("");
         this.commandHistoryAccessor = this.commandHistory.listIterator();
-        this.setEditableFactory(promptEditableFactory);
         inputWatcher = new TextWatcher() {
             int start;
+            private void restorePrompt() {
+                String text = getText().toString();
+                for (int i = prompt.length() - 1; i >= 0; i--) {
+                    if (prompt.substring(0, i).equals(text.substring(0, i))) {
+                        internalSetText(prompt + text.substring(i));
+                        return;
+                    }
+                }
+            }
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -118,7 +98,7 @@ public class TerminalInput extends EditText {
                 String input = s.toString();
                 if (isInputEnabled()) {
                     if (!input.startsWith(prompt)) {
-                        internalSetText(prompt);
+                        restorePrompt();
                     } else if (input.length() > 0) {
                         if (input.indexOf('\n', start) != -1 && commitHandler != null) {
                             commitHandler.onCommit(TerminalInput.this);
@@ -203,7 +183,6 @@ public class TerminalInput extends EditText {
     public void enableInput(String prompt, String enqueuedInput) {
         this.setEnabled(true);
         this.prompt = prompt;
-        this.promptEditableFactory.setPromptLength(prompt.length());
         setCursorVisible(true);
         setText(prompt + enqueuedInput);
         setSelection(getText().length());
@@ -219,7 +198,6 @@ public class TerminalInput extends EditText {
     public void disableInput() {
         this.prompt = "";
         setCursorVisible(false);
-        this.promptEditableFactory.setPromptLength(0);
         internalSetText("");
         this.setEnabled(false);
     }
@@ -268,6 +246,7 @@ public class TerminalInput extends EditText {
             }
             currentCommandIndex = commandHistoryAccessor.nextIndex();
             internalSetText(this.prompt + commandHistoryAccessor.next());
+            setSelection(getText().length());
         }
     }
 
@@ -285,7 +264,26 @@ public class TerminalInput extends EditText {
             }
             currentCommandIndex = commandHistoryAccessor.previousIndex();
             internalSetText(this.prompt + commandHistoryAccessor.previous());
+            setSelection(getText().length());
         }
+    }
+
+    @Override
+    protected void onSelectionChanged(int selStart, int selEnd) {
+        super.onSelectionChanged(selStart, selEnd);
+        if (prompt == null || prompt.equals("")) return;
+        int newSelStart = -1, newSelEnd = -1;
+        int min = prompt.length();
+        if (selStart < min) newSelStart = min;
+        if (selEnd < min) newSelEnd = min;
+        if (newSelEnd != -1 || newSelStart != -1) {
+            setSelection(newSelStart, newSelEnd);
+        }
+    }
+
+    @Override
+    public void setText(CharSequence text, BufferType type) {
+        if (prompt == null || text.toString().startsWith(prompt)) super.setText(text, type);
     }
 
     /**

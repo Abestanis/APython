@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-int startApp(JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring);
+int startApp(JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring);
 
 #ifdef __cplusplus
 }

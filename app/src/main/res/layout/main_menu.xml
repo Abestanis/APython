@@ -22,6 +22,7 @@
             android:src="@drawable/python_icon"
             android:adjustViewBounds="true"
             android:layout_weight="0.7"
+            android:contentDescription="@string/content_description_python_icon"
             />
 
         <TextView
@@ -68,7 +69,8 @@
                     android:src="@drawable/python_icon"
                     android:adjustViewBounds="true"
                     android:layout_weight="0.8"
-                    android:scaleType="fitCenter"/>
+                    android:scaleType="fitCenter"
+                    android:contentDescription="@string/content_description_python_icon"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -93,7 +95,8 @@
                     android:layout_height="match_parent"
                     android:src="@android:drawable/ic_menu_upload"
                     android:adjustViewBounds="true"
-                    android:layout_weight="0.8"/>
+                    android:layout_weight="0.8"
+                    android:contentDescription="@string/content_description_download_manager_icon"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -117,7 +120,8 @@
                     android:layout_height="match_parent"
                     android:src="@android:drawable/ic_dialog_info"
                     android:adjustViewBounds="true"
-                    android:layout_weight="0.8"/>
+                    android:layout_weight="0.8"
+                    android:contentDescription="@string/content_description_about_icon"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -141,7 +145,8 @@
                     android:layout_height="match_parent"
                     android:src="@android:drawable/ic_menu_help"
                     android:adjustViewBounds="true"
-                    android:layout_weight="0.8"/>
+                    android:layout_weight="0.8"
+                    android:contentDescription="@string/content_description_help_icon"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -167,7 +172,8 @@
                     android:layout_height="match_parent"
                     android:src="@android:drawable/ic_menu_manage"
                     android:adjustViewBounds="true"
-                    android:layout_weight="0.8"/>
+                    android:layout_weight="0.8"
+                    android:contentDescription="@string/content_description_settings_icon"/>
 
                 <TextView
                     android:layout_width="match_parent"

@@ -136,8 +136,9 @@ JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
 }
 
 JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_runInterpreter(
-           JNIEnv *env, jobject obj, jstring jPythonLibName, jstring jProgramPath, jstring jLibPath, jstring jPythonHome,
-           jstring jPythonTemp, jstring jXDGBasePath, jstring jAppTag, jobjectArray jArgs, jboolean redirectOutput) {
+           JNIEnv *env, jobject obj, jstring jPythonLibName, jstring jProgramPath, jstring jLibPath,
+           jstring jPyHostLibPath, jstring jPythonHome, jstring jPythonTemp, jstring jXDGBasePath,
+           jstring jAppTag, jobjectArray jArgs, jboolean redirectOutput) {
     jPyInterpreter = (*env)->NewGlobalRef(env, obj);
     int i;
 
@@ -152,12 +153,13 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
         set_PyOS_ReadlineFunctionPointer(readLineFromJavaInput);
     }
 
-    const char *programName = (*env)->GetStringUTFChars(env, jProgramPath, 0);
-    const char *pythonLibs  = (*env)->GetStringUTFChars(env, jLibPath, 0);
-    const char *pythonHome  = (*env)->GetStringUTFChars(env, jPythonHome, 0);
-    const char *pythonTemp  = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
-    const char *xdgBasePath = (*env)->GetStringUTFChars(env, jXDGBasePath, 0);
-    setupPython(programName, pythonLibs, pythonHome, pythonTemp, xdgBasePath);
+    const char *programName    = (*env)->GetStringUTFChars(env, jProgramPath, 0);
+    const char *pythonLibs     = (*env)->GetStringUTFChars(env, jLibPath, 0);
+    const char *pythonHostLibs = (*env)->GetStringUTFChars(env, jPyHostLibPath, 0);
+    const char *pythonHome     = (*env)->GetStringUTFChars(env, jPythonHome, 0);
+    const char *pythonTemp     = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
+    const char *xdgBasePath    = (*env)->GetStringUTFChars(env, jXDGBasePath, 0);
+    setupPython(programName, pythonLibs, pythonHostLibs, pythonHome, pythonTemp, xdgBasePath);
 
     jsize argc = 1;
     if (jArgs != NULL) {
@@ -198,6 +200,7 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jLibPath, pythonLibs);
+    (*env)->ReleaseStringUTFChars(env, jPyHostLibPath, pythonHostLibs);
     (*env)->ReleaseStringUTFChars(env, jProgramPath, programName);
     (*env)->ReleaseStringUTFChars(env, jXDGBasePath, xdgBasePath);
     (*env)->DeleteGlobalRef(env, jPyInterpreter);

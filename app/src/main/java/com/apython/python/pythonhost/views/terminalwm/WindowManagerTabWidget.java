@@ -12,6 +12,8 @@ import android.widget.TextView;
 import com.apython.python.pythonhost.R;
 
 /**
+ * A tabWidget for a window-tab in the {@link WindowManagerTabHost}. 
+ * 
  * Created by Sebastian on 26.03.2016.
  */
 public class WindowManagerTabWidget extends FrameLayout {

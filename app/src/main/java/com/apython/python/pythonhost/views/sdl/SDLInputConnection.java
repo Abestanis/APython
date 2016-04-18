@@ -5,11 +5,13 @@ import android.view.View;
 import android.view.inputmethod.BaseInputConnection;
 
 /**
+ * An input connection that sends it's input to the SDL event queue.
+ * 
  * Created by Sebastian on 21.11.2015.
  */
 public class SDLInputConnection extends BaseInputConnection {
 
-    SDLWindowFragment sdlWindow;
+    private SDLWindowFragment sdlWindow;
 
     public SDLInputConnection(View targetView, boolean fullEditor, SDLWindowFragment sdlWindow) {
         super(targetView, fullEditor);

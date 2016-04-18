@@ -9,7 +9,7 @@ const char* getPythonLibraryName() {
     char* name = getenv("PYTHON_LIBRARY_NAME");
     if (name == NULL) {
         name = "libpython3.4.so";
-        LOG_WARN("Python executable was unable to retrive the python library name! Using default (%s).", name);
+        LOG_WARN("Python executable was unable to retrieve the python library name! Using default (%s).", name);
     }
     return (const char*) name;
 }
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     ASSERT(xdgBasePath != NULL, "Not enough memory to construct the xdg base path!");
     strcpy((char*) xdgBasePath, basePath);
     strcat((char*) xdgBasePath, xdgAppendix);
-    setupPython(programName, pythonLibs, pythonHome, pythonTemp, xdgBasePath);
+    setupPython(programName, pythonLibs, "", pythonHome, pythonTemp, xdgBasePath);
     int result = call_Py_Main(argc, argv);
     free((char*) basePath);
     free((char*) pythonLibs);

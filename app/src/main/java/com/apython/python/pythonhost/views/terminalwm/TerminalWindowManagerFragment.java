@@ -34,7 +34,9 @@ public class TerminalWindowManagerFragment extends Fragment implements TerminalW
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SDLWindowFragment.setWindowManager(this);
+        if (SDLWindowFragment.initLibraries(getActivity().getApplicationContext())) {
+            SDLWindowFragment.setWindowManager(this);
+        }
     }
 
     @Override
@@ -48,7 +50,6 @@ public class TerminalWindowManagerFragment extends Fragment implements TerminalW
                                .setFragmentClass(TerminalFragment.class)
                                .setIcon(getResources().getDrawable(R.drawable.python_icon))
                                .setTitle("Python"));
-        SDLWindowFragment.initLibraries(getActivity().getApplicationContext());
         return root;
     }
 

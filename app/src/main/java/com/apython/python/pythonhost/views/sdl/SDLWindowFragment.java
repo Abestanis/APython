@@ -1,5 +1,6 @@
 package com.apython.python.pythonhost.views.sdl;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,12 +19,17 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
+import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
 
+import java.io.File;
 import java.util.Arrays;
 
 /**
+ * A fragment that contains an SDL window and serves as the main
+ * interface for the native SDL library.
+ * 
  * Created by Sebastian on 21.11.2015.
  */
 public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
@@ -56,21 +62,22 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
     public static String[] getSDLLibraries() {
         return new String[] {
                 "SDL2",
-                "SDL2_image",
-                "SDL2_mixer",
-                "SDL2_net",
                 "SDL2_ttf",
-                "SDL_Android"
         };
     }
 
-    public static void initLibraries(Context context) {
+    public static boolean initLibraries(Context context) {
+        boolean sdl2Avaliable = true;
         if (staticContext == null) {
             // This only needs to be done once.
-            loadLibraries();
-            nativeInit();
+            if (loadLibraries(context)) {
+                nativeInit();
+            } else {
+                sdl2Avaliable = false;
+            }
         }
         staticContext = context;
+        return sdl2Avaliable;
     }
 
     @Override
@@ -161,7 +168,6 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
         } else {
             KEYCODE_ZOOM_IN  = 168;
             KEYCODE_ZOOM_OUT = 169;
-
         }
         int keyCode = event.getKeyCode();
         // Ignore certain special keys so they're handled by Android
@@ -170,10 +176,19 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
                 keyCode == KEYCODE_ZOOM_OUT;
     }
 
-    private static void loadLibraries() {
-        for (String library : getSDLLibraries()) {
-            System.loadLibrary(library);
+    @SuppressLint("UnsafeDynamicallyLoadedCode")
+    private static boolean loadLibraries(Context context) {
+        try {
+            System.load(new File(PackageManager.getDynamicLibraryPath(context),
+                                 System.mapLibraryName("pythonPatch")).getAbsolutePath());
+            for (String library : getSDLLibraries()) {
+                System.load(new File(PackageManager.getDynamicLibraryPath(context),
+                                     System.mapLibraryName(library)).getAbsolutePath());
+            }
+        } catch (UnsatisfiedLinkError e) {
+            return false;
         }
+        return true;
     }
 
     private void resetState() {
@@ -207,8 +222,7 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
 
     /* The native thread has finished */
     public void handleNativeExit() {
-        // TODO: Sort this out
-//        activity.finish();
+        destroy();
     }
 
 
@@ -326,7 +340,6 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
     }
 
     public boolean showTextInput(final int x, final int y, final int w, final int h) {
-        Log.w(TAG, "Showing text input!!!");
         // Transfer the task to the main thread as a Runnable
         return commandHandler.post(new Runnable() {
             @Override
@@ -363,7 +376,6 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
      * @return an array which may be empty but is never null.
      */
     public static int[] inputGetInputDeviceIds(int sources) {
-        // TODO: Remove Api 9 checks
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
             int[] ids = InputDevice.getDeviceIds();
             int[] filtered = new int[ids.length];
@@ -382,7 +394,6 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
 
     public void showInput(int x, int y, int w, int h) {
         final int HEIGHT_PADDING = 15;
-        Log.w(TAG, "showInput");
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(w, h + HEIGHT_PADDING);
         params.leftMargin = x;
         params.topMargin = y;

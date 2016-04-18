@@ -11,8 +11,11 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
+ * A joystick handler for SDL. 
+ * 
  * Created by Sebastian on 21.11.2015.
  */
+@SuppressLint("NewApi")
 public class SDLJoystickHandler {
     class SDLJoystick {
         public int                                device_id;
@@ -21,7 +24,7 @@ public class SDLJoystickHandler {
         public ArrayList<InputDevice.MotionRange> hats;
     }
 
-    class RangeComparator implements Comparator<InputDevice.MotionRange> {
+    private class RangeComparator implements Comparator<InputDevice.MotionRange> {
         @Override
         public int compare(InputDevice.MotionRange arg0, InputDevice.MotionRange arg1) {
             return arg0.getAxis() - arg1.getAxis();
@@ -35,8 +38,7 @@ public class SDLJoystickHandler {
         isApiAvaliable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1;
         joysticks = new ArrayList<>();
     }
-
-    @SuppressLint("NewApi")
+    
     public void pollInputDevices() {
         if (!isApiAvaliable) { return; }
         int[] deviceIds = InputDevice.getDeviceIds();

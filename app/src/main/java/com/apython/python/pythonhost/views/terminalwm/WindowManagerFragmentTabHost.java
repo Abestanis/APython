@@ -7,11 +7,13 @@ import android.support.v4.app.FragmentTransaction;
 import android.util.AttributeSet;
 
 /**
+ * A Fragment capable of displaying multiple tab-based windows.
+ * 
  * Created by Sebastian on 26.03.2016.
  */
 public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
 
-    FragmentManager fragmentManager = null;
+    private FragmentManager fragmentManager = null;
 
     private class FragmentTab extends Tab {
         Fragment fragment;
@@ -67,7 +69,7 @@ public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
 
     @Override
     protected void removeTabContent(Tab tab) {
-        if (tab instanceof FragmentTab) {
+        if (tab instanceof FragmentTab && tab.view == null) {
             ((FragmentTab) tab).view = tabContentContainer.getChildAt(0);
         }
         super.removeTabContent(tab);

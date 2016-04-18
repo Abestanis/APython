@@ -48,7 +48,8 @@
             android:id="@+id/refresh_button"
             android:layout_weight="1"
             android:src="@android:drawable/stat_notify_sync"
-            android:adjustViewBounds="false"/>
+            android:adjustViewBounds="false"
+            android:contentDescription="@string/content_description_refresh_list_button"/>
 
         <Spinner
             android:layout_width="wrap_content"

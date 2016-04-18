@@ -16,13 +16,16 @@ FILE *stdin_writer = NULL;
 static int saved_stdout;
 static int saved_stderr;
 
-void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHome, const char* pythonTemp, const char* xdgBasePath) {
+void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
+                 const char* pythonHome, const char* pythonTemp, const char* xdgBasePath) {
     const char* value = (const char*) getenv("LD_LIBRARY_PATH");
     if (value == NULL) { value = ""; }
     if (strstr(value, pythonLibs) == NULL) { // Check if our Path is already in LD_LIBRARY_PATH
-        const char* newValue = malloc(sizeof(char) * (strlen(pythonLibs) + strlen(value) + 2));
+        const char* newValue = malloc(sizeof(char) * (strlen(pythonHostLibs) + strlen(pythonLibs) + strlen(value) + 3));
         ASSERT(newValue != NULL, "Not enough memory to change 'LD_LIBRARY_PATH'!");
-        strcpy((char*) newValue, pythonLibs);
+        strcpy((char*) newValue, pythonHostLibs);
+        strcat((char*) newValue, ":");
+        strcat((char*) newValue, pythonLibs);
         strcat((char*) newValue, ":");
         strcat((char*) newValue, value);
         setenv("LD_LIBRARY_PATH", newValue, 1);
@@ -36,7 +39,7 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
         chdir(newCwd);
         free(newCwd);
     }
-
+    
     call_Py_SetPythonHome((char*) pythonHome);
     call_Py_SetProgramName((char*) pythonProgramPath);
 
@@ -61,7 +64,7 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     free((char*) configHome);
 
     // TODO: Temporary
-    setenv("TCL_LIBRARY", "/data/data/com.apython.python.pythonhost/files/data/tcl8.4.6/library", 1);
+    setenv("TCL_LIBRARY", "/data/data/com.apython.python.pythonhost/files/data/tcl8.6.4/library", 1);
 }
 
 void setupStdinEmulation() {

@@ -85,7 +85,7 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
 
                     @Override
                     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                        return false;
+                        return true;
                     }
 
                     @Override
@@ -108,8 +108,7 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
 
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
-                    if (!pythonInput.isInputEnabled()) return false;
-                    return detector.onTouchEvent(event);
+                    return pythonInput.isInputEnabled() && detector.onTouchEvent(event);
                 }
             });
             this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {

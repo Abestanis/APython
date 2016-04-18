@@ -55,7 +55,7 @@ void captureOutput(int streamFD) {
             if (errno != EINTR) {
                 LOG_WARN("Failed to read from output pipe:");
                 LOG_WARN(strerror(errno));
-                LOG_WARN("Stopp reading from output (output no longer valid).");
+                LOG_WARN("Stop reading from output (output no longer valid).");
                 break;
             }
             continue;

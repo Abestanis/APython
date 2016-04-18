@@ -57,8 +57,6 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         static final int UNKNOWN  = 0;
     }
 
-    private static int displayPixelFormat = SDLPixelFormat.UNKNOWN;
-
     public SDLSurfaceView(Context context) {
         super(context);
         init(context);
@@ -91,10 +89,6 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         // Some arbitrary defaults to avoid a potential division by zero
         width = 1.0f;
         height = 1.0f;
-
-        if (displayPixelFormat != SDLPixelFormat.UNKNOWN) {
-            //            setPixelFormat(displayPixelFormat);
-        }
     }
 
     public Surface getNativeSurface() {
@@ -346,6 +340,7 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
                 x = -event.values[1];
                 y = -event.values[0];
                 break;
+            case Surface.ROTATION_0:
             default:
                 x = event.values[0];
                 y = event.values[1];

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:animateLayoutChanges="true">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/downloadManager_subversion"
+        android:id="@+id/download_center_python_subversion_title"
+        android:textSize="16sp"
+        android:layout_toLeftOf="@+id/download_center_python_subversion_container"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:textColor="@android:color/black"
+        android:paddingTop="5dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/downloadManager_no_modules_selected"
+        android:id="@+id/download_center_python_modules_info_text"
+        android:layout_alignTop="@+id/download_center_python_module_config_button"
+        android:layout_below="@+id/download_center_python_subversion_title"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:paddingTop="5dp"
+        android:layout_toLeftOf="@+id/download_center_python_module_config_button"/>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/download_center_python_module_config_button"
+        android:src="@android:drawable/ic_menu_manage"
+        android:layout_alignRight="@+id/download_center_python_info_value_text"
+        android:layout_alignEnd="@+id/download_center_python_info_value_text"
+        android:layout_below="@+id/download_center_python_subversion_container"
+        android:contentDescription="@string/content_description_python_modules_configuration_button"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/downloadManager_download_size"
+        android:id="@+id/download_center_python_info_text"
+        android:layout_below="@+id/download_center_python_modules_info_text"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_toLeftOf="@+id/download_center_python_info_value_text"
+        android:layout_toStartOf="@+id/download_center_python_info_value_text"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:paddingTop="10dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/unknown"
+        android:id="@+id/download_center_python_info_value_text"
+        android:layout_below="@+id/download_center_python_module_config_button"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignBottom="@+id/download_center_python_info_text"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:layout_alignBaseline="@+id/download_center_python_info_text"/>
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/download_center_python_subversion_container"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignBaseline="@id/download_center_python_subversion_title"
+        android:textColor="@android:color/black"/>
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/download_center_python_progress_view"
+        android:layout_gravity="center_horizontal"
+        android:layout_below="@+id/download_center_python_info_text"
+        android:layout_alignRight="@+id/download_center_python_info_value_text"
+        android:layout_alignEnd="@+id/download_center_python_info_value_text"
+        android:visibility="gone"
+        android:progress="0"/>
+</RelativeLayout>
