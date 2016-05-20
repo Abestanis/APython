@@ -1,7 +1,11 @@
 package com.apython.python.pythonhost.views.sdl;
 
 import android.annotation.SuppressLint;
+import android.app.ActionBar;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,6 +28,7 @@ import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
 
 import java.io.File;
+import java.nio.IntBuffer;
 import java.util.Arrays;
 
 /**
@@ -399,6 +404,7 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
         params.topMargin = y;
 
         if (inputEditText == null) {
+            if (getActivity() == null) return;
             inputEditText = new SDLInputView(getActivity().getApplicationContext());
             inputEditText.setSDLWindow(this);
             layout.addView(inputEditText, params);
@@ -450,6 +456,36 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
                     return;
                 }
                 windowManager.destroyWindow(SDLWindowFragment.this);
+            }
+        });
+    }
+    
+    public void setWindowIcon(int[] iconData, int width, int height) {
+        Drawable icon = null;
+        if (iconData != null) {
+            Bitmap iconBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            for (int i = 0; i < iconData.length; ++i) { // TODO: Why do we have to do this?!!!
+                // The alpha and green channels' positions are preserved while the red and blue are swapped
+                iconData[i] = ((iconData[i] & 0xff00ff00)) | ((iconData[i] & 0x000000ff) << 16) | ((iconData[i] & 0x00ff0000) >> 16);
+            }
+            iconBitmap.copyPixelsFromBuffer(IntBuffer.wrap(iconData));
+            Log.w(TAG, Integer.toHexString(iconBitmap.getPixel(0,0)));
+            icon = new BitmapDrawable(getContext().getResources(), iconBitmap);
+        }
+        final Drawable finalIcon = icon;
+        commandHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (windowManager == null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                        ActionBar actionBar = getActivity().getActionBar();
+                        if (actionBar != null) {
+                            actionBar.setIcon(finalIcon);
+                        }
+                    }
+                } else {
+                    windowManager.setWindowIcon(SDLWindowFragment.this, finalIcon);
+                }
             }
         });
     }

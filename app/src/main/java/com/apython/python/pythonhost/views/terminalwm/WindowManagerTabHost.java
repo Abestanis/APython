@@ -261,4 +261,8 @@ public class WindowManagerTabHost extends LinearLayout {
     public TabSpec getTabSpec(String tag) {
         return new TabSpec(tag);
     }
+    
+    public void setTabIcon(String tag, Drawable icon) {
+        findTabByTag(tag).tabIndicator.setIcon(icon);
+    }
 }

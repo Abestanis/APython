@@ -1,5 +1,6 @@
 package com.apython.python.pythonhost.views.interfaces;
 
+import android.graphics.drawable.Drawable;
 import android.view.KeyEvent;
 
 import com.apython.python.pythonhost.views.sdl.SDLWindowFragment;
@@ -21,6 +22,7 @@ public interface SDLWindowInterface {
         SDLWindowFragment createWindow();
         void destroyWindow(SDLWindowFragment window);
         void setWindowName(SDLWindowFragment window, String name);
+        void setWindowIcon(SDLWindowFragment window, Drawable icon);
         void setActivityEventsListener(ActivityEventsListener eventsListener);
     }
     boolean dispatchKeyEvent(KeyEvent event);

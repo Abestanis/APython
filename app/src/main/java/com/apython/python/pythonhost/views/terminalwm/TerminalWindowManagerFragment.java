@@ -1,5 +1,6 @@
 package com.apython.python.pythonhost.views.terminalwm;
 
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -48,7 +49,7 @@ public class TerminalWindowManagerFragment extends Fragment implements TerminalW
         windows.add(null);
         tabHost.addTab(tabHost.getFragmentTabSpec("Python")
                                .setFragmentClass(TerminalFragment.class)
-                               .setIcon(getResources().getDrawable(R.drawable.python_icon))
+                               .setIcon(getResources().getDrawable(R.drawable.python_launcher_icon))
                                .setTitle("Python"));
         return root;
     }
@@ -98,7 +99,6 @@ public class TerminalWindowManagerFragment extends Fragment implements TerminalW
 
     @Override
     public void destroyWindow(SDLWindowFragment window) {
-        Log.d(TAG, "Closing Window " + window.getTag());
         windows.remove(window);
         windowNames.remove(tabHost.getTabTitle(window.getTag()));
         tabHost.removeTab(window.getTag());
@@ -115,6 +115,11 @@ public class TerminalWindowManagerFragment extends Fragment implements TerminalW
             windowNames.set(windowNames.indexOf(tabHost.getTabTitle(window.getTag())), name);
             tabHost.setTabTitle(window.getTag(), name);
         }
+    }
+
+    @Override
+    public void setWindowIcon(SDLWindowFragment window, Drawable icon) {
+        tabHost.setTabIcon(window.getTag(), icon);
     }
 
     @Override
