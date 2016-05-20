@@ -6,5 +6,6 @@
     android:id="@android:id/tabhost"
     android:layout_gravity="right|top"
     android:layout_height="match_parent"
-    android:theme="@android:style/Theme">
+    android:theme="@android:style/Theme"
+    android:touchscreenBlocksFocus="false">
 </com.apython.python.pythonhost.views.terminalwm.WindowManagerFragmentTabHost>

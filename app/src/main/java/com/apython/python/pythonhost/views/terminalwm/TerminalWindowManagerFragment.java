@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
@@ -42,6 +43,8 @@ public class TerminalWindowManagerFragment extends Fragment implements TerminalW
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+                                                 | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         View root = inflater.inflate(R.layout.terminal_window_manager_layout, container, false);
         tabHost = (WindowManagerFragmentTabHost) root.findViewById(android.R.id.tabhost);
         tabHost.setFragmentManager(getActivity().getSupportFragmentManager());

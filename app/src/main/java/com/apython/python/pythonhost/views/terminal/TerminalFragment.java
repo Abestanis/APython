@@ -137,7 +137,8 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
         }
 
         // Make the keyboard always visible
-        this.hostingActivity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        this.hostingActivity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                                                        | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         return rootLayout;
     }
 

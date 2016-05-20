@@ -76,6 +76,8 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
         if (staticContext == null) {
             // This only needs to be done once.
             if (loadLibraries(context)) {
+                SDLSurfaceView.updateDisplaySize(((android.view.WindowManager)
+                        context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay());
                 nativeInit();
             } else {
                 sdl2Avaliable = false;
@@ -500,6 +502,8 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
     public native static void nativePause();
 
     public native static void nativeResume();
+    
+    public native static void nativeDisplayResize(int screenWidth, int screenHeight);
 
     public native void onNativeResize(int w, int h, int format);
 

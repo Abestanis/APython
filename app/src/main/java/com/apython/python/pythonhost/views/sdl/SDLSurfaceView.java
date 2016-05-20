@@ -3,6 +3,7 @@ package com.apython.python.pythonhost.views.sdl;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -36,15 +37,12 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
 
     // Keep track of the surface size to normalize touch events
     private float width, height;
+    private static int displayWidth = -1, displayHeight = -1;
 
     private SDLWindowFragment sdlWindow;
     private final Object  surfaceCreationNotifier = new Object();
     private       boolean isSurfaceReady          = false;
     private       boolean surfaceWasDestroyed     = false;
-
-    public boolean isSurfaceReady() {
-        return isSurfaceReady;
-    }
 
     private static class SDLPixelFormat {
         static final int RGB565   = 0x15151002;
@@ -178,6 +176,7 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
             Log.v(TAG, "pixel format unknown " + format);
             break;
         }
+        updateDisplaySize(display);
 
         this.width = width;
         this.height = height;
@@ -197,7 +196,6 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     // unused
     @Override
     public void onDraw(Canvas canvas) {}
-
 
     private int getEventSource(KeyEvent event) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
@@ -316,6 +314,33 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
             sensorManager.unregisterListener(this,
                                               sensorManager.getDefaultSensor(sensorType));
         }
+    }
+
+    public boolean isSurfaceReady() {
+        return isSurfaceReady;
+    }
+
+    public static void updateDisplaySize(Display display) {
+        Point size = new Point();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            display.getSize(size);
+
+        } else {
+            // noinspection deprecation
+            size.x = display.getWidth();
+            // noinspection deprecation
+            size.y = display.getHeight();
+        }
+        boolean changed = false;
+        if (size.x != displayWidth) {
+            displayWidth = size.x;
+            changed = true;
+        }
+        if (size.y != displayHeight) {
+            displayHeight = size.y;
+            changed = true;
+        }
+        if (changed) SDLWindowFragment.nativeDisplayResize(displayWidth, displayHeight);
     }
 
     @Override
