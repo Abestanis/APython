@@ -147,10 +147,24 @@ public class PythonInterpreterActivity extends FragmentActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        interpreter.interrupt();
+        terminalView.disableInput();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (interpreter != null && interpreter.isRunning()) {
+            interpreter.stop();
+        }
+    }
+
+    @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
         Fragment currentWindow = terminalWindowManager.getCurrentWindow();
         if (currentWindow instanceof TerminalInterface) {
-            if (!terminalView.isInputEnabled()) {
+            if (event.getKeyCode() != KeyEvent.KEYCODE_BACK && !terminalView.isInputEnabled()) {
                 // input via stdin pipe
                 if (interpreter.dispatchKeyEvent(event)) {
                     return true;

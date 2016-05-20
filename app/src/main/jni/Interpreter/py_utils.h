@@ -10,5 +10,7 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
 void setupStdinEmulation(void);
 void readFromStdin(char* inputBuffer, int bufferSize);
 int runPythonInterpreter(int argc, char** argv);
+void interruptPython(void);
+void terminatePython(void);
 
 #endif // PY_UTILS_H //

@@ -16,6 +16,7 @@ public interface TerminalInterface {
 
     void addOutput(String output);
     void enableInput(String prompt, String enqueuedInput);
+    void disableInput();
     void registerInputHandler(ProgramHandler programHandler);
     boolean isInputEnabled();
 }

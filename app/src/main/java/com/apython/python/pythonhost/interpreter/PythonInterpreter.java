@@ -24,23 +24,24 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         System.loadLibrary("pyLog");
         System.loadLibrary("pyInterpreter");
     }
-
-    private final Object  inputUpdater  = new Object();
+    
     private       String  inputLine     = null;
     protected     boolean blockingInput = true;
     protected Context   context;
     protected String    pythonVersion;
     protected IOHandler ioHandler;
+    private boolean running   = false;
+    private boolean inStartup = false;
 
     public interface IOHandler {
         void addOutput(String text);
         void setupInput(String prompt);
     }
-
+    
     public PythonInterpreter(Context context, String pythonVersion) {
         this(context, pythonVersion, null);
     }
-
+    
     public PythonInterpreter(Context context, String pythonVersion, IOHandler ioHandler) {
         PackageManager.loadDynamicLibrary(context, "pythonPatch");
         PackageManager.loadDynamicLibrary(context, "python" + pythonVersion);
@@ -49,22 +50,25 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         this.pythonVersion = pythonVersion;
         this.ioHandler = ioHandler;
     }
-
+    
     public String getPythonVersion() {
         return nativeGetPythonVersion(System.mapLibraryName("python" + this.pythonVersion));
     }
 
     public int runPythonInterpreter(String[] interpreterArgs) {
-        return this.runInterpreter(System.mapLibraryName("python" + this.pythonVersion),
-                                   PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
-                                   PackageManager.getDynamicLibraryPath(this.context).getAbsolutePath(),
-                                   PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
-                                   this.context.getFilesDir().getAbsolutePath(),
-                                   PackageManager.getTempDir(this.context).getAbsolutePath(),
-                                   PackageManager.getXDGBase(this.context).getAbsolutePath(),
-                                   MainActivity.TAG,
-                                   interpreterArgs,
-                                   this.ioHandler != null);
+        running = inStartup = true;
+        int res = this.runInterpreter(System.mapLibraryName("python" + this.pythonVersion),
+                                      PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
+                                      PackageManager.getDynamicLibraryPath(this.context).getAbsolutePath(),
+                                      PackageManager.getSharedLibrariesPath(this.context).getAbsolutePath(),
+                                      this.context.getFilesDir().getAbsolutePath(),
+                                      PackageManager.getTempDir(this.context).getAbsolutePath(),
+                                      PackageManager.getXDGBase(this.context).getAbsolutePath(),
+                                      MainActivity.TAG,
+                                      interpreterArgs,
+                                      this.ioHandler != null);
+        running = false;
+        return res;
     }
 
     public int runPythonFile(File file, String[] args) {
@@ -84,15 +88,39 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
     }
 
+    public boolean isRunning() {
+        return running;
+    }
+
+    public void stop() {
+        stopInterpreter();
+    }
+
+    public void interrupt() {
+        if (inStartup) return;
+        interruptInterpreter();
+        // When we are waiting for input, the following will
+        // cause the python interpreter to exit.
+        if (blockingInput) {
+            synchronized (this) {
+                this.inputLine = "";
+                this.notifyAll();
+            }
+        } else {
+            dispatchKey('\0'); // Emulate input availability
+        }
+        
+    }
+
     public void notifyInput(String input) {
         if (blockingInput) {
-            synchronized (this.inputUpdater) {
+            synchronized (this) {
                 if (this.inputLine != null) {
                     Log.w(MainActivity.TAG, "Interpreter still has input queued up!");
                     input = this.inputLine + input;
                 }
                 this.inputLine = input;
-                this.inputUpdater.notify();
+                this.notifyAll();
             }
         } else {
             sendStringToStdin(input);
@@ -123,6 +151,7 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
 
     @SuppressWarnings("unused")
     protected String readLine(String prompt, boolean blockingInput) {
+        inStartup = false;
         this.blockingInput = blockingInput;
         if (ioHandler != null) {
             ioHandler.setupInput(prompt);
@@ -132,12 +161,12 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
             return null; // Do not wait for input
         }
         // Wait for line
-        synchronized (inputUpdater) {
+        synchronized (this) {
             try {
-                inputUpdater.wait();
+                this.wait();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                return null;
+                return "";
             }
         }
         String line = this.inputLine;
@@ -154,4 +183,6 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
     public  native void   sendStringToStdin(String string);
     public  native String getEnqueueInput();
     private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pyHostLibPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
+    private native void   interruptInterpreter();
+    private native void   stopInterpreter();
 }

@@ -6,6 +6,7 @@
 
 jobject jPyInterpreter = NULL;
 static JavaVM *Jvm = NULL;
+int isInterrupted = 0;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     Jvm = vm;
@@ -69,7 +70,7 @@ char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, const char *promp
             return NULL;
         }
         const char* lineCopy = (*env)->GetStringUTFChars(env, jLine, 0);
-        line = (char*) call_PyMem_Malloc(1 + strlen(lineCopy));
+        line = (char*) call_PyMem_Malloc((1 + strlen(lineCopy)) * sizeof(char));
         if (line == NULL) {
             LOG("Could not copy string!");
             (*Jvm)->DetachCurrentThread(Jvm);
@@ -80,48 +81,56 @@ char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, const char *promp
     } else {
         // Java will not block, instead PYOS_InputHook does
         (void) PyOS_InputHook();
-        static const int BUFFER_SIZE = 10;
-        char* buffer = malloc(sizeof(char) * BUFFER_SIZE);
-        char* bufferPointer = buffer;
-        int strLen = 0;
-        if (buffer == NULL) {
-            LOG_ERROR("Out of memory: Could not allocate input buffer!\n");
-            (*Jvm)->DetachCurrentThread(Jvm);
-            return NULL;
-        }
-        do {
-            clearerr(sys_stdin);
-            if (fgets(bufferPointer, BUFFER_SIZE, sys_stdin) == NULL) {
-                if (ferror(sys_stdin)) {
-                    if (errno != EAGAIN) {
+        if (isInterrupted) {
+            // Remove the emulated input from stdin
+            (void) fgetc(sys_stdin);
+            line = (char*) call_PyMem_Malloc(1 * sizeof(char));
+            line[0] = '\0';
+        } else {
+            static const int BUFFER_SIZE = 10;
+            char* buffer = malloc(sizeof(char) * BUFFER_SIZE);
+            char* bufferPointer = buffer;
+            int strLen = 0;
+            if (buffer == NULL) {
+                LOG_ERROR("Out of memory: Could not allocate input buffer!\n");
+                (*Jvm)->DetachCurrentThread(Jvm);
+                return NULL;
+            }
+            do {
+                clearerr(sys_stdin);
+                if (fgets(bufferPointer, BUFFER_SIZE, sys_stdin) == NULL) {
+                    if (ferror(sys_stdin)) {
+                        if (errno == EAGAIN) {
+                            continue;
+                        }
                         LOG_ERROR("Failed to read from input: %s\n", strerror(errno));
                         free(buffer);
                         (*Jvm)->DetachCurrentThread(Jvm);
                         return NULL;
                     }
-                    *bufferPointer = '\0';
                 }
-            }
-            strLen += strlen(bufferPointer);
-            if (buffer[strLen - 1] == '\n') {
-                break;
-            }
-            bufferPointer = malloc(sizeof(char) * (strLen + BUFFER_SIZE));
-            if (bufferPointer == NULL) {
-                LOG_ERROR("Failed to allocate space for the input buffer!\n");
+                strLen += strlen(bufferPointer);
+                if (buffer[strLen - 1] == '\n') {
+                    break;
+                }
+                bufferPointer = malloc(sizeof(char) * (strLen + BUFFER_SIZE));
+                if (bufferPointer == NULL) {
+                    LOG_ERROR("Failed to allocate space for the input buffer!\n");
+                    free(buffer);
+                    (*Jvm)->DetachCurrentThread(Jvm);
+                    return NULL;
+                }
+                memcpy(bufferPointer, buffer, sizeof(char) * strLen);
                 free(buffer);
-                (*Jvm)->DetachCurrentThread(Jvm);
-                return NULL;
-            }
-            memcpy(bufferPointer, buffer, sizeof(char) * strLen);
+                buffer = bufferPointer;
+                bufferPointer = buffer + strLen;
+            } while (1);
+            line = (char*) call_PyMem_Malloc((1 + strlen(buffer)) * sizeof(char));
+            strcpy(line, buffer);
             free(buffer);
-            buffer = bufferPointer;
-            bufferPointer = buffer + strLen;
-        } while (1);
-        line = (char*) call_PyMem_Malloc(1 + strlen(buffer));
-        strcpy(line, buffer);
-        free(buffer);
+        }
     }
+    isInterrupted = 0;
     (*Jvm)->DetachCurrentThread(Jvm);
     return line;
 }
@@ -214,7 +223,7 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
         LOG_WARN("Tried to dispatch key event to the Python interpreter, but the input pipe is not initialized yet.");
         return;
     }
-    putc(character, stdin_writer);
+    fputc(character, stdin_writer);
     fflush(stdin_writer);
 }
 
@@ -238,4 +247,13 @@ JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
     }
     readFromStdin(input, INPUT_BUFFER_LENGTH);
     return (*env)->NewStringUTF(env, input);
+}
+
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_interruptInterpreter(JNIEnv *env, jclass obj) {
+    isInterrupted = 1;
+    interruptPython();
+}
+
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter(JNIEnv *env, jclass obj) {
+    terminatePython();
 }

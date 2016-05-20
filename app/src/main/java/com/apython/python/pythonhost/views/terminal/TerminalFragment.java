@@ -161,4 +161,9 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
     public void registerInputHandler(ProgramHandler programHandler) {
         this.programHandler = programHandler;
     }
+
+    @Override
+    public void disableInput() {
+        pythonInput.setEnabled(false);
+    }
 }

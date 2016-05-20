@@ -124,6 +124,7 @@ public class TerminalInput extends EditText {
     @Override
     public void setEnabled(boolean enabled) {
         this.inputEnabled = enabled;
+        setCursorVisible(enabled);
     }
 
     @Override

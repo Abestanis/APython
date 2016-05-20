@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <libgen.h>
@@ -15,6 +17,7 @@ struct pythonThreadArguments {
 FILE *stdin_writer = NULL;
 static int saved_stdout;
 static int saved_stderr;
+pthread_t pythonThread;
 
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
                  const char* pythonHome, const char* pythonTemp, const char* xdgBasePath) {
@@ -109,7 +112,6 @@ void* startPythonInterpreter(void* arg) {
 int runPythonInterpreter(int argc, char** argv) {
     int outputPipe[2];
     void *status = NULL;
-    pthread_t pythonThread;
 
     if (pipe(outputPipe) == -1) {
         LOG_ERROR("Could not create the pipe to redirect stdout and stderr to.");
@@ -132,5 +134,15 @@ int runPythonInterpreter(int argc, char** argv) {
 
     captureOutput(outputPipe[0]);
     pthread_join(pythonThread, &status);
-    return *((int*) status);
+    terminatePython();
+    return (int) status;
+}
+
+void interruptPython() {
+    pthread_kill(pythonThread, SIGINT);
+}
+
+void terminatePython() {
+    LOG_WARN("Killing Python thread");
+    pthread_kill(pythonThread, SIGTERM);
 }

@@ -45,7 +45,23 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
  * Signature: (V)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInput
-        (JNIEnv *, jclass);
+        (JNIEnv *, jobject);
+
+/*
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    interruptInterpreter
+ * Signature: (V)V
+ */
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_interruptInterpreter
+        (JNIEnv *, jobject);
+
+/*
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    stopInterpreter
+ * Signature: (V)V
+ */
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter
+        (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }
