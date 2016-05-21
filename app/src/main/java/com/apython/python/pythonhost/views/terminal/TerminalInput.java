@@ -73,15 +73,12 @@ public class TerminalInput extends EditText {
         this.commandHistory.add("");
         this.commandHistoryAccessor = this.commandHistory.listIterator();
         inputWatcher = new TextWatcher() {
-            int start;
+            int start, count;
             private void restorePrompt() {
                 String text = getText().toString();
-                for (int i = prompt.length() - 1; i >= 0; i--) {
-                    if (prompt.substring(0, i).equals(text.substring(0, i))) {
-                        internalSetText(prompt + text.substring(i));
-                        return;
-                    }
-                }
+                int promptMissingEnd = Math.min(prompt.length(), start + count);
+                text = text.substring(0, start) + prompt.substring(start, promptMissingEnd) + text.substring(start);
+                internalSetText(text);
             }
 
             @Override
@@ -91,13 +88,14 @@ public class TerminalInput extends EditText {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 this.start = start;
+                this.count = before;
             }
 
             @Override
             public void afterTextChanged(Editable s) {
                 String input = s.toString();
                 if (isInputEnabled()) {
-                    if (!input.startsWith(prompt)) {
+                    if (start < prompt.length()) {
                         restorePrompt();
                     } else if (input.length() > 0) {
                         if (input.indexOf('\n', start) != -1 && commitHandler != null) {
