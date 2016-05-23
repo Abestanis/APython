@@ -471,7 +471,6 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
                 iconData[i] = ((iconData[i] & 0xff00ff00)) | ((iconData[i] & 0x000000ff) << 16) | ((iconData[i] & 0x00ff0000) >> 16);
             }
             iconBitmap.copyPixelsFromBuffer(IntBuffer.wrap(iconData));
-            Log.w(TAG, Integer.toHexString(iconBitmap.getPixel(0,0)));
             icon = new BitmapDrawable(getContext().getResources(), iconBitmap);
         }
         final Drawable finalIcon = icon;

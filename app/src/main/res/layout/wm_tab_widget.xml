@@ -14,18 +14,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/wm_tabWidget_icon"
-            android:scaleType="center"
             android:contentDescription="@string/content_description_tab_icon"
-            android:src="@android:drawable/sym_def_app_icon"
-            android:visibility="gone"
+            android:visibility="invisible"
             android:layout_alignParentTop="false"
-            android:layout_toStartOf="@+id/wm_tabWidget_title"
-            android:adjustViewBounds="false"
-            android:layout_toLeftOf="@+id/wm_tabWidget_title"
+            android:adjustViewBounds="true"
             android:layout_alignBottom="@+id/wm_tabWidget_title"
-            android:layout_alignTop="@+id/wm_tabWidget_title"/>
-
-
+            android:layout_alignTop="@+id/wm_tabWidget_title"
+            android:minHeight="30dp"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -36,9 +31,12 @@
             android:textSize="20sp"
             android:paddingLeft="10dp"
             android:paddingRight="5dp"
-            android:layout_alignParentTop="true"
             android:paddingTop="7dp"
-            android:paddingBottom="5dp"/>
+            android:paddingBottom="5dp"
+            android:layout_alignParentTop="true"
+            android:layout_toRightOf="@+id/wm_tabWidget_icon"
+            android:layout_toEndOf="@+id/wm_tabWidget_icon"
+            />
 
         <ImageView
             android:layout_width="wrap_content"
