@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Build;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -26,7 +25,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.ProgressHandler;
 import com.apython.python.pythonhost.R;

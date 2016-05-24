@@ -5,14 +5,12 @@ import android.util.Log;
 
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLConnection;
 
 /**
  * A manager for the Python PIP module.
@@ -79,13 +77,16 @@ public class Pip {
             progressHandler.enable(context.getString(R.string.install_pip));
         }
         String url = "https://bootstrap.pypa.io/get-pip.py";
-        HttpResponse response = Util.connectToUrl(url, 20);
+        URLConnection connection = Util.connectToUrl(url, 10000);
+        if (connection == null) {
+            Log.w(MainActivity.TAG, "Failed to download pip installer.");
+            return false;
+        }
         InputStream stream;
         long totalDownloadSize;
         try {
-            HttpEntity entity = response.getEntity();
-            stream = entity.getContent();
-            totalDownloadSize = entity.getContentLength();
+            stream = connection.getInputStream();
+            totalDownloadSize = connection.getContentLength();
         } catch (IOException e) {
             e.printStackTrace();
             return false;

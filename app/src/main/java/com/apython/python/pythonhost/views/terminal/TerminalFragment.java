@@ -1,6 +1,5 @@
 package com.apython.python.pythonhost.views.terminal;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -26,9 +25,7 @@ import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
  */
 
 public class TerminalFragment extends Fragment implements TerminalInterface {
-
-    private Activity hostingActivity = null;
-
+    
     private TerminalInput   pythonInput;
     private TerminalAdapter pythonOutput;
     private ProgramHandler  programHandler;
@@ -41,25 +38,13 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        hostingActivity = activity;
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        hostingActivity = null;
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         if (rootView == null || rootLayout == null) {
             rootLayout = new FrameLayout(getActivity().getApplicationContext());
             rootView = inflater.inflate(R.layout.view_terminal_layout, container, false);
             rootLayout.addView(rootView);
             ListView scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
-            final Context context = hostingActivity.getApplicationContext();
+            final Context context = getActivity().getApplicationContext();
             this.pythonOutput = new TerminalAdapter(context);
             this.pythonInput = (TerminalInput) LayoutInflater.from(context)
                     .inflate(R.layout.terminal_input, scrollContainer, false);
@@ -137,8 +122,8 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
         }
 
         // Make the keyboard always visible
-        this.hostingActivity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
-                                                        | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        this.getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                                                      | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         return rootLayout;
     }
 

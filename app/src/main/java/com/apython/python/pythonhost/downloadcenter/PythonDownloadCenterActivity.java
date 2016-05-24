@@ -29,13 +29,12 @@ import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.downloadcenter.items.Dependency;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLConnection;
 import java.util.ArrayList;
 
 /**
@@ -262,24 +261,17 @@ public class PythonDownloadCenterActivity extends Activity {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                String indexString;
                 // Update installed libraries
                 pythonVersionListAdapter.updateInstalledLibraries();
                 // Update remote versions
-                HttpResponse response = Util.connectToUrl(getDownloadServerUrl() + "/" + INDEX_PATH, 15);
-                String indexString;
-                if (response == null) {
-                    handleVersionListUpdateFinished(false);
-                    return;
-                }
-                if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                    Log.w(MainActivity.TAG, "Updating python versions failed with status code "
-                            + response.getStatusLine().getStatusCode() + ": "
-                            + response.getStatusLine().getReasonPhrase());
+                URLConnection connection = Util.connectToUrl(getDownloadServerUrl() + "/" + INDEX_PATH, 10000);
+                if (connection == null) {
                     handleVersionListUpdateFinished(false);
                     return;
                 }
                 try {
-                    InputStream input = response.getEntity().getContent();
+                    InputStream input = connection.getInputStream();
                     indexString = Util.convertStreamToString(input);
                     input.close();
                 } catch (IOException e) {

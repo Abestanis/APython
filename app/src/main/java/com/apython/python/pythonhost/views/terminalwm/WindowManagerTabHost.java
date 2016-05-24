@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -136,7 +137,15 @@ public class WindowManagerTabHost extends LinearLayout {
         testContent2.setTextColor(Color.WHITE);
         testContent1.setText("Hello World");
         testContent2.setText("Hello World 2");
-        addTab(new TabSpec().setTitle("Selected Tab").setContent(testContent1).setIcon(getResources().getDrawable(android.R.drawable.sym_def_app_icon)));
+        Drawable systemAppIcon;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            systemAppIcon = getResources().getDrawable(android.R.drawable.sym_def_app_icon, getContext().getTheme());
+        } else {
+            //noinspection deprecation
+            systemAppIcon = getResources().getDrawable(android.R.drawable.sym_def_app_icon);
+        }
+
+        addTab(new TabSpec().setTitle("Selected Tab").setContent(testContent1).setIcon(systemAppIcon));
         addTab(new TabSpec().setTitle("Unselected Tab").setContent(testContent2));
     }
 

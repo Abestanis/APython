@@ -314,7 +314,7 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
         return sendCommand(command, param);
     }
 
-    public static Context getContext() {
+    public static Context getStaticContextContext() {
         return staticContext;
     }
 

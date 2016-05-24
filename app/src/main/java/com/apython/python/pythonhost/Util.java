@@ -6,15 +6,6 @@ import android.util.Log;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,8 +17,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -127,27 +119,28 @@ public class Util {
     }
 
     /**
-     * Connects to an url and returns the {@code HttpResponse} on success.
+     * Connects to an url and returns the {@link URLConnection} on success.
      *
      * @param url The url to connect to.
-     * @param timeout The maximum amount of time to wait for the connection to be established.
-     * @return A {@code HttpResponse} on success and {@code null} on failure.
+     * @param timeout The maximum time in milliseconds to wait for the connection to be established.
+     * @return The {@code URLConnection} on success and {@code null} on failure.
      */
-    public static HttpResponse connectToUrl(String url, int timeout) {
-        HttpResponse response = null;
+    public static URLConnection connectToUrl(String url, int timeout) {
+        URL validUrl;
         try {
-            final HttpParams httpParams = new BasicHttpParams();
-            HttpConnectionParams.setConnectionTimeout(httpParams, timeout * 1000);
-            HttpClient client = new DefaultHttpClient(httpParams);
-            HttpGet request = new HttpGet();
-            request.setURI(new URI(url));
-            response = client.execute(request);
-        } catch (URISyntaxException | IllegalArgumentException e) {
+            validUrl = new URL(url);
+        } catch (MalformedURLException e) {
             Log.e(MainActivity.TAG, "Failed to connect to '" + url + "': Invalid url!", e);
-        } catch (IOException IOe) {
-            Log.e(MainActivity.TAG, "Failed to connect to '" + url + "'!", IOe);
+            return null;
         }
-        return response;
+        try {
+            URLConnection connection = validUrl.openConnection();
+            connection.setConnectTimeout(timeout);
+            return connection;
+        } catch (IOException e) {
+            Log.e(MainActivity.TAG, "Failed to connect to '" + url + "'!", e);
+            return null;
+        }
     }
 
     /**
@@ -248,12 +241,11 @@ public class Util {
      * to other apps.
      */
     public static boolean downloadFile(String url, File destination, String md5CheckSum, ProgressHandler progressHandler) {
-        HttpResponse response = Util.connectToUrl(url, 30);
-        if (response == null) {
+        URLConnection connection = Util.connectToUrl(url, 20000);
+        if (connection == null) {
             Log.e(MainActivity.TAG, "Failed to connect to '" + url + "'!");
             return false;
         }
-        HttpEntity entity = response.getEntity();
         MessageDigest hashAlgorithm;
         try {
             hashAlgorithm = MessageDigest.getInstance("MD5");
@@ -262,9 +254,9 @@ public class Util {
             return false;
         }
         try {
-            DigestInputStream inputStream = new DigestInputStream(entity.getContent(), hashAlgorithm);
-            entity.getContentLength();
-            if (!Util.installFromInputStream(destination, inputStream, entity.getContentLength(), progressHandler)) {
+            DigestInputStream inputStream = new DigestInputStream(connection.getInputStream(), hashAlgorithm);
+            if (!Util.installFromInputStream(destination, inputStream, connection.getContentLength(), progressHandler)) {
+                inputStream.close();
                 return false;
             }
             if (!hashToHex(hashAlgorithm.digest()).equals(md5CheckSum)) {
@@ -272,8 +264,10 @@ public class Util {
                 if (!destination.delete()) {
                     Log.e(MainActivity.TAG, "Failed to delete downloaded file '" + destination.getAbsolutePath() + "'.");
                 }
+                inputStream.close();
                 return false;
             }
+            inputStream.close();
         } catch (IOException e) {
             Log.e(MainActivity.TAG, "Failed to download '" + destination.getName() + "'!", e);
             if (destination.exists()) {
@@ -529,9 +523,9 @@ public class Util {
      */
     public static boolean isValidUrl(String url) {
         try {
-            URI uri = new URI(url);
-            return uri.getHost() != null;
-        } catch (URISyntaxException e) {
+            URL validUrl = new URL(url);
+            return !"".equals(validUrl.getHost());
+        } catch (MalformedURLException e) {
             return false;
         }
     }
@@ -601,7 +595,8 @@ public class Util {
         } else {
             charMap = KeyCharacterMap.load(KeyCharacterMap.ALPHA);
         }
-        return charMap.getEvents(input.toCharArray());
+        KeyEvent[] keyEvents = charMap.getEvents(input.toCharArray());
+        return keyEvents != null ? keyEvents : new KeyEvent[0];
     }
 
     /**

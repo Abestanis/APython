@@ -1,6 +1,7 @@
 package com.apython.python.pythonhost.views.terminalwm;
 
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -50,10 +51,19 @@ public class TerminalWindowManagerFragment extends Fragment implements TerminalW
         tabHost.setFragmentManager(getActivity().getSupportFragmentManager());
         windowNames.add("Python");
         windows.add(null);
-        tabHost.addTab(tabHost.getFragmentTabSpec("Python")
-                               .setFragmentClass(TerminalFragment.class)
-                               .setIcon(getResources().getDrawable(R.drawable.python_launcher_icon))
-                               .setTitle("Python"));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            tabHost.addTab(tabHost.getFragmentTabSpec("Python")
+                                   .setFragmentClass(TerminalFragment.class)
+                                   .setIcon(getResources().getDrawable(R.drawable.python_launcher_icon,
+                                                                       getContext().getTheme()))
+                                   .setTitle("Python"));
+        } else {
+            //noinspection deprecation
+            tabHost.addTab(tabHost.getFragmentTabSpec("Python")
+                                   .setFragmentClass(TerminalFragment.class)
+                                   .setIcon(getResources().getDrawable(R.drawable.python_launcher_icon))
+                                   .setTitle("Python"));
+        }
         return root;
     }
 
