@@ -1,7 +1,5 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
-import java.security.KeyException
-
 apply plugin: 'com.android.application'
 
 android {
@@ -19,6 +17,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        debug {
+            jniDebuggable true
+        }
     }
     sourceSets.main {
         jniLibs.srcDirs = ['src/main/libs']
@@ -26,7 +27,7 @@ android {
     }
     tasks.whenTaskAdded {
         task ->
-            if (task.name == 'compileDebugNdk') {
+            if (task.name == 'generateDebugSources') {
                 //noinspection GroovyAssignabilityCheck
                 task.dependsOn ndkBuild
             }
@@ -49,7 +50,7 @@ android {
     }
     ndkBuild.onlyIf {
         if (ndkDir == null) {
-            throw new KeyException('NDK location not found! Define the location with ndk.dir in the local.properties file.')
+            throw new NoSuchElementException('NDK location not found! Define the location with ndk.dir in the local.properties file.')
         }
         true
     }
