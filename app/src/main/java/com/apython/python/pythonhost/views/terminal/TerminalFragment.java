@@ -59,7 +59,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
             scrollContainer.setItemsCanFocus(true);
             this.pythonInput.setOnTouchListener(new View.OnTouchListener() {
-                GestureDetector detector = new GestureDetector(context, new GestureDetector.OnGestureListener() {
+                final GestureDetector detector = new GestureDetector(context, new GestureDetector.OnGestureListener() {
                     @Override
                     public boolean onDown(MotionEvent e) {
                         return true;

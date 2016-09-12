@@ -17,8 +17,8 @@ import java.util.ArrayList;
  */
 public class PythonVersionItem extends Dependency {
     private ArrayList<PythonModuleItem> additionalModules = new ArrayList<>();
-    private String               pythonVersion;
-    private PythonModulesZipItem pythonModulesZip;
+    private final String               pythonVersion;
+    private       PythonModulesZipItem pythonModulesZip;
     
 
     public PythonVersionItem(Context context, String pythonVersion) {

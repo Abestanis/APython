@@ -11,7 +11,7 @@ import android.view.inputmethod.BaseInputConnection;
  */
 public class SDLInputConnection extends BaseInputConnection {
 
-    private SDLWindowFragment sdlWindow;
+    private final SDLWindowFragment sdlWindow;
 
     public SDLInputConnection(View targetView, boolean fullEditor, SDLWindowFragment sdlWindow) {
         super(targetView, fullEditor);

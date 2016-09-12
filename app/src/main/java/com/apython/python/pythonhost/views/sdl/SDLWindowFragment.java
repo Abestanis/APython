@@ -53,7 +53,7 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
     private long nativeWindowId;
 
     // Main components
-    private static SDLJoystickHandler joystickHandler = new SDLJoystickHandler();
+    private static final SDLJoystickHandler joystickHandler = new SDLJoystickHandler();
 
     // Audio
     private SDLAudioHandler audioHandler = null;
@@ -269,7 +269,7 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
      * static to prevent implicit references to enclosing object.
      */
     protected static class SDLCommandHandler extends Handler {
-        SDLWindowFragment sdlWindow;
+        final SDLWindowFragment sdlWindow;
 
         public SDLCommandHandler(SDLWindowFragment sdlWindow) {
             this.sdlWindow = sdlWindow;

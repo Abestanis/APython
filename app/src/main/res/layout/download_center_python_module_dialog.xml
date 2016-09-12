@@ -12,7 +12,8 @@
         android:id="@+id/dialog_center_python_modules_list_no_modules"
         android:layout_gravity="center_horizontal"
         android:textSize="20sp"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        />
 
     <ListView
         android:layout_width="match_parent"

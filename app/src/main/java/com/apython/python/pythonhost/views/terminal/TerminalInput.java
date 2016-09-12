@@ -50,7 +50,7 @@ public class TerminalInput extends EditText {
     private TextWatcher        inputWatcher;
     private InputMethodManager inputManager;
     private OnCommitHandler    commitHandler;
-    private LinkedList<String> commandHistory = new LinkedList<>();
+    private final LinkedList<String> commandHistory = new LinkedList<>();
     private ListIterator<String> commandHistoryAccessor;
 
     public TerminalInput(Context context) {

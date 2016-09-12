@@ -21,8 +21,8 @@ public class TerminalAdapter extends BaseAdapter {
     private static final int INITIAL_SCREEN_DATA_BUFFER_SIZE = 2048;
     private static final int LAST_CHAR_OF_SCREEN_DATA = -1;
 
-    private StringBuffer screenData = new StringBuffer(INITIAL_SCREEN_DATA_BUFFER_SIZE);
-    private int lines = 1;
+    private final StringBuffer screenData = new StringBuffer(INITIAL_SCREEN_DATA_BUFFER_SIZE);
+    private int lines     = 1;
     private int lastIndex = 0;
     /**
      * lastStringStartIndex might be -1 to indicate the start of the screen data,
@@ -30,7 +30,7 @@ public class TerminalAdapter extends BaseAdapter {
      **/
     private int lastStringStartIndex = -1, lastStringEndIndex = 0;
     private int cursorPosition = LAST_CHAR_OF_SCREEN_DATA;
-    private Context context;
+    private final Context context;
 
     public TerminalAdapter(Context context) {
         this.context = context;

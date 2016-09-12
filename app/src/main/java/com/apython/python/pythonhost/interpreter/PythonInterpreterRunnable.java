@@ -14,7 +14,7 @@ import com.apython.python.pythonhost.MainActivity;
 
 public class PythonInterpreterRunnable extends PythonInterpreter implements Runnable {
 
-    private Activity activity;
+    private final Activity activity;
 
     PythonInterpreterRunnable(Context context, String pythonVersion, final IOHandler ioHandler, final Activity activity) {
         super(context, pythonVersion);

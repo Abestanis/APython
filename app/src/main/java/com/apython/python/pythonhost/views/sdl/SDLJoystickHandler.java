@@ -31,8 +31,8 @@ public class SDLJoystickHandler {
         }
     }
 
-    private ArrayList<SDLJoystick> joysticks;
-    private boolean                isApiAvaliable;
+    private final ArrayList<SDLJoystick> joysticks;
+    private final boolean                isApiAvaliable;
 
     public SDLJoystickHandler() {
         isApiAvaliable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1;

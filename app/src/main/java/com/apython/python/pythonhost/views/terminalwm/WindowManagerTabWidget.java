@@ -17,11 +17,11 @@ import com.apython.python.pythonhost.R;
  * Created by Sebastian on 26.03.2016.
  */
 public class WindowManagerTabWidget extends FrameLayout {
-    private View        bottomSeparator;
-    private ImageView   icon;
-    private ImageView closeButton;
-    private TextView    textView;
-    private boolean     selected = false;
+    private final View      bottomSeparator;
+    private final ImageView icon;
+    private final ImageView closeButton;
+    private final TextView  textView;
+    private boolean selected = false;
 
     public interface OnCloseListener {
         void onClose(WindowManagerTabWidget tabWidget);

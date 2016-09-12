@@ -23,8 +23,9 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
     private       String  logTag        = MainActivity.TAG;
     private       String  inputLine     = null;
     protected     boolean blockingInput = true;
-    protected Context   context;
-    protected String    pythonVersion;
+    protected final Context context;
+    protected final String  pythonVersion;
+
     protected IOHandler ioHandler;
 
     private boolean running   = false;

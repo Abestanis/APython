@@ -33,7 +33,7 @@ public class PythonDownloadCenterService extends IntentService {
     private boolean displayNotification = false;
     private NotificationManager notificationManager;
 
-    private       ProgressHandlerProxy                                          currentProxy = null;
+    private ProgressHandlerProxy currentProxy = null;
     private final ArrayList<PythonDownloadCenterActivity.ServiceActionRunnable> actionQueue  = new ArrayList<>();
 
     public void enqueueAction(PythonDownloadCenterActivity.ServiceActionRunnable action) {

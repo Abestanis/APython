@@ -32,15 +32,15 @@ public class WindowManagerTabHost extends LinearLayout {
         Tab previousSelected = null;
     }
     
-    private final HorizontalScrollView tabIndicatorScrollContainer;
-    protected     LinearLayout         tabIndicatorContainer;
-    protected     FrameLayout          tabContentContainer;
-    private ArrayList<Tab> tabs    = new ArrayList<>();
-    private int            currTab = NO_INDEX;
+    private   final HorizontalScrollView tabIndicatorScrollContainer;
+    protected final LinearLayout         tabIndicatorContainer;
+    protected final FrameLayout          tabContentContainer;
+    private final ArrayList<Tab> tabs    = new ArrayList<>();
+    private       int            currTab = NO_INDEX;
 
     public class TabSpec {
 
-        private String mTag;
+        private final String mTag;
         private String   tabTitle   = null;
         private Drawable tabIcon    = null;
         private View     tabContent = null;

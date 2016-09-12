@@ -16,7 +16,7 @@ import java.io.File;
  */
 public class PythonModuleItem extends Dependency {
     private String moduleName = null;
-    private String pythonVersion;
+    private final String pythonVersion;
 
     public PythonModuleItem(Context context, String pythonVersion) {
         super(context);

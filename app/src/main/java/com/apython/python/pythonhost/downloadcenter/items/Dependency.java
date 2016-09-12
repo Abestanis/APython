@@ -29,7 +29,7 @@ public abstract class Dependency {
     }
 
     public enum Action {DOWNLOAD, REMOVE, NONE}
-    private Context context;
+    private final Context context;
     protected ArrayList<Dependency> dependencies    = new ArrayList<>();
     protected String                url             = null;
     protected String                md5Checksum     = null;
@@ -170,8 +170,6 @@ public abstract class Dependency {
     abstract protected int getActionSteps();
     abstract protected String getUIDescription();
     
-    
-
     @Override
     public boolean equals(Object o) {
         return o instanceof Dependency && getId().equals(((Dependency) o).getId());

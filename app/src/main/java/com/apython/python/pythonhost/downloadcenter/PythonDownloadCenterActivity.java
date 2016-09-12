@@ -52,8 +52,8 @@ public class PythonDownloadCenterActivity extends Activity {
     private ImageButton refreshButton;
 
     public class ServiceActionRunnable {
-        private Dependency                              dependency;
-        private ProgressHandler.TwoLevelProgressHandler progressHandler;
+        private final Dependency                              dependency;
+        private final ProgressHandler.TwoLevelProgressHandler progressHandler;
 
         public ServiceActionRunnable(Dependency dependency, ProgressHandler.TwoLevelProgressHandler progressHandler) {
             super();
