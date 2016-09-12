@@ -6,7 +6,7 @@
 
 // The Log system //
 
-const char* appTag = "Python";
+char appTag[64] = "Python";
 static pthread_t outputCaptureThread;
 static int outputPipe[2];
 pthread_mutex_t mutex;
@@ -33,10 +33,11 @@ void _assert_(const char* expression, const char* file, int line, const char* er
     vsprintf(message, errorString, argP);
     va_end(argP);
     __android_log_assert(expression, appTag, "Assertion failed (%s) at %s, line %i: %s", expression, file, line, message);
+    free(message);
 }
 
 void setApplicationTag(const char* newAppTag) {
-    appTag = newAppTag;
+    strncpy(appTag, newAppTag, sizeof(appTag) / sizeof(appTag[0])); 
 }
 
 void setStdoutRedirect(void (*f)(const char*, int)) {
