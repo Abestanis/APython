@@ -229,6 +229,11 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
         });
     }
 
+    @Override
+    public void close() {
+        nativeOnWindowCloseButton();
+    }
+
     /* The native thread has finished */
     public void handleNativeExit() {
         destroy();
@@ -545,4 +550,5 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
     public native static int nativeRemoveJoystick(int device_id);
     public native void nativeCommitText(String text, int newCursorPosition);
     public native void nativeSetComposingText(String text, int newCursorPosition);
+    public native void nativeOnWindowCloseButton();
 }

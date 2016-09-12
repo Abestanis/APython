@@ -83,6 +83,12 @@ public class WindowManagerFragment extends PythonFragment implements WindowManag
         final T window = (T) tabHost.getCurrentFragment();
         if (window != null) {
             windows.add(window);
+            tabHost.getTabWidget(window.getTag()).setOnCloseListener(new WindowManagerTabWidget.OnCloseListener() {
+                @Override
+                public void onClose(WindowManagerTabWidget tabWidget) {
+                    window.close();
+                }
+            });
         }
         return window;
     }

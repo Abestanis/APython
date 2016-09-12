@@ -13,6 +13,7 @@ import com.apython.python.pythonhost.views.PythonFragment;
 public interface WindowManagerInterface {
 
     interface Window {
+        void close();
         String getTag();
     }
     interface ActivityEventsListener {

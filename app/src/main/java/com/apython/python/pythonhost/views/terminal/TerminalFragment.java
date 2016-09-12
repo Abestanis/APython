@@ -152,4 +152,9 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     public void disableInput() {
         pythonInput.setEnabled(false);
     }
+
+    @Override
+    public void close() {
+        programHandler.terminate();
+    }
 }
