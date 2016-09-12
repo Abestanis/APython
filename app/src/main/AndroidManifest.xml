@@ -34,7 +34,7 @@
             android:name="com.apython.python.pythonhost.GetPythonAppExecutionInfoActivity"
             android:excludeFromRecents="true"
             android:noHistory="true"
-            android:theme="@android:style/Theme.NoDisplay" >
+            android:theme="@android:style/Theme.Translucent" >
             <intent-filter>
                 <action android:name="com.python.pythonhost.PYTHON_APP_GET_EXECUTION_INFO" />
                 <category android:name="android.intent.category.DEFAULT" />
