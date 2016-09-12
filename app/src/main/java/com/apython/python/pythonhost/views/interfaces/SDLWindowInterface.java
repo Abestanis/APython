@@ -1,9 +1,6 @@
 package com.apython.python.pythonhost.views.interfaces;
 
-import android.graphics.drawable.Drawable;
 import android.view.KeyEvent;
-
-import com.apython.python.pythonhost.views.sdl.SDLWindowFragment;
 
 /**
  * Interface for the SDL view.
@@ -11,19 +8,6 @@ import com.apython.python.pythonhost.views.sdl.SDLWindowFragment;
  * Created by Sebastian on 21.11.2015.
  */
 
-public interface SDLWindowInterface {
-    interface WindowManager {
-        interface ActivityEventsListener {
-            void onPause();
-            void onResume();
-            void onLowMemory();
-            void onDestroy();
-        }
-        SDLWindowFragment createWindow();
-        void destroyWindow(SDLWindowFragment window);
-        void setWindowName(SDLWindowFragment window, String name);
-        void setWindowIcon(SDLWindowFragment window, Drawable icon);
-        void setActivityEventsListener(ActivityEventsListener eventsListener);
-    }
+public interface SDLWindowInterface extends WindowManagerInterface.Window {
     boolean dispatchKeyEvent(KeyEvent event);
 }

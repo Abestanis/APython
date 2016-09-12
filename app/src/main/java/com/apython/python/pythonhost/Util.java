@@ -1,6 +1,10 @@
 package com.apython.python.pythonhost;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.KeyCharacterMap;
@@ -598,7 +602,7 @@ public class Util {
 
     /**
      * Translates a string into a list of key events, which, executed on an
-     * {@link android.widget.EditText} would produce the given string.
+     * {@link android.widget.EditText EditText} would produce the given string.
      * 
      * @param input The string which should be converted into key events.
      * @return A list of key events.
@@ -657,5 +661,22 @@ public class Util {
         stringBuilder.append(partsIterator.next());
         while (partsIterator.hasNext()) stringBuilder.append(connector).append(partsIterator.next());
         return stringBuilder.toString();
+    }
+
+    /**
+     * Convenience method to get a drawable.
+     * 
+     * @param context The context from which to get the drawable.
+     * @param id The identifier of the resource
+     * @return The requested drawable.
+     * @see android.content.res.Resources#getDrawable(int, Resources.Theme) 
+     */
+    public static Drawable getResourceDrawable(Context context, @DrawableRes int id) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return context.getResources().getDrawable(id, context.getTheme());
+        } else {
+            //noinspection deprecation
+            return context.getResources().getDrawable(id);
+        }
     }
 }

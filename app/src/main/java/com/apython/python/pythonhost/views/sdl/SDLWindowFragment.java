@@ -2,15 +2,14 @@ package com.apython.python.pythonhost.views.sdl;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -25,7 +24,9 @@ import android.widget.RelativeLayout;
 
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.R;
+import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
+import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
 
 import java.io.File;
 import java.nio.IntBuffer;
@@ -37,7 +38,7 @@ import java.util.Arrays;
  * 
  * Created by Sebastian on 21.11.2015.
  */
-public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
+public class SDLWindowFragment extends PythonFragment implements SDLWindowInterface {
 
     public static final String TAG = "SDL";
 
@@ -60,9 +61,20 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
     // Handler for the messages
     Handler commandHandler = null;
 
-    private static WindowManager windowManager = null;
+    private static WindowManagerInterface windowManager = null;
 
-    private InputMethodManager inputMethodManager;
+    private final InputMethodManager inputMethodManager;
+
+    public SDLWindowFragment(Activity activity, String tag) {
+        super(activity, tag);
+        Log.v(TAG, "Device: " + Build.DEVICE);
+        Log.v(TAG, "Model: " + Build.MODEL);
+        Log.v(TAG, "onCreate():" + this);
+        this.commandHandler = new SDLCommandHandler(this);
+        this.audioHandler = new SDLAudioHandler();
+        this.inputMethodManager = (InputMethodManager) getActivity().getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        initLibraries(getActivity().getApplicationContext());
+    }
 
     public static String[] getSDLLibraries() {
         return new String[] {
@@ -88,23 +100,13 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Log.v(TAG, "Device: " + Build.DEVICE);
-        Log.v(TAG, "Model: " + Build.MODEL);
-        Log.v(TAG, "onCreate():" + this);
-        this.commandHandler = new SDLCommandHandler(this);
-        this.audioHandler = new SDLAudioHandler();
-        this.inputMethodManager = (InputMethodManager) getActivity().getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        initLibraries(getActivity().getApplicationContext());
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View createView(ViewGroup container) {
         if (wrapperLayout != null) wrapperLayout.removeView(layout);
-        wrapperLayout = new FrameLayout(getActivity().getApplicationContext());
+        Context context = getActivity().getBaseContext();
+        wrapperLayout = new FrameLayout(context);
         if (surface == null) {
-            layout = (RelativeLayout) inflater.inflate(R.layout.view_sdl_layout, container, false);
+            layout = (RelativeLayout) LayoutInflater.from(context)
+                    .inflate(context.getResources().getLayout(R.layout.view_sdl_layout), container, false);
             surface = (SDLSurfaceView) layout.findViewById(R.id.sdl_surface);
             surface.setSDLWindow(this);
             layout.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -127,45 +129,45 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
         return wrapperLayout;
     }
 
-    // Events
-    @Override
-    public void onPause() {
-        super.onPause();
-        Log.v(TAG, "onPause()");
-        if (windowManager == null) {
-            nativePause();
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        Log.v(TAG, "onResume()");
-        if (windowManager == null) {
-            nativeResume();
-        }
-    }
-
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        Log.v(TAG, "onLowMemory()");
-        if (windowManager == null) {
-            nativeLowMemory();
-        }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Log.v(TAG, "onDestroy()");
-        if (windowManager == null) {
-            // Send a quit message to the application
-            nativeQuit();
-        }
-        resetState();
-    }
-
+    // Events TODO
+//    @Override
+//    public void onPause() {
+//        super.onPause();
+//        Log.v(TAG, "onPause()");
+//        if (windowManager == null) {
+//            nativePause();
+//        }
+//    }
+//
+//    @Override
+//    public void onResume() {
+//        super.onResume();
+//        Log.v(TAG, "onResume()");
+//        if (windowManager == null) {
+//            nativeResume();
+//        }
+//    }
+//
+//    @Override
+//    public void onLowMemory() {
+//        super.onLowMemory();
+//        Log.v(TAG, "onLowMemory()");
+//        if (windowManager == null) {
+//            nativeLowMemory();
+//        }
+//    }
+//
+//    @Override
+//    public void onDestroy() {
+//        super.onDestroy();
+//        Log.v(TAG, "onDestroy()");
+//        if (windowManager == null) {
+//            // Send a quit message to the application
+//            nativeQuit();
+//        }
+//        resetState();
+//    }
+    
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         final int KEYCODE_ZOOM_IN, KEYCODE_ZOOM_OUT;
@@ -202,9 +204,9 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
         audioHandler.audioQuit();
     }
 
-    public static void setWindowManager(WindowManager wMgr) {
+    public static void setWindowManager(WindowManagerInterface wMgr) {
         windowManager = wMgr;
-        windowManager.setActivityEventsListener(new WindowManager.ActivityEventsListener() {
+        windowManager.setActivityEventsListener(new WindowManagerInterface.ActivityEventsListener() {
             @Override
             public void onPause() {
                 nativePause();
@@ -447,7 +449,7 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
         if (windowManager == null) {
             return null;
         }
-        return windowManager.createWindow();
+        return windowManager.createWindow(SDLWindowFragment.class);
     }
 
     private void destroy() {
@@ -471,7 +473,7 @@ public class SDLWindowFragment extends Fragment implements SDLWindowInterface {
                 iconData[i] = ((iconData[i] & 0xff00ff00)) | ((iconData[i] & 0x000000ff) << 16) | ((iconData[i] & 0x00ff0000) >> 16);
             }
             iconBitmap.copyPixelsFromBuffer(IntBuffer.wrap(iconData));
-            icon = new BitmapDrawable(getContext().getResources(), iconBitmap);
+            icon = new BitmapDrawable(getActivity().getResources(), iconBitmap);
         }
         final Drawable finalIcon = icon;
         commandHandler.post(new Runnable() {

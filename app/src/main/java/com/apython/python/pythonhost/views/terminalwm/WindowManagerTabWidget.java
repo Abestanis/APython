@@ -41,7 +41,7 @@ public class WindowManagerTabWidget extends FrameLayout {
         setIsSelectedTab(false);
     }
 
-    public void addOnCloseListener(final OnCloseListener listener) {
+    public void setOnCloseListener(final OnCloseListener listener) {
         closeButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -1,14 +1,14 @@
 package com.apython.python.pythonhost.interpreter;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -17,9 +17,12 @@ import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
-import com.apython.python.pythonhost.views.interfaces.TerminalWindowManagerInterface;
+import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
+import com.apython.python.pythonhost.views.terminal.TerminalFragment;
+import com.apython.python.pythonhost.views.terminalwm.WindowManagerFragment;
 
 import java.util.ArrayList;
 
@@ -29,11 +32,11 @@ import java.util.ArrayList;
  * Created by Sebastian on 08.06.2015.
  */
 
-public class PythonInterpreterActivity extends FragmentActivity {
+public class PythonInterpreterActivity extends Activity {
 
-    private PythonInterpreterRunnable      interpreter;
-    private TerminalInterface              terminalView;
-    private TerminalWindowManagerInterface terminalWindowManager;
+    private PythonInterpreterRunnable interpreter;
+    private TerminalInterface         terminalView;
+    private WindowManagerInterface    terminalWindowManager;
     private String enqueuedOutput = "";
 
     @Override
@@ -104,10 +107,21 @@ public class PythonInterpreterActivity extends FragmentActivity {
     @Override
     public void onStart() {
         super.onStart();
+        WindowManagerInterface.Window window = terminalWindowManager.createWindow(TerminalFragment.class);
+        terminalWindowManager.setWindowName(window, "Python");
+        terminalWindowManager.setWindowIcon(window, Util.getResourceDrawable(this, R.drawable.python_launcher_icon));
+        terminalView = (TerminalInterface) window;
+        terminalView.setProgramHandler(interpreter);
+        if (!enqueuedOutput.equals("")) {
+            terminalView.addOutput(enqueuedOutput);
+        }
     }
 
     private void startInterpreter(String pythonVersion) {
+        this.terminalWindowManager = PythonFragment.create(WindowManagerFragment.class, this, "wm");
         this.setContentView(R.layout.activity_python_interpreter);
+        ViewGroup container = ((ViewGroup) this.findViewById(R.id.pyHostWindowContainer));
+        container.addView(((PythonFragment) terminalWindowManager).createView(container));
         this.interpreter = new PythonInterpreterRunnable(this, pythonVersion, new PythonInterpreter.IOHandler() {
             @Override
             public void addOutput(String text) {
@@ -133,20 +147,6 @@ public class PythonInterpreterActivity extends FragmentActivity {
     }
 
     @Override
-    public void onAttachFragment(Fragment fragment) {
-        super.onAttachFragment(fragment);
-        if (fragment instanceof TerminalInterface) {
-            terminalView = (TerminalInterface) fragment;
-            terminalView.registerInputHandler(interpreter);
-            if (!enqueuedOutput.equals("")) {
-                terminalView.addOutput(enqueuedOutput);
-            }
-        } else if (fragment instanceof TerminalWindowManagerInterface) {
-            terminalWindowManager = (TerminalWindowManagerInterface) fragment;
-        }
-    }
-
-    @Override
     public void onBackPressed() {
         interpreter.interrupt();
         terminalView.disableInput();
@@ -156,13 +156,13 @@ public class PythonInterpreterActivity extends FragmentActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (interpreter != null && interpreter.isRunning()) {
-            interpreter.stop();
+            interpreter.terminate();
         }
     }
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        Fragment currentWindow = terminalWindowManager.getCurrentWindow();
+        PythonFragment currentWindow = terminalWindowManager.getCurrentWindow();
         if (currentWindow instanceof TerminalInterface) {
             if (event.getKeyCode() != KeyEvent.KEYCODE_BACK && !terminalView.isInputEnabled()) {
                 // input via stdin pipe

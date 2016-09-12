@@ -8,15 +8,15 @@ import android.view.KeyEvent;
  * Created by Sebastian on 20.11.2015.
  */
 
-public interface TerminalInterface {
+public interface TerminalInterface extends WindowManagerInterface.Window {
     interface ProgramHandler {
         void notifyInput(String input);
         boolean dispatchKeyEvent(KeyEvent event);
+        void terminate();
     }
-
     void addOutput(String output);
     void enableInput(String prompt, String enqueuedInput);
     void disableInput();
-    void registerInputHandler(ProgramHandler programHandler);
+    void setProgramHandler(ProgramHandler programHandler);
     boolean isInputEnabled();
 }

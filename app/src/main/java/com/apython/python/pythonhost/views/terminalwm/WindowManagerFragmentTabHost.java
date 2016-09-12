@@ -1,10 +1,11 @@
 package com.apython.python.pythonhost.views.terminalwm;
 
+import android.app.Activity;
 import android.content.Context;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
 import android.util.AttributeSet;
+import android.view.ViewGroup;
+
+import com.apython.python.pythonhost.views.PythonFragment;
 
 /**
  * A Fragment capable of displaying multiple tab-based windows.
@@ -12,25 +13,25 @@ import android.util.AttributeSet;
  * Created by Sebastian on 26.03.2016.
  */
 public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
-
-    private FragmentManager fragmentManager = null;
-
+    
     private class FragmentTab extends Tab {
-        Fragment fragment;
+        PythonFragment fragment;
     }
-
+    
     public class FragmentTabSpec extends TabSpec {
-        private Class<?> fragmentClass;
-
-        public FragmentTabSpec() {
+        private       Class<? extends PythonFragment> fragmentClass;
+        private final Activity                        activity;
+        public FragmentTabSpec(Activity activity) {
             super();
+            this.activity = activity;
         }
-
-        public FragmentTabSpec(String tag) {
+        
+        public FragmentTabSpec(Activity activity, String tag) {
             super(tag);
+            this.activity = activity;
         }
 
-        public FragmentTabSpec setFragmentClass(Class<?> fragmentClass) {
+        public FragmentTabSpec setFragmentClass(Class<? extends PythonFragment> fragmentClass) {
             this.fragmentClass = fragmentClass;
             return this;
         }
@@ -39,7 +40,7 @@ public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
         protected Tab createTab() {
             FragmentTab tab = new FragmentTab();
             initTab(tab);
-            tab.fragment = Fragment.instantiate(getContext(), fragmentClass.getName());
+            tab.fragment = PythonFragment.create(fragmentClass, activity, tab.tag);
             return tab;
         }
     }
@@ -52,19 +53,12 @@ public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
         super(context, attrs);
     }
 
-    public void setFragmentManager(FragmentManager fragmentManager) {
-        this.fragmentManager = fragmentManager;
-    }
-
     @Override
     protected void displayTabContent(Tab tab) {
         if (tab instanceof FragmentTab && tab.view == null) {
-            FragmentTransaction transaction = fragmentManager.beginTransaction();
-            transaction.add(android.R.id.tabcontent, ((FragmentTab) tab).fragment, ((FragmentTab) tab).tag);
-            transaction.commit();
-        } else {
-            super.displayTabContent(tab);
+            tab.view = ((FragmentTab) tab).fragment.createView(tabContentContainer);
         }
+        super.displayTabContent(tab);
     }
 
     @Override
@@ -79,17 +73,23 @@ public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
     public void removeTab(Tab tab, int index) {
         super.removeTab(tab, index);
         if (tab instanceof FragmentTab) {
-            FragmentTransaction transaction = fragmentManager.beginTransaction();
-            transaction.detach(((FragmentTab) tab).fragment);
-            transaction.commit();
+            ((ViewGroup) findViewById(android.R.id.tabcontent)).removeView(tab.view);
         }
     }
 
-    public FragmentTabSpec getFragmentTabSpec() {
-        return new FragmentTabSpec();
+    public FragmentTabSpec getFragmentTabSpec(Activity activity) {
+        return new FragmentTabSpec(activity);
     }
 
-    public FragmentTabSpec getFragmentTabSpec(String tag) {
-        return new FragmentTabSpec(tag);
+    public FragmentTabSpec getFragmentTabSpec(Activity activity, String tag) {
+        return new FragmentTabSpec(activity, tag);
+    }
+
+    public WindowManagerTabWidget getTabWidget(String windowTag) {
+        return findTabByTag(windowTag).tabIndicator;
+    }
+    
+    public PythonFragment getCurrentFragment() {
+        return ((FragmentTab) getCurrentTab()).fragment;
     }
 }

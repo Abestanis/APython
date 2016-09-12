@@ -1,8 +1,7 @@
 package com.apython.python.pythonhost.views.terminal;
 
+import android.app.Activity;
 import android.content.Context;
-import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -15,6 +14,7 @@ import android.widget.ListView;
 
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
 /**
@@ -24,7 +24,7 @@ import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
  * Created by Sebastian on 20.11.2015.
  */
 
-public class TerminalFragment extends Fragment implements TerminalInterface {
+public class TerminalFragment extends PythonFragment implements TerminalInterface {
     
     private TerminalInput   pythonInput;
     private TerminalAdapter pythonOutput;
@@ -32,22 +32,23 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
     private View rootView = null;
     private FrameLayout rootLayout = null;
 
-    public TerminalFragment() {
-        super();
-        setArguments(new Bundle());
+    public TerminalFragment(Activity activity, String tag) {
+        super(activity, tag);
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View createView(ViewGroup container) {
         if (rootView == null || rootLayout == null) {
-            rootLayout = new FrameLayout(getActivity().getApplicationContext());
-            rootView = inflater.inflate(R.layout.view_terminal_layout, container, false);
+            final Context context = getActivity().getBaseContext();
+            rootLayout = new FrameLayout(context);
+            LayoutInflater layoutInflater = LayoutInflater.from(context);
+            rootView = layoutInflater.inflate(context.getResources().getLayout(R.layout.view_terminal_layout),
+                                        container, false);
             rootLayout.addView(rootView);
             ListView scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
-            final Context context = getActivity().getApplicationContext();
             this.pythonOutput = new TerminalAdapter(context);
-            this.pythonInput = (TerminalInput) LayoutInflater.from(context)
-                    .inflate(R.layout.terminal_input, scrollContainer, false);
+            this.pythonInput = (TerminalInput) layoutInflater.inflate(
+                    context.getResources().getLayout(R.layout.terminal_input), scrollContainer, false);
             scrollContainer.addFooterView(this.pythonInput);
             scrollContainer.setAdapter(this.pythonOutput);
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
@@ -143,7 +144,7 @@ public class TerminalFragment extends Fragment implements TerminalInterface {
     }
 
     @Override
-    public void registerInputHandler(ProgramHandler programHandler) {
+    public void setProgramHandler(ProgramHandler programHandler) {
         this.programHandler = programHandler;
     }
 
