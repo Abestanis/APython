@@ -21,9 +21,10 @@ pthread_t pythonThread;
 
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
                  const char* pythonHome, const char* pythonTemp, const char* xdgBasePath) {
+    const char* noValue = "";
     const char* value = (const char*) getenv("LD_LIBRARY_PATH");
-    if (value == NULL) { value = ""; }
-    if (strstr(value, pythonLibs) == NULL) { // Check if our Path is already in LD_LIBRARY_PATH
+    if (value == NULL) { value = noValue; }
+    if (value == noValue || strstr(value, pythonLibs) == NULL) { // Check if our Path is already in LD_LIBRARY_PATH
         const char* newValue = malloc(sizeof(char) * (strlen(pythonHostLibs) + strlen(pythonLibs) + strlen(value) + 3));
         ASSERT(newValue != NULL, "Not enough memory to change 'LD_LIBRARY_PATH'!");
         strcpy((char*) newValue, pythonHostLibs);
@@ -38,9 +39,9 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     char cwd[32];
     if (getcwd(cwd, sizeof(cwd)) == NULL || strcmp(cwd, "/") == 0) {
         // '/' is the default working dir for a java process, but it is unusable for the python program
-        char* newCwd = dirname(pythonProgramPath);
-        chdir(newCwd);
-        free(newCwd);
+        char* path = strdup(pythonProgramPath);
+        chdir(dirname(path));
+        free(path);
     }
     
     call_Py_SetPythonHome((char*) pythonHome);
@@ -105,7 +106,7 @@ void* startPythonInterpreter(void* arg) {
 
     LOG("Starting...");
     fflush(stdout);
-    exit(call_Py_Main(args->argc, args->argv));
+    pthread_exit((void*) call_Py_Main(args->argc, args->argv));
     pthread_cleanup_pop(0);
 }
 

@@ -169,7 +169,7 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     const char *pythonTemp     = (*env)->GetStringUTFChars(env, jPythonTemp, 0);
     const char *xdgBasePath    = (*env)->GetStringUTFChars(env, jXDGBasePath, 0);
     setupPython(programName, pythonLibs, pythonHostLibs, pythonHome, pythonTemp, xdgBasePath);
-
+    
     jsize argc = 1;
     if (jArgs != NULL) {
         argc = (*env)->GetArrayLength(env, jArgs);
