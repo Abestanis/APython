@@ -70,7 +70,8 @@ public abstract class Dependency {
         for (Dependency dependency : dependencies) {
             dependency.setAction(action);
         }
-        if ((action == Action.DOWNLOAD && isInstalled()) || (action == Action.REMOVE && !isInstalled())) action = Action.NONE;
+        if ((action == Action.DOWNLOAD && isInstalled()) || (action == Action.REMOVE && !isInstalled()))
+            action = Action.NONE;
         this.action = action;
     }
     
@@ -148,13 +149,16 @@ public abstract class Dependency {
     
     protected boolean download(ProgressHandler.TwoLevelProgressHandler progressHandler) {
         if (isInstalled()) return true;
-        if (progressHandler != null) progressHandler.enable(context.getString(R.string.downloading_object, getUIDescription()));
-        return Util.downloadFile(url, installLocation, md5Checksum, progressHandler);
+        if (progressHandler != null)
+            progressHandler.enable(context.getString(R.string.downloading_object, getUIDescription()));
+        return Util.downloadFile(url, installLocation, md5Checksum, progressHandler)
+                && Util.makePathAccessible(installLocation.getParentFile(), context.getFilesDir());
     }
     
     protected boolean remove (ProgressHandler.TwoLevelProgressHandler progressHandler) {
         if (!isInstalled()) return true;
-        if (progressHandler != null) progressHandler.enable(context.getString(R.string.removing_object, getUIDescription()));
+        if (progressHandler != null)
+            progressHandler.enable(context.getString(R.string.removing_object, getUIDescription()));
         if (installLocation.isDirectory()) {
             return Util.deleteDirectory(installLocation);
         }

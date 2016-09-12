@@ -86,6 +86,21 @@ public class Util {
     }
 
     /**
+     * Makes the path between stop and startPath read and executable by everyone.
+     * 
+     * @param startPath The directory from which to start and work up towards stopPath.
+     * @param stopPath The directory to stop.
+     * @return {@code true} if every directory between stop and startPath has been made accessible.
+     */
+    public static boolean makePathAccessible(File startPath, File stopPath) {
+        while (!stopPath.equals(startPath)) {
+            if (!Util.makeFileAccessible(startPath, false)) return false;
+            startPath = startPath.getParentFile();
+        }
+        return true;
+    }
+
+    /**
      * Checks if the given directory and all it's content
      * are accessible from other apps. More specific, checks
      * that all apps have the right to read and execute.

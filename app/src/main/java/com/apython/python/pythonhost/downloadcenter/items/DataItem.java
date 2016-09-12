@@ -84,7 +84,7 @@ public class DataItem extends Dependency {
             if (!tempArchive.delete()) {
                 Log.w(MainActivity.TAG, "Could not remove downloaded temporary archive " + tempArchive.getAbsolutePath());
             }
-            return success;
+            return success && Util.makePathAccessible(installLocation.getParentFile(), getContext().getFilesDir());
         }
     }
 }

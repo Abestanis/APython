@@ -283,8 +283,7 @@ public class PackageManager {
     public static boolean checkSitePackagesAvailability(Context context, String pythonVersion, ProgressHandler progressHandler) {
         File sitePackages = getSitePackages(context, pythonVersion);
         if (sitePackages.exists()) {
-            if (!(Util.makeFileAccessible(sitePackages.getParentFile(), false)
-                    && Util.makeFileAccessible(sitePackages, false))) { return false; }
+            if (!Util.makePathAccessible(sitePackages, context.getFilesDir())) { return false; }
             ArrayList<File> files = Util.checkDirContentsAccessibility(sitePackages);
             if (!files.isEmpty()) {
                 if (progressHandler != null) {

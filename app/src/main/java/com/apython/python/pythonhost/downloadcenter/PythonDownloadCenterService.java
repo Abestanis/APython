@@ -10,6 +10,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 
+import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.ProgressHandler;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
@@ -228,6 +229,7 @@ public class PythonDownloadCenterService extends IntentService {
             boolean success = currentAction.applyAction(progressHandler);
             progressHandler.onComplete(success);
         }
+        Util.makePathAccessible(PackageManager.getDynamicLibraryPath(getApplicationContext()), getFilesDir().getParentFile());
     }
 
     public synchronized boolean showingNotification() {
