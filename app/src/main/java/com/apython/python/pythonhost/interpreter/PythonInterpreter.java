@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 
 public class PythonInterpreter implements TerminalInterface.ProgramHandler {
     
+    private       String  logTag        = MainActivity.TAG;
     private       String  inputLine     = null;
     protected     boolean blockingInput = true;
     protected Context   context;
@@ -51,6 +52,14 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         return nativeGetPythonVersion(System.mapLibraryName("python" + this.pythonVersion));
     }
 
+    public void setIoHandler(IOHandler ioHandler) {
+        this.ioHandler = ioHandler;
+    }
+    
+    public void setLogTag(String logTag) {
+        this.logTag = logTag;
+    }
+
     public int runPythonInterpreter(String[] interpreterArgs) {
         running = inStartup = true;
         int res = this.runInterpreter(System.mapLibraryName("python" + this.pythonVersion),
@@ -60,7 +69,7 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
                                       this.context.getFilesDir().getAbsolutePath(),
                                       PackageManager.getTempDir(this.context).getAbsolutePath(),
                                       PackageManager.getXDGBase(this.context).getAbsolutePath(),
-                                      MainActivity.TAG,
+                                      logTag,
                                       interpreterArgs,
                                       this.ioHandler != null);
         running = false;

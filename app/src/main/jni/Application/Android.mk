@@ -2,8 +2,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := application
-LOCAL_SRC_FILES := main.c
-LOCAL_CFLAGS += -I$(LOCAL_PATH)/../
-LOCAL_SHARED_LIBRARIES := pyLog pyInterpreter
+LOCAL_SRC_FILES := application.c
+LOCAL_LDLIBS := -llog
 
 include $(BUILD_SHARED_LIBRARY)

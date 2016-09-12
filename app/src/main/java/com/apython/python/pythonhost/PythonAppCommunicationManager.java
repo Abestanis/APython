@@ -1,7 +1,6 @@
 package com.apython.python.pythonhost;
 
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
@@ -9,7 +8,6 @@ import android.util.Log;
 import com.apython.python.pythonhost.downloadcenter.PythonDownloadCenterActivity;
 
 import java.io.File;
-import java.util.ArrayList;
 
 /*
  * This manager handles the entire communication with the Python app.
@@ -29,12 +27,8 @@ public class PythonAppCommunicationManager {
     public              int    PROTOCOL_VERSION     = -1;
 
     // The current activity started by the Python app.
-    private Activity activity;
-
-    // The package of the Python app with which we communicate.
-    private String appPackage;
-    // The classpath that serves as an entry point when we should launch the Python app.
-    private String launchClass;
+    private final Activity activity;
+    
     // The path to a requirements.txt file which contains all the requirements for this App
     private String requirements = null;
     // The python version this App needs to run
@@ -51,8 +45,6 @@ public class PythonAppCommunicationManager {
         PROTOCOL_VERSION = args.getIntExtra("protocolVersion", -1);
         switch (PROTOCOL_VERSION) {
         case 0:
-            this.appPackage       = args.getStringExtra("package");
-            this.launchClass      = args.getStringExtra("launchClass");
             this.requirements     = args.getStringExtra("requirements");
             this.pythonVersion    = args.getStringExtra("pythonVersion");
             this.minPythonVersion = args.getStringExtra("minPythonVersion");
@@ -66,7 +58,7 @@ public class PythonAppCommunicationManager {
             return false;
         default:
             Log.w(TAG, "Client uses an unknown protocol version (" + PROTOCOL_VERSION
-                                 + "), maximum supported protocol version is " + MAX_PROTOCOL_VERSION);
+                     + "), maximum supported protocol version is " + MAX_PROTOCOL_VERSION);
             PROTOCOL_VERSION = 0;
             exitWithError("Unknown protocol version");
             return false;
@@ -86,8 +78,6 @@ public class PythonAppCommunicationManager {
     public void startPythonApp(ProgressHandler progressHandler) {
         Context context = this.activity.getApplicationContext();
         Intent args = new Intent();
-        args.setComponent(new ComponentName(this.appPackage, this.launchClass));
-
         // Determine the python version to use
         // TODO: This should consider the installed requirements
         String determinedPythonVersion = PackageManager.getOptimalInstalledPythonVersion(
@@ -102,26 +92,20 @@ public class PythonAppCommunicationManager {
         }
         PackageManager.installPythonExecutable(context, progressHandler);
         if (this.requirements != null) {
+            // TODO: Check return
             PackageManager.installRequirements(context, this.requirements, determinedPythonVersion, progressHandler);
         }
+        // TODO: Check return
         PackageManager.checkSitePackagesAvailability(context, determinedPythonVersion, progressHandler);
-
-        String stdLibPath = PackageManager.getSharedLibrariesPath(context).getAbsolutePath() + "/";
-        String dynamicLibPath = PackageManager.getDynamicLibraryPath(context).getAbsolutePath() + "/";
-        ArrayList<String> pythonLibs = new ArrayList<>();
-        pythonLibs.add(dynamicLibPath + System.mapLibraryName("pythonPatch"));
-        for (File libFile : PackageManager.getAdditionalLibraries(context)) {
-            pythonLibs.add(libFile.getAbsolutePath());
-        }
-        pythonLibs.add(dynamicLibPath + System.mapLibraryName("python" + Util.getMainVersionPart(determinedPythonVersion)));
-        pythonLibs.add(stdLibPath + System.mapLibraryName("pyLog"));
-        pythonLibs.add(stdLibPath + System.mapLibraryName("pyInterpreter"));
-        pythonLibs.add(stdLibPath + System.mapLibraryName("application"));
-        args.putExtra("pythonLibs", pythonLibs);
-        args.putExtra("pythonHome", this.activity.getApplicationContext().getFilesDir().getAbsolutePath());
-        args.putExtra("pythonExecutablePath", PackageManager.getPythonExecutable(context).getAbsolutePath());
-        args.putExtra("xdgBasePath", PackageManager.getXDGBase(context).getAbsolutePath());
+        
         args.putExtra("pythonVersion", determinedPythonVersion);
-        this.activity.startActivity(args);
+        args.putExtra("libPath", new File(PackageManager.getSharedLibrariesPath(context),
+                                          System.mapLibraryName("application")).getAbsolutePath());
+        Intent securityIntent = this.activity.getIntent().getParcelableExtra("securityIntent");
+        if (securityIntent != null) {
+            securityIntent.putExtras(args);
+            this.activity.startActivity(securityIntent);
+        }
+        this.activity.setResult(Activity.RESULT_OK, args);
     }
 }

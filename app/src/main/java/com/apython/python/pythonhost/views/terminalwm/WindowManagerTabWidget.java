@@ -33,7 +33,7 @@ public class WindowManagerTabWidget extends FrameLayout {
 
     public WindowManagerTabWidget(Context context, AttributeSet attrs) {
         super(context, attrs);
-        LayoutInflater.from(context).inflate(R.layout.wm_tab_widget, this);
+        LayoutInflater.from(context).inflate(context.getResources().getLayout(R.layout.wm_tab_widget), this);
         bottomSeparator = findViewById(R.id.wm_tabWidget_separator);
         icon = (ImageView) findViewById(R.id.wm_tabWidget_icon);
         closeButton = (ImageView) findViewById(R.id.wm_tabWidget_closeButton);
