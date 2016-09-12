@@ -98,7 +98,7 @@ public class TerminalInput extends EditText {
                     if (start < prompt.length()) {
                         restorePrompt();
                     } else if (input.length() > 0) {
-                        if (input.indexOf('\n', start) != -1 && commitHandler != null) {
+                        if (input.indexOf('\n', start) >= prompt.length() && commitHandler != null) {
                             commitHandler.onCommit(TerminalInput.this);
                         }
                     }
