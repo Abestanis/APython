@@ -31,6 +31,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     private ProgramHandler  programHandler;
     private View rootView = null;
     private FrameLayout rootLayout = null;
+    private String outputBuffer = null;
 
     public TerminalFragment(Activity activity, String tag) {
         super(activity, tag);
@@ -47,6 +48,10 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootLayout.addView(rootView);
             ListView scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context);
+            if (outputBuffer != null) {
+                pythonOutput.addOutput(outputBuffer);
+                outputBuffer = null;
+            }
             this.pythonInput = (TerminalInput) layoutInflater.inflate(
                     context.getResources().getLayout(R.layout.terminal_input), scrollContainer, false);
             scrollContainer.addFooterView(this.pythonInput);
@@ -135,7 +140,11 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
 
     @Override
     public void addOutput(String output) {
-        pythonOutput.addOutput(output);
+        if (pythonOutput == null) {
+            outputBuffer = (outputBuffer == null ? "" : outputBuffer) + output;
+        } else {
+            pythonOutput.addOutput(output);
+        }
     }
 
     @Override
