@@ -2,43 +2,19 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="vertical"
               android:layout_width="match_parent"
-              android:layout_height="match_parent"
-                android:padding="20sp">
-
-    <LinearLayout
-        android:orientation="horizontal"
+              android:layout_height="match_parent">
+    
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Python"
+        android:id="@+id/textView2"
+        android:textColor="@android:color/white"
+        android:singleLine="true"
+        android:textSize="80sp"
         android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:id="@+id/linearLayout">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/pythonImage"
-            android:layout_gravity="center_horizontal"
-            android:src="@drawable/python_icon"
-            android:adjustViewBounds="true"
-            android:layout_weight="0.7"
-            android:contentDescription="@string/content_description_python_icon"
-            />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="Python"
-            android:id="@+id/textView2"
-            android:textColor="@android:color/white"
-            android:singleLine="true"
-            android:textSize="80sp"
-            android:gravity="center_vertical"
-            android:layout_weight="0.3"
-            android:paddingLeft="20sp"/>
-
-    </LinearLayout>
-
+        android:gravity="center"/>
+    
     <ScrollView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -47,22 +23,23 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:layout_below="@+id/linearLayout"
-        android:layout_alignParentBottom="true">
-
+        android:layout_alignParentBottom="true"
+        android:layout_below="@+id/textView2">
+        
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="40sp">
-
+            android:paddingTop="40sp"
+            android:padding="10dp">
+            
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:onClick="onPythonInterpreterButtonClick"
                 android:id="@+id/main_menu_interpreter_button_container">
-
+                
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -71,7 +48,7 @@
                     android:layout_weight="0.8"
                     android:scaleType="fitCenter"
                     android:contentDescription="@string/content_description_python_icon"/>
-
+                
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -83,13 +60,13 @@
                     android:paddingTop="10sp"
                     android:paddingBottom="10sp"/>
             </LinearLayout>
-
+            
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:onClick="onDownloadVersionsButtonClick">
-
+                
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -97,7 +74,7 @@
                     android:adjustViewBounds="true"
                     android:layout_weight="0.8"
                     android:contentDescription="@string/content_description_download_manager_icon"/>
-
+                
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -109,12 +86,12 @@
                     android:paddingTop="10sp"
                     android:paddingBottom="10sp"/>
             </LinearLayout>
-
+            
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
-
+                
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -122,7 +99,7 @@
                     android:adjustViewBounds="true"
                     android:layout_weight="0.8"
                     android:contentDescription="@string/content_description_about_icon"/>
-
+                
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -134,12 +111,12 @@
                     android:paddingTop="10sp"
                     android:paddingBottom="10sp"/>
             </LinearLayout>
-
+            
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
-
+                
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -147,7 +124,7 @@
                     android:adjustViewBounds="true"
                     android:layout_weight="0.8"
                     android:contentDescription="@string/content_description_help_icon"/>
-
+                
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -159,14 +136,14 @@
                     android:paddingTop="10sp"
                     android:paddingBottom="10sp"/>
             </LinearLayout>
-
+            
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clickable="true"
                 android:onClick="onSettingsButtonClick">
-
+                
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -174,7 +151,7 @@
                     android:adjustViewBounds="true"
                     android:layout_weight="0.8"
                     android:contentDescription="@string/content_description_settings_icon"/>
-
+                
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -186,7 +163,7 @@
                     android:paddingTop="10sp"
                     android:paddingBottom="10sp"/>
             </LinearLayout>
-
+                
         </LinearLayout>
     </ScrollView>
 </RelativeLayout>
