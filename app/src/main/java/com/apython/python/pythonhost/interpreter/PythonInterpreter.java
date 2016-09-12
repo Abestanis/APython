@@ -19,38 +19,34 @@ import java.io.File;
 import java.io.UnsupportedEncodingException;
 
 public class PythonInterpreter implements TerminalInterface.ProgramHandler {
-
-    static {
-        System.loadLibrary("pyLog");
-        System.loadLibrary("pyInterpreter");
-    }
     
     private       String  inputLine     = null;
     protected     boolean blockingInput = true;
     protected Context   context;
     protected String    pythonVersion;
     protected IOHandler ioHandler;
+
     private boolean running   = false;
     private boolean inStartup = false;
-
     public interface IOHandler {
         void addOutput(String text);
         void setupInput(String prompt);
     }
-    
     public PythonInterpreter(Context context, String pythonVersion) {
         this(context, pythonVersion, null);
     }
-    
+
     public PythonInterpreter(Context context, String pythonVersion, IOHandler ioHandler) {
         PackageManager.loadDynamicLibrary(context, "pythonPatch");
+        System.loadLibrary("pyLog");
+        System.loadLibrary("pyInterpreter");
         PackageManager.loadDynamicLibrary(context, "python" + pythonVersion);
         PackageManager.loadAdditionalLibraries(context);
         this.context = context;
         this.pythonVersion = pythonVersion;
         this.ioHandler = ioHandler;
     }
-    
+
     public String getPythonVersion() {
         return nativeGetPythonVersion(System.mapLibraryName("python" + this.pythonVersion));
     }
@@ -92,7 +88,8 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         return running;
     }
 
-    public void stop() {
+    @Override
+    public void terminate() {
         stopInterpreter();
     }
 
@@ -156,7 +153,6 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         if (ioHandler != null) {
             ioHandler.setupInput(prompt);
         }
-
         if (!blockingInput) {
             return null; // Do not wait for input
         }
