@@ -1,25 +1,21 @@
 #include "log.h"
-#include <pthread.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 #include <assert.h>
 
 // The Log system //
 
 char appTag[64] = "Python";
-static pthread_t outputCaptureThread;
-static int outputPipe[2];
-pthread_mutex_t mutex;
-pthread_cond_t condition;
-int outputCaptureThreadStarted = 0;
 void (*stdout_write)(const char*, int len) = NULL;
 void (*stderr_write)(const char*, int len) = NULL;
 
 int _log_write_(int priority, const char *text, ...) {
     va_list argP;
     va_start(argP, text);
-    __android_log_vprint(priority, appTag, text, argP);
+    int res = __android_log_vprint(priority, appTag, text, argP);
     va_end(argP);
+    return res;
 }
 
 void _assert_(const char* expression, const char* file, int line, const char* errorString, ...) {
@@ -33,7 +29,6 @@ void _assert_(const char* expression, const char* file, int line, const char* er
     vsprintf(message, errorString, argP);
     va_end(argP);
     __android_log_assert(expression, appTag, "Assertion failed (%s) at %s, line %i: %s", expression, file, line, message);
-    free(message);
 }
 
 void setApplicationTag(const char* newAppTag) {
@@ -63,7 +58,7 @@ void captureOutput(int streamFD) {
         }
         buffer[outputSize] = 0; // add null-terminator
         if (stdout_write != NULL) {
-            stdout_write(buffer, outputSize);
+            stdout_write(buffer, (int) outputSize);
         } else {
             // Remove trailing newline
             if (outputSize > 0 && buffer[outputSize - 1] == '\n') {

@@ -43,7 +43,7 @@ void redirectOutputToJava(const char *string, int len) {
 }
 
 char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, const char *prompt) {
-    if (jPyInterpreter == NULL) { return; }
+    if (jPyInterpreter == NULL) { return NULL; }
     JNIEnv* env;
     static jclass *cls   = NULL;
     static jmethodID mid = NULL;
@@ -187,7 +187,7 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
             jstring jArgument = (*env)->GetObjectArrayElement(env, jArgs, i);
             const char *argument = (*env)->GetStringUTFChars(env, jArgument, 0);
             char *arg = malloc(sizeof(char) * (strlen(argument) + 1));
-            if (argv == NULL) {
+            if (arg == NULL) {
                 LOG_ERROR("Failed to allocate space for argument %d ('%s')!", i, argument);
                 return 1;
             }

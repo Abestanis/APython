@@ -1,11 +1,6 @@
 #include "application.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-#include <dlfcn.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #define PY_HOST_PACKAGE_PATH            "com.apython.python.pythonhost"
 #define APP_INTERPRETER_CLASS_PATH      PY_HOST_PACKAGE_PATH ".interpreter.app.AppInterpreter"
@@ -64,18 +59,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     }
     appRegisterNativeMethods(env);
     return JNI_VERSION_1_6;
-}
-
-int getLibrariesPath(char* pathBuffer, size_t buffLen) {
-    Dl_info info;
-    if (dladdr(&appRegisterNativeMethods, &info)) {
-        char* lastPathSep = strrchr(info.dli_fname, '/');
-        size_t lastPathSepIndex = (lastPathSep - info.dli_fname) / sizeof(char*);
-        lastPathSepIndex = lastPathSepIndex < buffLen ? lastPathSepIndex : buffLen;
-        strncpy(pathBuffer, info.dli_fname, lastPathSepIndex);
-        return 1;
-    }
-    return 0;
 }
 
 void syncLogTagToPyHost(JNIEnv *env) {

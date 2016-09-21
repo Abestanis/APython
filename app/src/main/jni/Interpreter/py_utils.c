@@ -1,6 +1,5 @@
 #include "py_utils.h"
 #include <stdlib.h>
-#include <string.h>
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
@@ -84,14 +83,14 @@ void readFromStdin(char* inputBuffer, int bufferSize) {
     int flags = fcntl(fileno(stdin), F_GETFL);
     fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
     while ((character = fgetc(stdin)) != EOF) {
-        *inputBuffer++ = character;
+        *inputBuffer++ = (char) character;
         count++;
         if (count == bufferSize - 1) {
             break;
         }
     }
     fcntl(fileno(stdin), F_SETFL, flags);
-    *inputBuffer++ = 0;
+    *inputBuffer = '\0';
 }
 
 static void cleanupPythonThread(void* arg) {

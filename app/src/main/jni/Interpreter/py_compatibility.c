@@ -4,7 +4,6 @@
 
 #include "py_compatibility.h"
 #include <dlfcn.h>
-#include <link.h>
 #include "Log/log.h"
 
 void* pythonLib = NULL;
@@ -17,7 +16,7 @@ int setPythonLibrary(const char* libName) {
         const char* (*Py_getVersionString)(void);
         Py_getVersionString = dlsym(pythonLib, "Py_getVersionString");
         if (Py_getVersionString != NULL) {
-            pythonVersion = (const char*) Py_getVersionString();
+            pythonVersion = Py_getVersionString();
             return 1;
         } else {
             LOG_ERROR("Py_compatibility: Didn't found method 'Py_getVersionString' in the python library.");
@@ -46,14 +45,14 @@ int call_Py_Main(int argc, char** argv) {
         int (*Py_Main)(int, char **);
         Py_Main = dlsym(pythonLib, "Py_Main");
         if (Py_Main != NULL) {
-            return (int) Py_Main(argc, argv);
+            return Py_Main(argc, argv);
         }
         LOG_ERROR("Py_compatibility: Didn't found method 'Py_Main' in the python library.");
     } else {
         int (*oldPy_Main)(int, char **);
         oldPy_Main = dlsym(pythonLib, "oldPy_Main");
         if (oldPy_Main != NULL) {
-            return (int) oldPy_Main(argc, argv);
+            return oldPy_Main(argc, argv);
         }
         LOG_ERROR("Py_compatibility: Didn't found method 'oldPy_Main' in the python library.");
     }
@@ -98,7 +97,7 @@ void* call_PyMem_Malloc(size_t length) {
         PyMem_RawMalloc = dlsym(pythonLib, "PyMem_RawMalloc");
         if (PyMem_RawMalloc != NULL) {
             LOG("Running new PyMem_RawMalloc");
-            return (void*) PyMem_RawMalloc(length);
+            return PyMem_RawMalloc(length);
         }
         LOG_ERROR("Py_compatibility: Didn't found method 'PyMem_RawMalloc' in the python library.");
     } else {
@@ -106,7 +105,7 @@ void* call_PyMem_Malloc(size_t length) {
         PyMem_Malloc = dlsym(pythonLib, "PyMem_Malloc");
         if (PyMem_Malloc != NULL) {
             LOG("Running old PyMem_Malloc");
-            return (void*) PyMem_Malloc(length); // TODO: Not thread safe
+            return PyMem_Malloc(length); // TODO: Not thread safe
         }
         LOG_ERROR("Py_compatibility: Didn't found method 'PyMem_Malloc' in the python library.");
     }
@@ -123,7 +122,7 @@ PyOS_InputHookFunc get_PyOS_InputHook() {
 }
 
 void set_PyOS_ReadlineFunctionPointer(char *(*func)(FILE *, FILE *, const char *)) {
-    void (*set_PyOS_ReadlineFunctionPointer)(char *(*func)(FILE *, FILE *, const char *));
+    void (*set_PyOS_ReadlineFunctionPointer)(char *(*)(FILE *, FILE *, const char *));
     set_PyOS_ReadlineFunctionPointer = dlsym(pythonLib, "set_PyOS_ReadlineFunctionPointer");
     if (set_PyOS_ReadlineFunctionPointer != NULL) {
         set_PyOS_ReadlineFunctionPointer(func);
