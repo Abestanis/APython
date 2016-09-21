@@ -233,8 +233,29 @@ public class PackageManager {
      */
     @SuppressLint("UnsafeDynamicallyLoadedCode")
     public static void loadAdditionalLibraries(Context context) {
-        for (File additionalLibrary : getAdditionalLibraries(context)) {
-            System.load(additionalLibrary.getAbsolutePath());
+        File[] additionalLibraries = getAdditionalLibraries(context);
+        if (additionalLibraries.length == 0) return;
+        int numPrevFailed = additionalLibraries.length;
+        ArrayList<File> failedLibs = new ArrayList<>(additionalLibraries.length);
+        while (additionalLibraries[0] != null) {
+            for (File additionalLibrary : additionalLibraries) {
+                if (additionalLibrary == null) break;
+                try {
+                    System.load(additionalLibrary.getAbsolutePath());
+                } catch (UnsatisfiedLinkError unused) {
+                    failedLibs.add(additionalLibrary);
+                }
+            }
+            if (numPrevFailed == failedLibs.size()) {
+                Log.w(MainActivity.TAG, "The following additional libraries could not be loaded:");
+                for (File failedLib : failedLibs) {
+                    Log.w(MainActivity.TAG, failedLib.getAbsolutePath());
+                }
+                return;
+            }
+            additionalLibraries = failedLibs.toArray(additionalLibraries);
+            numPrevFailed = failedLibs.size();
+            failedLibs.clear();
         }
     }
 
