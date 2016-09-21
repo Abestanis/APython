@@ -11,58 +11,45 @@ android {
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
+        externalNativeBuild {
+            ndkBuild {
+                arguments 'NDK_APPLICATION_MK:=' + file('src/main/jni/Application.mk').absolutePath
+            }
+        }
     }
     buildTypes {
         release {
-            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-        debug {
-            jniDebuggable true
-        }
     }
-    sourceSets.main {
-        jniLibs.srcDirs = ['src/main/libs']
-        jni.srcDirs = [] //disable automatic ndk-build
+    externalNativeBuild {
+        ndkBuild {
+            path file('src/main/jni/Android.mk')
+        }
     }
     tasks.whenTaskAdded {
         task ->
-            if (task.name == 'generateDebugSources') {
-                //noinspection GroovyAssignabilityCheck
-                task.dependsOn ndkBuild
+            if (task.name == 'processDebugResources') {
+                task.dependsOn {
+                    copyPythonExecutable
+                }
             }
     }
-    Properties properties = new Properties()
-    properties.load(project.rootProject.file('local.properties').newDataInputStream())
-    def ndkDir = properties.getProperty('ndk.dir')
-    def executable = 'sh'
-    def firstArg   = '-c'
-    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        executable = 'cmd'
-        firstArg   = '/c'
-    }
-    //noinspection GroovyAssignabilityCheck
-    task ndkBuild(type: Exec, description: 'Compile JNI source via NDK.') {
+    task compileExecutable(type: Exec, description: 'Generate the python executable binaries.') {
         workingDir file('src/main')
         inputs.dir file('src/main/jni')
         outputs.dir file('src/main/libs')
-        commandLine executable, firstArg, new File("$ndkDir", 'ndk-build').getAbsolutePath(), 'NDK_OUT=' + getBuildDir().absolutePath.replace('\\', '/') + '/intermediates/ndk/obj'
+        executable Os.isFamily(Os.FAMILY_WINDOWS) ? 'cmd' : 'sh'
+        args Os.isFamily(Os.FAMILY_WINDOWS) ? '/c' : '-c',
+                new File(getNdkDirectory(), 'ndk-build.cmd').absolutePath + 
+                ' NDK_APPLICATION_MK=jni/Application.mk APP_BUILD_SCRIPT=jni/PythonExecutable/Android.mk' +
+                ' NDK_OUT=' + getBuildDir().absolutePath + '/intermediates/ndk/obj'
     }
-    ndkBuild.onlyIf {
-        if (ndkDir == null) {
-            throw new NoSuchElementException('NDK location not found! Define the location with ndk.dir in the local.properties file.')
-        }
-        true
-    }
-    ndkBuild.finalizedBy {
-        copyPythonExecutable
-    }
-    //noinspection GroovyAssignabilityCheck
-    task copyPythonExecutable(type: Copy, description: 'Copys the Python executable to the raw directory.', dependsOn: 'ndkBuild') {
-        from new File(project.getProjectDir().absolutePath + '\\src\\main\\libs\\armeabi-v7a\\python')
+    task copyPythonExecutable(type: Copy,
+            description: 'Creates a copy of the generated Python executable to the raw directory.') {
+        from 'src/main/libs/armeabi-v7a/python'
         into 'src/main/res/raw'
-    }
-    productFlavors {
+        dependsOn compileExecutable
     }
 }
 

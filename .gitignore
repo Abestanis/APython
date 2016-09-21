@@ -7,5 +7,6 @@
 /captures
 Thumbs.db
 .idea
+.externalNativeBuild
 /app/src/main/libs
 /app/src/main/res/raw/python
