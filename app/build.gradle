@@ -47,7 +47,9 @@ android {
     }
     task copyPythonExecutable(type: Copy,
             description: 'Creates a copy of the generated Python executable to the raw directory.') {
-        from 'src/main/libs/armeabi-v7a/python'
+        from('src/main/libs/armeabi-v7a') {
+            include 'python*'
+        }
         into 'src/main/res/raw'
         dependsOn compileExecutable
     }
