@@ -4,6 +4,8 @@
 extern "C" {
 #endif
 
+#define LOG_ERROR(msg, args...) fprintf(stderr, "fatal: " msg "\n", ##args)
+
 int main(int argc, char** argv);
 
 #ifdef __cplusplus

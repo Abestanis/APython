@@ -1,12 +1,22 @@
-LOCAL_PATH := $(call my-dir)
+PY_EXEC_LOCAL_PATH := $(call my-dir)
+PY_EXEC_LD_FLAGS := -rpath '$$ORIGIN/lib'
+
+# With position independent code support
+LOCAL_PATH := $(PY_EXEC_LOCAL_PATH)
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := python_pie
+LOCAL_LDFLAGS := -pie $(PY_EXEC_LD_FLAGS)
+LOCAL_SRC_FILES := main.c
+
+include $(BUILD_EXECUTABLE)
+
+# Without position independent code support
+LOCAL_PATH := $(PY_EXEC_LOCAL_PATH)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := python
+LOCAL_LDFLAGS := $(PY_EXEC_LD_FLAGS)
 LOCAL_SRC_FILES := main.c
-# To work around "error: only position independent executables (PIE) are supported."
-# http://stackoverflow.com/questions/30498776/position-independent-executables-and-android-lollipop#30547603
-LOCAL_CFLAGS += -fPIE
-LOCAL_LDFLAGS += -fPIE -pie
-LOCAL_SHARED_LIBRARIES := pythonPatch pyLog pyInterpreter
 
 include $(BUILD_EXECUTABLE)

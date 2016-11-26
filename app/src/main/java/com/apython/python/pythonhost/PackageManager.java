@@ -284,6 +284,7 @@ public class PackageManager {
 
     public static boolean installPythonExecutable(Context context, ProgressHandler progressHandler) {
         File executable = getPythonExecutable(context);
+        // TODO: Extract pie executable based on android sdk version
         if (executable.exists()) { // TODO: Check if we really need to update it.
             if (!executable.delete()) {
                 Log.w(MainActivity.TAG, "Could not delete previously installed python executable.");
