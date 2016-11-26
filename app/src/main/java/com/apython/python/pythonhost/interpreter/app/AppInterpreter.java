@@ -30,7 +30,7 @@ import com.apython.python.pythonhost.views.terminalwm.WindowManagerFragment;
  * 
  * Since this class and all other classes from the Python host will be loaded by
  * a different classloader then the {@link AppInterpreter#hostingAppActivity}, we
- * need to take special care thet nothin accidantally uses the classloader of the
+ * need to take special care that nothing accidentally uses the classloader of the
  * hostingAppActivity (e.g. the {@link android.view.LayoutInflater LayoutInflater})!
  * <p>
  * 
@@ -166,12 +166,12 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 
     @Override
     public void destroyWindow(Window window) {
-        finish();
+        hostingAppActivity.finish();
     }
 
     @Override
     public void setWindowName(Window window, String name) {
-        setTitle(name);
+        hostingAppActivity.setTitle(name);
     }
 
     @Override
