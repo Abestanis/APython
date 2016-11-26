@@ -4,28 +4,36 @@
 
 #include "py_compatibility.h"
 #include <dlfcn.h>
+#include <link.h>
 #include "Log/log.h"
 
 void* pythonLib = NULL;
-const char* pythonVersion = NULL;
+char pythonVersion[32] = { [0] = '\0'};
 
 int setPythonLibrary(const char* libName) {
     pythonLib = dlopen(libName, RTLD_LAZY);
     if (pythonLib != NULL) {
         setenv("PYTHON_LIBRARY_NAME", libName, 1);
-        const char* (*Py_getVersionString)(void);
-        Py_getVersionString = dlsym(pythonLib, "Py_getVersionString");
-        if (Py_getVersionString != NULL) {
-            pythonVersion = Py_getVersionString();
-            return 1;
+        const char* (*Py_GetVersion)(void) = dlsym(pythonLib, "Py_GetVersion");
+        if (Py_GetVersion != NULL) {
+            const char* pythonVersionStr = Py_GetVersion();
+            char* spacePointer = strchr(pythonVersionStr, ' ');
+            if (spacePointer != NULL) {
+                size_t versionEndIndex = (spacePointer - pythonVersionStr) / sizeof(char);
+                strncpy(pythonVersion, pythonVersionStr, versionEndIndex);
+                LOG_INFO_("Py_compatibility: PyVersion is '%s'", pythonVersion);
+                return 1;
+            } else {
+                LOG_ERROR("Py_compatibility: Unable to extract the Python version from the return "
+                          "value of 'Py_GetVersion' : '%s'", pythonVersionStr);
+            }
         } else {
-            LOG_ERROR("Py_compatibility: Didn't found method 'Py_getVersionString' in the python library.");
-            return 0;
+            LOG_ERROR("Py_compatibility: Didn't found method 'Py_GetVersion' in the python library.");
         }
     } else {
         LOG_ERROR("Failed to load the Python library (%s): %s", libName, dlerror());
-        return 0;
     }
+    return 0;
 }
 
 void closePythonLibrary() {
@@ -41,21 +49,14 @@ const char* getPythonVersion() {
 }
 
 int call_Py_Main(int argc, char** argv) {
-    if (pythonVersion[0] == '2' || pythonVersion[0] == '1') {
-        int (*Py_Main)(int, char **);
-        Py_Main = dlsym(pythonLib, "Py_Main");
-        if (Py_Main != NULL) {
-            return Py_Main(argc, argv);
-        }
-        LOG_ERROR("Py_compatibility: Didn't found method 'Py_Main' in the python library.");
-    } else {
-        int (*oldPy_Main)(int, char **);
-        oldPy_Main = dlsym(pythonLib, "oldPy_Main");
-        if (oldPy_Main != NULL) {
-            return oldPy_Main(argc, argv);
-        }
-        LOG_ERROR("Py_compatibility: Didn't found method 'oldPy_Main' in the python library.");
+    static const char* pyMain = "Py_Main";
+    static const char* pyMain3 = "main";
+    const char* mainFuncName = pythonVersion[0] >= '3' || pythonVersion[1] != '.' ? pyMain3 : pyMain;
+    int (*Py_Main)(int, char **) = dlsym(pythonLib, mainFuncName);
+    if (Py_Main != NULL) {
+        return Py_Main(argc, argv);
     }
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", mainFuncName);
     return 1;
 }
 
@@ -92,23 +93,13 @@ void call_Py_SetProgramName(char* arg) {
 }
 
 void* call_PyMem_Malloc(size_t length) {
-    if (pythonVersion[0] - '0' >= 3 && pythonVersion[2] - '0' >= 4) {
-        void* (*PyMem_RawMalloc)(size_t);
-        PyMem_RawMalloc = dlsym(pythonLib, "PyMem_RawMalloc");
-        if (PyMem_RawMalloc != NULL) {
-            LOG("Running new PyMem_RawMalloc");
-            return PyMem_RawMalloc(length);
-        }
-        LOG_ERROR("Py_compatibility: Didn't found method 'PyMem_RawMalloc' in the python library.");
-    } else {
-        void* (*PyMem_Malloc)(size_t);
-        PyMem_Malloc = dlsym(pythonLib, "PyMem_Malloc");
-        if (PyMem_Malloc != NULL) {
-            LOG("Running old PyMem_Malloc");
-            return PyMem_Malloc(length); // TODO: Not thread safe
-        }
-        LOG_ERROR("Py_compatibility: Didn't found method 'PyMem_Malloc' in the python library.");
+    char* pyMallocFuncName = pythonVersion[0] >= '3' && pythonVersion[2] >= '4'
+                           ? "PyMem_RawMalloc" : "PyMem_Malloc";
+    void* (*PyMalloc)(size_t) = dlsym(pythonLib, pyMallocFuncName);
+    if (PyMalloc != NULL) {
+        return PyMalloc(length);
     }
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", pyMallocFuncName);
     return NULL;
 }
 
