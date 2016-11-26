@@ -70,6 +70,7 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
                                       this.context.getFilesDir().getAbsolutePath(),
                                       PackageManager.getTempDir(this.context).getAbsolutePath(),
                                       PackageManager.getXDGBase(this.context).getAbsolutePath(),
+                                      PackageManager.getDataPath(this.context).getAbsolutePath(),
                                       logTag,
                                       interpreterArgs,
                                       this.ioHandler != null);
@@ -188,7 +189,7 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
     public  native void   dispatchKey(int character);
     public  native void   sendStringToStdin(String string);
     public  native String getEnqueueInput();
-    private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pyHostLibPath, String pythonHome, String pythonTemp, String xdcBasePath, String appTag, String[] interpreterArgs, boolean redirectOutput);
+    private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pyHostLibPath, String pythonHome, String pythonTemp, String xdcBasePath, String dataPath, String appTag, String[] interpreterArgs, boolean redirectOutput);
     private native void   interruptInterpreter();
     private native void   stopInterpreter();
 }

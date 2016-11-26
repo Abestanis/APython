@@ -19,8 +19,8 @@ static int saved_stderr;
 pthread_t pythonThread;
 
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
-                 const char* pythonHome, const char* pythonTemp, const char* xdgBasePath) {
-    const char* noValue = "";
+                 const char* pythonHome, const char* pythonTemp, const char* xdgBasePath,
+                 const char* dataDir) {
     const char* value = (const char*) getenv("LD_LIBRARY_PATH");
     if (value == NULL) { value = noValue; }
     if (value == noValue || strstr(value, pythonLibs) == NULL) { // Check if our Path is already in LD_LIBRARY_PATH
@@ -66,8 +66,42 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     setenv("XDG_CONFIG_HOME", configHome, 1);
     free((char*) configHome);
 
-    // TODO: Temporary
-    setenv("TCL_LIBRARY", "/data/data/com.apython.python.pythonhost/files/data/tcl8.6.4/library", 1);
+    // Search dataDir for best 'tcl' dir
+    char* tclDirName = NULL;
+    size_t dirNameLen = 0, nameLen = 0;
+    int majorVersion, maxMajorVersion = 0;
+    int minorVersion, maxMinorVersion = 0;
+    DIR* dir = opendir(dataDir);
+    struct dirent* entry;
+    if (dir != NULL) {
+        while ((entry = readdir(dir)) != NULL) {
+            if (strncmp(entry->d_name, "tcl", 3) == 0) {
+                if (sscanf(entry->d_name, "tcl%d.%d", &majorVersion, &minorVersion) != 2) continue;
+                if (majorVersion > maxMajorVersion || (majorVersion == maxMajorVersion && minorVersion > maxMinorVersion)) {
+                    maxMajorVersion = majorVersion;
+                    maxMinorVersion = minorVersion;
+                    nameLen = strlen(entry->d_name);
+                    if (nameLen > dirNameLen) {
+                        if (tclDirName != NULL) free(tclDirName);
+                        tclDirName = malloc(sizeof(char) * (nameLen + 1));
+                        dirNameLen = nameLen;
+                    }
+                    strncpy(tclDirName, entry->d_name, nameLen + 1);
+                }
+            }
+        }
+        closedir(dir);
+    } else {
+        LOG_WARN("Failed to open the data directory: %s", dataDir);
+    }
+    if (tclDirName != NULL) {
+        size_t tclDirPathLen = strlen(dataDir) + 1 + strlen(tclDirName) + strlen("/library") + 1;
+        const char* tclLibDir = malloc(sizeof(char) * tclDirPathLen);
+        ASSERT(tclLibDir != NULL, "Not enough memory to construct 'TCL_LIBRARY'!");
+        snprintf((char*) tclLibDir, tclDirPathLen, "%s/%s/library", dataDir, tclDirName);
+        setenv("TCL_LIBRARY", tclLibDir, 1);
+        free((char*) tclLibDir);
+    }
 }
 
 void setupStdinEmulation() {
