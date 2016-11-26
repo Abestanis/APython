@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <libgen.h>
+#include <dirent.h>
 #include "Log/log.h"
 #include "py_compatibility.h"
 
@@ -21,16 +22,14 @@ pthread_t pythonThread;
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
                  const char* pythonHome, const char* pythonTemp, const char* xdgBasePath,
                  const char* dataDir) {
+    const char* NO_VALUE = "";
     const char* value = (const char*) getenv("LD_LIBRARY_PATH");
-    if (value == NULL) { value = noValue; }
-    if (value == noValue || strstr(value, pythonLibs) == NULL) { // Check if our Path is already in LD_LIBRARY_PATH
-        const char* newValue = malloc(sizeof(char) * (strlen(pythonHostLibs) + strlen(pythonLibs) + strlen(value) + 3));
+    if (value == NULL) { value = NO_VALUE; }
+    if (strstr(value, pythonLibs) == NULL) { // Check if our path is already in LD_LIBRARY_PATH
+        size_t ldLibLen = strlen(pythonHostLibs) + strlen(pythonLibs) + strlen(value) + 3;
+        const char* newValue = malloc(sizeof(char) * (ldLibLen));
         ASSERT(newValue != NULL, "Not enough memory to change 'LD_LIBRARY_PATH'!");
-        strcpy((char*) newValue, pythonHostLibs);
-        strcat((char*) newValue, ":");
-        strcat((char*) newValue, pythonLibs);
-        strcat((char*) newValue, ":");
-        strcat((char*) newValue, value);
+        snprintf((char*) newValue, ldLibLen, "%s:%s:%s", pythonHostLibs, pythonLibs, value);
         setenv("LD_LIBRARY_PATH", newValue, 1);
         free((char*) newValue);
     }
@@ -48,21 +47,18 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
 
     setenv("TMPDIR", pythonTemp, 1);
     setenv("XDG_CACHE_HOME", pythonTemp, 1);
-
-    const char* dataAppendix = "/.local/share";
-    const char* configAppendix = "/.config";
-
-    const char* dataHome = malloc(sizeof(char) * (strlen(xdgBasePath) + strlen(dataAppendix) + 1));
+    
+    size_t dataHomeLen = strlen(xdgBasePath) + strlen("/.local/share") + 1;
+    const char* dataHome = malloc(sizeof(char) * dataHomeLen);
     ASSERT(dataHome != NULL, "Not enough memory to construct 'XDG_DATA_HOME'!");
-    strcpy((char*) dataHome, xdgBasePath);
-    strcat((char*) dataHome, dataAppendix);
+    snprintf((char*) dataHome, dataHomeLen, "%s/.local/share", xdgBasePath);
     setenv("XDG_DATA_HOME", dataHome, 1);
     free((char*) dataHome);
-
-    const char* configHome = malloc(sizeof(char) * (strlen(xdgBasePath) + strlen(configAppendix) + 1));
+    
+    size_t configHomeLen = strlen(xdgBasePath) + strlen("/.configy") + 1;
+    const char* configHome = malloc(sizeof(char) * configHomeLen);
     ASSERT(configHome != NULL, "Not enough memory to construct 'XDG_CONFIG_HOME'!");
-    strcpy((char*) configHome, xdgBasePath);
-    strcat((char*) configHome, configAppendix);
+    snprintf((char*) configHome, configHomeLen, "%s/.configy", xdgBasePath);
     setenv("XDG_CONFIG_HOME", configHome, 1);
     free((char*) configHome);
 
