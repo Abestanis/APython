@@ -7,7 +7,7 @@ android {
     buildToolsVersion '23.0.3'
     defaultConfig {
         applicationId "com.apython.python.pythonhost"
-        minSdkVersion 8
+        minSdkVersion 9
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
@@ -43,7 +43,7 @@ android {
         args Os.isFamily(Os.FAMILY_WINDOWS) ? '/c' : '-c',
                 new File(getNdkDirectory(), 'ndk-build.cmd').absolutePath + 
                 ' NDK_APPLICATION_MK=jni/Application.mk APP_BUILD_SCRIPT=jni/PythonExecutable/Android.mk' +
-                ' NDK_OUT=' + getBuildDir().absolutePath + '/intermediates/ndk/obj'
+                ' NDK_OUT=' + getBuildDir().absolutePath + '/intermediates/ndkBuild/obj'
     }
     task copyPythonExecutable(type: Copy,
             description: 'Creates a copy of the generated Python executable to the raw directory.') {
