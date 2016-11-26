@@ -189,6 +189,9 @@ public class TerminalInput extends EditText {
         if (!isInputMethodTarget()) {
             tryRegainSoftInputFocus();
         }
+        if (enqueuedInput.indexOf('\n') != -1) {
+            this.commitHandler.onCommit(this);
+        }
     }
 
     /**
