@@ -190,7 +190,12 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
             char *arg = malloc(sizeof(char) * (strlen(argument) + 1));
             if (arg == NULL) {
                 LOG_ERROR("Failed to allocate space for argument %d ('%s')!", i, argument);
-                return 1;
+                (*env)->ReleaseStringUTFChars(env, jArgument, argument);
+                for (i--; i >= 2; i--) {
+                    free(argv[i]);
+                }
+                free(argv);
+                return 1; // TODO: Cleanup
             }
             arg = strcpy(arg, argument);
             argv[i + 1] = arg;
@@ -216,6 +221,10 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     (*env)->ReleaseStringUTFChars(env, jDataPath, dataPath);
     (*env)->DeleteGlobalRef(env, jPyInterpreter);
     closePythonLibrary();
+    for (i = 2; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
     jPyInterpreter = NULL;
     return result;
 }
