@@ -17,6 +17,7 @@ import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
@@ -154,10 +155,35 @@ public class PythonInterpreterActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        if (terminalWindowManager instanceof ActivityLifecycleEventListener) {
+            ((ActivityLifecycleEventListener) terminalWindowManager).onDestroy();
+        }
         if (interpreter != null && interpreter.isRunning()) {
             interpreter.terminate();
         }
+        super.onDestroy();
+    }
+
+    @Override
+    public void onLowMemory() {
+        if (terminalWindowManager instanceof ActivityLifecycleEventListener) {
+            ((ActivityLifecycleEventListener) terminalWindowManager).onLowMemory();
+        }
+        super.onLowMemory();
+    }
+
+    @Override
+    protected void onPause() {
+        if (terminalWindowManager instanceof ActivityLifecycleEventListener)
+            ((ActivityLifecycleEventListener) terminalWindowManager).onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        if (terminalWindowManager instanceof ActivityLifecycleEventListener)
+            ((ActivityLifecycleEventListener) terminalWindowManager).onResume();
+        super.onResume();
     }
 
     @Override

@@ -16,16 +16,9 @@ public interface WindowManagerInterface {
         void close();
         String getTag();
     }
-    interface ActivityEventsListener {
-        void onPause();
-        void onResume();
-        void onLowMemory();
-        void onDestroy();
-    }
     <T extends PythonFragment & Window> T createWindow(Class<T> windowClass);
     void destroyWindow(Window window);
     void setWindowName(Window window, String name);
     void setWindowIcon(Window window, Drawable icon);
-    void setActivityEventsListener(ActivityEventsListener eventsListener);
     PythonFragment getCurrentWindow();
 }

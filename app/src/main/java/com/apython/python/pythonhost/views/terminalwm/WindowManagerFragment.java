@@ -10,9 +10,10 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 
 import com.apython.python.pythonhost.R;
+import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
-import com.apython.python.pythonhost.views.sdl.SDLWindowFragment;
+import com.apython.python.pythonhost.views.sdl.SDLLibraryHandler;
 import com.apython.python.pythonhost.views.terminal.TerminalFragment;
 
 import java.util.ArrayList;
@@ -25,19 +26,17 @@ import java.util.concurrent.CountDownLatch;
  * Created by Sebastian on 08.01.2016.
  */
 
-public class WindowManagerFragment extends PythonFragment implements WindowManagerInterface {
+public class WindowManagerFragment extends PythonFragment implements 
+        WindowManagerInterface, ActivityLifecycleEventListener {
     private static final String TAG = "TerminalWindowManager";
     private WindowManagerFragmentTabHost tabHost;
-    private              ActivityEventsListener activityEventsListener = null;
     private static final String                 DEFAULT_UNTITLED_NAME  = "Untitled";
     private final        ArrayList<String>      windowNames            = new ArrayList<>(5);
     private final        ArrayList<Window>      windows                = new ArrayList<>(5);
 
     public WindowManagerFragment(Activity activity, String tag) {
         super(activity, tag);
-        if (SDLWindowFragment.initLibraries(activity)) {
-            SDLWindowFragment.setWindowManager(this);
-        }
+        SDLLibraryHandler.initLibraries(activity, this);
     }
 
     @Override
@@ -117,44 +116,26 @@ public class WindowManagerFragment extends PythonFragment implements WindowManag
     public void setWindowIcon(Window window, Drawable icon) {
         tabHost.setTabIcon(window.getTag(), icon);
     }
-
+    
     @Override
-    public void setActivityEventsListener(ActivityEventsListener eventsListener) {
-        activityEventsListener = eventsListener;
+    public void onPause() {
+        SDLLibraryHandler.onActivityPause();
     }
 
-    // TODO
-//    @Override
-//    public void onPause() {
-//        super.onPause();
-//        if (activityEventsListener != null) {
-//            activityEventsListener.onPause();
-//        }
-//    }
-//
-//    @Override
-//    public void onResume() {
-//        super.onResume();
-//        if (activityEventsListener != null) {
-//            activityEventsListener.onResume();
-//        }
-//    }
-//
-//    @Override
-//    public void onDestroy() {
-//        super.onDestroy();
-//        if (activityEventsListener != null) {
-//            activityEventsListener.onDestroy();
-//        }
-//    }
-//
-//    @Override
-//    public void onLowMemory() {
-//        super.onLowMemory();
-//        if (activityEventsListener != null) {
-//            activityEventsListener.onLowMemory();
-//        }
-//    }
+    @Override
+    public void onResume() {
+        SDLLibraryHandler.onActivityResume();
+    }
+
+    @Override
+    public void onDestroy() {
+        SDLLibraryHandler.onActivityDestroyed();
+    }
+
+    @Override
+    public void onLowMemory() {
+        SDLLibraryHandler.onActivityLowMemory();
+    }
 
     private int getWindowIndex(Window window) {
         return windows.indexOf(window);

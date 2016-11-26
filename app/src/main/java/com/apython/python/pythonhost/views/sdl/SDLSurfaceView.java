@@ -1,7 +1,6 @@
 package com.apython.python.pythonhost.views.sdl;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.Sensor;
@@ -27,7 +26,7 @@ import android.view.WindowManager;
  * Created by Sebastian on 20.11.2015.
  */
 
-public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
+class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         View.OnKeyListener, View.OnTouchListener, SensorEventListener {
     private static final String TAG = "SDLSurfaceView";
 
@@ -39,7 +38,7 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     private float width, height;
     private static int displayWidth = -1, displayHeight = -1;
 
-    private SDLWindowFragment sdlWindow;
+    SDLWindowFragment sdlWindow;
     private final Object  surfaceCreationNotifier = new Object();
     private       boolean isSurfaceReady          = false;
     private       boolean surfaceWasDestroyed     = false;
@@ -84,6 +83,11 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
             sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         }
 
+        if(Build.VERSION.SDK_INT >= 12) {
+            setOnGenericMotionListener(new SDLGenericMotionListener());
+        }
+
+
         // Some arbitrary defaults to avoid a potential division by zero
         width = 1.0f;
         height = 1.0f;
@@ -105,6 +109,8 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         if (hasFocus()) {
             sdlWindow.onNativeWindowFocusChanged(true);
         }
+        //noinspection deprecation
+        holder.setType(SurfaceHolder.SURFACE_TYPE_GPU);
     }
 
     // Called when we lose the surface
@@ -126,7 +132,7 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
                                int format, int width, int height) {
         Log.v(TAG, "surfaceChanged()");
 
-        int sdlFormat = SDLPixelFormat.RGB565;
+        int sdlFormat = SDLPixelFormat.UNKNOWN;
         switch (format) {
         //noinspection deprecation
         case PixelFormat.A_8:
@@ -172,6 +178,7 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
             // Not sure this is right, maybe RGB24 instead?
             sdlFormat = SDLPixelFormat.RGB888;
             break;
+        case PixelFormat.UNKNOWN:
         default:
             Log.v(TAG, "pixel format unknown " + format);
             break;
@@ -182,27 +189,12 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         this.height = height;
         sdlWindow.onNativeResize(width, height, sdlFormat);
         Log.v(TAG, "Window size: " + width + "x" + height);
-
-        // Set isSurfaceReady to 'true' *before* making a call to handleResume
-        isSurfaceReady = true;
-        sdlWindow.onNativeSurfaceChanged();
-
         if (surfaceWasDestroyed) {
             surfaceWasDestroyed = false;
             sdlWindow.onNativeRestoreWindow();
+            sdlWindow.onNativeSurfaceChanged();
         }
-    }
-
-    // unused
-    @Override
-    public void onDraw(Canvas canvas) {}
-
-    private int getEventSource(KeyEvent event) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            return event.getSource();
-        } else {
-            return InputDevice.SOURCE_KEYBOARD;
-        }
+        isSurfaceReady = true;
     }
 
     // Key events
@@ -212,11 +204,13 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         // Some SOURCE_DPAD or SOURCE_GAMEPAD are also SOURCE_KEYBOARD
         // So, we try to process them as DPAD or GAMEPAD events first, if that fails we try them as KEYBOARD
 
-        int SOURCE_GAMEPAD = 0x00000401;
+        final int SOURCE_GAMEPAD;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
             SOURCE_GAMEPAD = InputDevice.SOURCE_GAMEPAD;
+        } else {
+            SOURCE_GAMEPAD = 0x00000401;
         }
-        int source = getEventSource(event);
+        int source = event.getSource();
 
         if ((source & SOURCE_GAMEPAD) != 0 || (source & InputDevice.SOURCE_DPAD) != 0 ) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -250,40 +244,75 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         final int pointerCount = event.getPointerCount();
         int action = event.getActionMasked();
         int pointerFingerId;
+        int mouseButton;
         int i = -1;
         float x,y,p;
 
-        switch(action) {
-        case MotionEvent.ACTION_MOVE:
-            for (i = 0; i < pointerCount; i++) {
+        if (event.getSource() == InputDevice.SOURCE_MOUSE && SDLLibraryHandler.separateMouseAndTouch) {
+            if (Build.VERSION.SDK_INT < 14) {
+                mouseButton = 1;    // For Android < 14 all mouse buttons are the left button
+            } else {
+                mouseButton = event.getButtonState();
+            }
+            sdlWindow.onNativeMouse(mouseButton, action, event.getX(0), event.getY(0));
+        } else {
+            switch (action) {
+            case MotionEvent.ACTION_MOVE:
+                for (i = 0; i < pointerCount; i++) {
+                    pointerFingerId = event.getPointerId(i);
+                    x = event.getX(i) / width;
+                    y = event.getY(i) / height;
+                    p = event.getPressure(i);
+                    if (p > 1.0f) {
+                        // may be larger than 1.0f on some devices
+                        // see the documentation of getPressure(i)
+                        p = 1.0f;
+                    }
+                    sdlWindow.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_DOWN:
+                // Primary pointer up/down, the index is always zero
+                i = 0;
+            case MotionEvent.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_POINTER_DOWN:
+                // Non primary pointer up/down
+                if (i == -1) {
+                    i = event.getActionIndex();
+                }
+
                 pointerFingerId = event.getPointerId(i);
                 x = event.getX(i) / width;
                 y = event.getY(i) / height;
                 p = event.getPressure(i);
+                if (p > 1.0f) {
+                    // may be larger than 1.0f on some devices
+                    // see the documentation of getPressure(i)
+                    p = 1.0f;
+                }
                 sdlWindow.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
+                break;
+
+            case MotionEvent.ACTION_CANCEL:
+                for (i = 0; i < pointerCount; i++) {
+                    pointerFingerId = event.getPointerId(i);
+                    x = event.getX(i) / width;
+                    y = event.getY(i) / height;
+                    p = event.getPressure(i);
+                    if (p > 1.0f) {
+                        // may be larger than 1.0f on some devices
+                        // see the documentation of getPressure(i)
+                        p = 1.0f;
+                    }
+                    sdlWindow.onNativeTouch(touchDevId, pointerFingerId, MotionEvent.ACTION_UP, x, y, p);
+                }
+                break;
+
+            default:
+                break;
             }
-            break;
-
-        case MotionEvent.ACTION_UP:
-        case MotionEvent.ACTION_DOWN:
-            // Primary pointer up/down, the index is always zero
-            i = 0;
-        case MotionEvent.ACTION_POINTER_UP:
-        case MotionEvent.ACTION_POINTER_DOWN:
-            // Non primary pointer up/down
-            if (i == -1) {
-                i = event.getActionIndex();
-            }
-
-            pointerFingerId = event.getPointerId(i);
-            x = event.getX(i) / width;
-            y = event.getY(i) / height;
-            p = event.getPressure(i);
-            sdlWindow.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
-            break;
-
-        default:
-            break;
         }
 
         return true;
@@ -307,17 +336,11 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     public void enableSensor(int sensorType, boolean enabled) {
         // TODO: This uses getDefaultSensor - what if we have >1 accels?
         if (enabled) {
-            sensorManager.registerListener(this,
-                                            sensorManager.getDefaultSensor(sensorType),
-                                            SensorManager.SENSOR_DELAY_GAME, null);
+            sensorManager.registerListener(this, sensorManager.getDefaultSensor(sensorType),
+                                           SensorManager.SENSOR_DELAY_GAME, null);
         } else {
-            sensorManager.unregisterListener(this,
-                                              sensorManager.getDefaultSensor(sensorType));
+            sensorManager.unregisterListener(this, sensorManager.getDefaultSensor(sensorType));
         }
-    }
-
-    public boolean isSurfaceReady() {
-        return isSurfaceReady;
     }
 
     public static void updateDisplaySize(Display display) {
@@ -340,7 +363,9 @@ public class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
             displayHeight = size.y;
             changed = true;
         }
-        if (changed) SDLWindowFragment.nativeDisplayResize(displayWidth, displayHeight);
+        if (changed) {
+            SDLLibraryHandler.nativeDisplayResize(displayWidth, displayHeight, display.getRefreshRate());
+        }
     }
 
     @Override

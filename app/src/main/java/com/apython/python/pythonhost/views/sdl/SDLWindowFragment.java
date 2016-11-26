@@ -1,6 +1,5 @@
 package com.apython.python.pythonhost.views.sdl;
 
-import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
@@ -8,8 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -22,13 +19,14 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
-import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.R;
+import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
-import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.nio.IntBuffer;
 import java.util.Arrays;
 
@@ -38,11 +36,10 @@ import java.util.Arrays;
  * 
  * Created by Sebastian on 21.11.2015.
  */
-public class SDLWindowFragment extends PythonFragment implements SDLWindowInterface {
+public class SDLWindowFragment extends PythonFragment implements
+        SDLWindowInterface, ActivityLifecycleEventListener {
 
     public static final String TAG = "SDL";
-
-    private static Context staticContext = null;
 
     private SDLSurfaceView surface;
     private RelativeLayout layout = null;
@@ -51,52 +48,24 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
 
     // Used from jni
     private long nativeWindowId;
-
+    
     // Main components
-    private static final SDLJoystickHandler joystickHandler = new SDLJoystickHandler();
+    static final SDLJoystickHandler joystickHandler = new SDLJoystickHandler();
 
     // Audio
     private SDLAudioHandler audioHandler = null;
-
-    // Handler for the messages
-    Handler commandHandler = null;
-
-    private static WindowManagerInterface windowManager = null;
 
     private final InputMethodManager inputMethodManager;
 
     public SDLWindowFragment(Activity activity, String tag) {
         super(activity, tag);
+        nativeWindowId = -1;
         Log.v(TAG, "Device: " + Build.DEVICE);
         Log.v(TAG, "Model: " + Build.MODEL);
         Log.v(TAG, "onCreate():" + this);
-        this.commandHandler = new SDLCommandHandler(this);
         this.audioHandler = new SDLAudioHandler();
-        this.inputMethodManager = (InputMethodManager) getActivity().getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        initLibraries(getActivity().getApplicationContext());
-    }
-
-    public static String[] getSDLLibraries() {
-        return new String[] {
-                "SDL2",
-                "SDL2_ttf",
-        };
-    }
-
-    public static boolean initLibraries(Context context) {
-        boolean sdl2Avaliable = true;
-        if (staticContext == null) {
-            // This only needs to be done once.
-            if (loadLibraries(context)) {
-                SDLSurfaceView.updateDisplaySize(((android.view.WindowManager)
-                        context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay());
-                nativeInit();
-            } else {
-                sdl2Avaliable = false;
-            }
-        }
-        staticContext = context;
-        return sdl2Avaliable;
+        this.inputMethodManager = (InputMethodManager) getActivity().getApplicationContext()
+                .getSystemService(Context.INPUT_METHOD_SERVICE);
     }
 
     @Override
@@ -116,58 +85,37 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
                     onNativeWindowFocusChanged(hasFocus);
                 }
             });
-            if (Build.VERSION.SDK_INT >= 12) {
-                surface.setOnGenericMotionListener(new View.OnGenericMotionListener() {
-                    @Override
-                    public boolean onGenericMotion(View v, MotionEvent event) {
-                        return handleJoystickMotionEvent(event);
-                    }
-                });
-            }
         }
         wrapperLayout.addView(layout);
         return wrapperLayout;
     }
-
-    // Events TODO
-//    @Override
-//    public void onPause() {
-//        super.onPause();
-//        Log.v(TAG, "onPause()");
-//        if (windowManager == null) {
-//            nativePause();
-//        }
-//    }
-//
-//    @Override
-//    public void onResume() {
-//        super.onResume();
-//        Log.v(TAG, "onResume()");
-//        if (windowManager == null) {
-//            nativeResume();
-//        }
-//    }
-//
-//    @Override
-//    public void onLowMemory() {
-//        super.onLowMemory();
-//        Log.v(TAG, "onLowMemory()");
-//        if (windowManager == null) {
-//            nativeLowMemory();
-//        }
-//    }
-//
-//    @Override
-//    public void onDestroy() {
-//        super.onDestroy();
-//        Log.v(TAG, "onDestroy()");
-//        if (windowManager == null) {
-//            // Send a quit message to the application
-//            nativeQuit();
-//        }
-//        resetState();
-//    }
     
+    @Override
+    public void onPause() {
+        Log.v(TAG, "onPause()");
+        SDLLibraryHandler.onActivityPause();
+    }
+
+    @Override
+    public void onResume() {
+        Log.v(TAG, "onResume()");
+        SDLLibraryHandler.onActivityResume();
+    }
+
+    @Override
+    public void onLowMemory() {
+        Log.v(TAG, "onLowMemory()");
+        SDLLibraryHandler.onActivityLowMemory();
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.v(TAG, "onDestroy()");
+            // Send a quit message to the application
+        SDLLibraryHandler.onActivityDestroyed();
+        resetState();
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         final int KEYCODE_ZOOM_IN, KEYCODE_ZOOM_OUT;
@@ -185,53 +133,19 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
                 keyCode == KEYCODE_ZOOM_OUT;
     }
 
-    @SuppressLint("UnsafeDynamicallyLoadedCode")
-    private static boolean loadLibraries(Context context) {
-        try {
-            System.load(new File(PackageManager.getDynamicLibraryPath(context),
-                                 System.mapLibraryName("pythonPatch")).getAbsolutePath());
-            for (String library : getSDLLibraries()) {
-                System.load(new File(PackageManager.getDynamicLibraryPath(context),
-                                     System.mapLibraryName(library)).getAbsolutePath());
-            }
-        } catch (UnsatisfiedLinkError e) {
-            return false;
-        }
-        return true;
-    }
-
     private void resetState() {
         audioHandler.audioQuit();
     }
 
-    public static void setWindowManager(WindowManagerInterface wMgr) {
-        windowManager = wMgr;
-        windowManager.setActivityEventsListener(new WindowManagerInterface.ActivityEventsListener() {
-            @Override
-            public void onPause() {
-                nativePause();
-            }
-
-            @Override
-            public void onResume() {
-                nativeResume();
-            }
-
-            @Override
-            public void onLowMemory() {
-                nativeLowMemory();
-            }
-
-            @Override
-            public void onDestroy() {
-                nativeQuit();
-            }
-        });
+    @Override
+    public void close() {
+        Log.d(TAG, "Got window close request for window " + this);
+        nativeOnWindowClose();
     }
 
     @Override
-    public void close() {
-        nativeOnWindowCloseButton();
+    public String toString() {
+        return super.toString() + " (Window " + nativeWindowId + ")";
     }
 
     /* The native thread has finished */
@@ -239,93 +153,27 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
         destroy();
     }
 
-
-    // Messages from the SDLMain thread
-    static final int COMMAND_CHANGE_TITLE = 1;
-    static final int COMMAND_UNUSED = 2;
-    static final int COMMAND_TEXTEDIT_HIDE = 3;
-
-    protected static final int COMMAND_USER = 0x8000;
-
-    /**
-     * This method is called by SDL if SDL did not handle a message itself.
-     * This happens if a received message contains an unsupported command.
-     * Method can be overwritten to handle Messages in a different class.
-     * @param command the command of the message.
-     * @param param the parameter of the message. May be null.
-     * @return if the message was handled in overridden method.
-     */
-    protected boolean onUnhandledMessage(int command, Object param) {
-        return false;
-    }
-
     public SDLSurfaceView getSurface() {
         return surface;
     }
 
-    /**
-     * A Handler class for Messages from native SDL applications.
-     * It uses current Activities as target (e.g. for the title).
-     * static to prevent implicit references to enclosing object.
-     */
-    protected static class SDLCommandHandler extends Handler {
-        final SDLWindowFragment sdlWindow;
-
-        public SDLCommandHandler(SDLWindowFragment sdlWindow) {
-            this.sdlWindow = sdlWindow;
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.arg1) {
-            case COMMAND_CHANGE_TITLE:
-                sdlWindow.changeWindowTitle((String) msg.obj);
-                break;
-            case COMMAND_TEXTEDIT_HIDE:
-                sdlWindow.hideInput();
-                break;
-            default:
-                if (!sdlWindow.onUnhandledMessage(msg.arg1, msg.obj)) {
-                    Log.w(TAG, "Ignoring unknown message, command is " + msg.arg1);
+    public boolean setWindowTitle(final String title) {
+        // Called from native thread and can't directly affect the view
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (SDLLibraryHandler.getWindowManager() == null) {
+                    getActivity().setTitle(title);
+                } else {
+                    SDLLibraryHandler.getWindowManager().setWindowName(SDLWindowFragment.this, title);
                 }
             }
-        }
-    }
-
-    private void changeWindowTitle(String title) {
-        if (windowManager == null) {
-            getActivity().setTitle(title);
-        } else {
-            windowManager.setWindowName(this, title);
-        }
-    }
-
-    // Send a message from the SDLMain thread
-    boolean sendCommand(int command, Object data) {
-        Message msg = commandHandler.obtainMessage();
-        msg.arg1 = command;
-        msg.obj = data;
-        return commandHandler.sendMessage(msg);
-    }
-
-    public void flipBuffers() {
-        nativeFlipBuffers();
-    }
-
-    public boolean setWindowTitle(String title) {
-        // Called from native thread and can't directly affect the view
-        return sendCommand(COMMAND_CHANGE_TITLE, title);
-    }
-
-    public boolean sendMessage(int command, int param) {
-        return sendCommand(command, param);
-    }
-
-    public static Context getStaticContextContext() {
-        return staticContext;
+        });
+        return true;
     }
 
     /**
+     * This method is called by SDL using JNI.
      * @return result of getSystemService(name) but executed on UI thread.
      */
     public Object getSystemServiceFromUiThread(final String name) {
@@ -355,12 +203,24 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
 
     public boolean showTextInput(final int x, final int y, final int w, final int h) {
         // Transfer the task to the main thread as a Runnable
-        return commandHandler.post(new Runnable() {
+        getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 showInput(x, y, w, h);
             }
         });
+        return true;
+    }
+    
+    public boolean hideTextInput() {
+        // Transfer the task to the main thread as a Runnable
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                hideInput();
+            }
+        });
+        return true;
     }
 
     public Surface getNativeSurface() {
@@ -390,23 +250,19 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
      * @return an array which may be empty but is never null.
      */
     public static int[] inputGetInputDeviceIds(int sources) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            int[] ids = InputDevice.getDeviceIds();
-            int[] filtered = new int[ids.length];
-            int used = 0;
-            for (int id : ids) {
-                InputDevice device = InputDevice.getDevice(id);
-                if ((device != null) && ((device.getSources() & sources) != 0)) {
-                    filtered[used++] = device.getId();
-                }
+        int[] ids = InputDevice.getDeviceIds();
+        int[] filtered = new int[ids.length];
+        int used = 0;
+        for (int id : ids) {
+            InputDevice device = InputDevice.getDevice(id);
+            if ((device != null) && ((device.getSources() & sources) != 0)) {
+                filtered[used++] = device.getId();
             }
-            return Arrays.copyOf(filtered, used);
-        } else {
-            return new int[] {};
         }
+        return Arrays.copyOf(filtered, used);
     }
 
-    public void showInput(int x, int y, int w, int h) {
+    private void showInput(int x, int y, int w, int h) {
         final int HEIGHT_PADDING = 15;
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(w, h + HEIGHT_PADDING);
         params.leftMargin = x;
@@ -430,7 +286,7 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
         }
     }
 
-    public void hideInput() {
+    private void hideInput() {
         if (inputEditText != null) {
             inputEditText.setVisibility(View.GONE);
             inputMethodManager.hideSoftInputFromWindow(inputEditText.getWindowToken(), 0);
@@ -450,21 +306,115 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
         //        surface.setPixelFormat(pixelFormat);
     }
 
+    // APK expansion files support
+
+    /** com.android.vending.expansion.zipfile.ZipResourceFile object or null. */
+    private static Object expansionFile;
+
+    /** com.android.vending.expansion.zipfile.ZipResourceFile's getInputStream() or null. */
+    private static Method expansionFileMethod;
+
+    /**
+     * This method is called by SDL using JNI.
+     * @return an InputStream on success or null if no expansion file was used.
+     * @throws IOException on errors. Message is set for the SDL error message.
+     */
+    public static InputStream openAPKExpansionInputStream(String fileName) throws IOException {
+        // Get a ZipResourceFile representing a merger of both the main and patch files
+        if (expansionFile == null) {
+            String mainHint = nativeGetHint("SDL_ANDROID_APK_EXPANSION_MAIN_FILE_VERSION");
+            if (mainHint == null) {
+                return null; // no expansion use if no main version was set
+            }
+            String patchHint = nativeGetHint("SDL_ANDROID_APK_EXPANSION_PATCH_FILE_VERSION");
+            if (patchHint == null) {
+                return null; // no expansion use if no patch version was set
+            }
+
+            Integer mainVersion;
+            Integer patchVersion;
+            try {
+                mainVersion = Integer.valueOf(mainHint);
+                patchVersion = Integer.valueOf(patchHint);
+            } catch (NumberFormatException ex) {
+                ex.printStackTrace();
+                throw new IOException("No valid file versions set for APK expansion files", ex);
+            }
+
+            try {
+                // To avoid direct dependency on Google APK expansion library that is
+                // not a part of Android SDK we access it using reflection
+                expansionFile = Class.forName("com.android.vending.expansion.zipfile.APKExpansionSupport")
+                        .getMethod("getAPKExpansionZipFile", Context.class, int.class, int.class)
+                        .invoke(null, SDLLibraryHandler.getStaticContext(), mainVersion, patchVersion);
+
+                expansionFileMethod = expansionFile.getClass()
+                        .getMethod("getInputStream", String.class);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                expansionFile = null;
+                expansionFileMethod = null;
+                throw new IOException("Could not access APK expansion support library", ex);
+            }
+        }
+
+        // Get an input stream for a known file inside the expansion file ZIPs
+        InputStream fileStream;
+        try {
+            fileStream = (InputStream)expansionFileMethod.invoke(expansionFile, fileName);
+        } catch (Exception ex) {
+            // calling "getInputStream" failed
+            ex.printStackTrace();
+            throw new IOException("Could not open stream from APK expansion file", ex);
+        }
+
+        if (fileStream == null) {
+            // calling "getInputStream" was successful but null was returned
+            throw new IOException("Could not find path in APK expansion file");
+        }
+
+        return fileStream;
+    }
+
+    // Messagebox
+
+    /**
+     * This method is called by SDL using JNI.
+     * Shows the messagebox from UI thread and block calling thread.
+     * buttonFlags, buttonIds and buttonTexts must have same length.
+     * @param buttonFlags array containing flags for every button.
+     * @param buttonIds array containing id for every button.
+     * @param buttonTexts array containing text for every button.
+     * @param colors null for default or array of length 5 containing colors.
+     * @return button id or -1.
+     */
+    public static int showMessageBox(
+            final int flags,
+            final String title,
+            final String message,
+            final int[] buttonFlags,
+            final int[] buttonIds,
+            final String[] buttonTexts,
+            final int[] colors) {
+        return new SDLMessageBox(SDLLibraryHandler.staticActivity, flags, title, message,
+                                 buttonFlags, buttonIds, buttonTexts, colors).showAndWait();
+    }
+    
     public static Object createWindow() {
-        if (windowManager == null) {
+        if (SDLLibraryHandler.getWindowManager() == null) {
             return null;
         }
-        return windowManager.createWindow(SDLWindowFragment.class);
+        return SDLLibraryHandler.getWindowManager().createWindow(SDLWindowFragment.class);
     }
 
     private void destroy() {
-        commandHandler.post(new Runnable() {
+        getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (windowManager == null) {
+                if (SDLLibraryHandler.getWindowManager() == null) {
                     return;
                 }
-                windowManager.destroyWindow(SDLWindowFragment.this);
+                SDLLibraryHandler.getWindowManager().destroyWindow(SDLWindowFragment.this);
             }
         });
     }
@@ -481,10 +431,10 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
             icon = new BitmapDrawable(getActivity().getResources(), iconBitmap);
         }
         final Drawable finalIcon = icon;
-        commandHandler.post(new Runnable() {
+        getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (windowManager == null) {
+                if (SDLLibraryHandler.getWindowManager() == null) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
                         ActionBar actionBar = getActivity().getActionBar();
                         if (actionBar != null) {
@@ -492,63 +442,37 @@ public class SDLWindowFragment extends PythonFragment implements SDLWindowInterf
                         }
                     }
                 } else {
-                    windowManager.setWindowIcon(SDLWindowFragment.this, finalIcon);
+                    SDLLibraryHandler.getWindowManager().setWindowIcon(SDLWindowFragment.this, finalIcon);
                 }
             }
         });
     }
 
     // C functions we call
-    public native static void nativeInit();
-
-    public native static void nativeLowMemory();
-
-    public native static void nativeQuit();
-
-    public native static void nativePause();
-
-    public native static void nativeResume();
-    
-    public native static void nativeDisplayResize(int screenWidth, int screenHeight);
-
     public native void onNativeResize(int w, int h, int format);
-
     public native void onNativeHideWindow();
-
     public native void onNativeRestoreWindow();
-
     public native void onNativeWindowFocusChanged(boolean hasFocus);
-
     public native int onNativePadDown(int device_id, int keycode);
-
     public native int onNativePadUp(int device_id, int keycode);
-
-    public native static void onNativeJoy(int device_id, int axis,
-                                          float value);
-
-    public native static void onNativeHat(int device_id, int hat_id,
-                                          int x, int y);
-
+    public native static void onNativeJoy(int device_id, int axis, float value);
+    public native static void onNativeHat(int device_id, int hat_id, int x, int y);
     public native void onNativeKeyDown(int keycode);
-
     public native void onNativeKeyUp(int keycode);
-
     public native void onNativeKeyboardFocusLost();
-
-    public native void onNativeTouch(int touchDevId, int pointerFingerId,
-                                     int action, float x,
+    public native void onNativeMouse(int button, int action, float x, float y);
+    public native void onNativeTouch(int touchDevId, int pointerFingerId, int action, float x,
                                      float y, float p);
-
     public native void onNativeAccel(float x, float y, float z);
-
     public native void onNativeSurfaceChanged();
     public native void onNativeSurfaceDestroyed();
-    public native void nativeFlipBuffers();
     public native static int nativeAddJoystick(int device_id, String name,
                                                int is_accelerometer, int nbuttons,
                                                int naxes, int nhats, int nballs);
     public native static int nativeRemoveJoystick(int device_id);
     public native void nativeCommitText(String text, int newCursorPosition);
     public native void nativeSetComposingText(String text, int newCursorPosition);
-    public native void nativeOnWindowCloseButton();
+    public static native String nativeGetHint(String name);
+    public static native void onNativeDropFile(String filename); // TODO: Support dropping on a per fragment basis
+    public native void nativeOnWindowClose();
 }

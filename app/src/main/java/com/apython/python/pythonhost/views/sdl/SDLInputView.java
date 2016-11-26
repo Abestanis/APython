@@ -12,7 +12,7 @@ import android.view.inputmethod.InputConnection;
  * 
  * Created by Sebastian on 21.11.2015.
  */
-public class SDLInputView extends View implements View.OnKeyListener {
+class SDLInputView extends View implements View.OnKeyListener {
     private InputConnection   inputConnection;
     private SDLWindowFragment sdlWindow;
 

@@ -16,12 +16,12 @@ import java.util.List;
  * Created by Sebastian on 21.11.2015.
  */
 @SuppressLint("NewApi")
-public class SDLJoystickHandler {
-    class SDLJoystick {
-        public int                                device_id;
-        public String                             name;
-        public ArrayList<InputDevice.MotionRange> axes;
-        public ArrayList<InputDevice.MotionRange> hats;
+class SDLJoystickHandler {
+    private class SDLJoystick {
+        int                                device_id;
+        String                             name;
+        ArrayList<InputDevice.MotionRange> axes;
+        ArrayList<InputDevice.MotionRange> hats;
     }
 
     private class RangeComparator implements Comparator<InputDevice.MotionRange> {
@@ -32,15 +32,15 @@ public class SDLJoystickHandler {
     }
 
     private final ArrayList<SDLJoystick> joysticks;
-    private final boolean                isApiAvaliable;
+    private final boolean                isApiAvailable;
 
-    public SDLJoystickHandler() {
-        isApiAvaliable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1;
+    SDLJoystickHandler() {
+        isApiAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1;
         joysticks = new ArrayList<>();
     }
     
-    public void pollInputDevices() {
-        if (!isApiAvaliable) { return; }
+    void pollInputDevices() {
+        if (!isApiAvailable) { return; }
         int[] deviceIds = InputDevice.getDeviceIds();
         // It helps processing the device ids in reverse order
         // For example, in the case of the XBox 360 wireless dongle,
@@ -104,7 +104,7 @@ public class SDLJoystickHandler {
         }
     }
 
-    protected SDLJoystick getJoystick(int device_id) {
+    private SDLJoystick getJoystick(int device_id) {
         for(int i=0; i < joysticks.size(); i++) {
             if (joysticks.get(i).device_id == device_id) {
                 return joysticks.get(i);
@@ -114,8 +114,8 @@ public class SDLJoystickHandler {
     }
 
     @SuppressLint("NewApi")
-    public boolean handleMotionEvent(MotionEvent event) {
-        if (!isApiAvaliable) { return false; }
+    boolean handleMotionEvent(MotionEvent event) {
+        if (!isApiAvailable) { return false; }
         if ((event.getSource() & InputDevice.SOURCE_JOYSTICK) != 0) {
             int actionPointerIndex = event.getActionIndex();
             int action = event.getActionMasked();

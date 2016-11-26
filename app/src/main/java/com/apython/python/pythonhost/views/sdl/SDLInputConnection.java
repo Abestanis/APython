@@ -9,11 +9,11 @@ import android.view.inputmethod.BaseInputConnection;
  * 
  * Created by Sebastian on 21.11.2015.
  */
-public class SDLInputConnection extends BaseInputConnection {
+class SDLInputConnection extends BaseInputConnection {
 
     private final SDLWindowFragment sdlWindow;
 
-    public SDLInputConnection(View targetView, boolean fullEditor, SDLWindowFragment sdlWindow) {
+    SDLInputConnection(View targetView, boolean fullEditor, SDLWindowFragment sdlWindow) {
         super(targetView, fullEditor);
         this.sdlWindow = sdlWindow;
     }
@@ -21,8 +21,8 @@ public class SDLInputConnection extends BaseInputConnection {
     @Override
     public boolean sendKeyEvent(KeyEvent event) {
         /*
-         * This handles the key-codes from soft keyboard (and IME-translated
-         * input from hard-keyboard)
+         * This handles the keycodes from soft keyboard (and IME-translated
+         * input from hardkeyboard)
          */
         int keyCode = event.getKeyCode();
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
