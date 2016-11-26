@@ -22,11 +22,7 @@ import java.util.Collections;
 public class PackageManager {
 
     public static File getSharedLibrariesPath(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            return new File(context.getApplicationInfo().nativeLibraryDir);
-        } else {
-            return new File(context.getApplicationInfo().dataDir, "lib");
-        }
+        return new File(context.getApplicationInfo().nativeLibraryDir);
     }
 
     public static File getStandardLibPath(Context context) {

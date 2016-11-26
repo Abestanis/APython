@@ -97,7 +97,7 @@ public class PythonSettingsActivity extends PreferenceActivity
                 sharedPreferences.edit().putString(
                         KEY_PYTHON_DOWNLOAD_URL,
                         value
-                ).commit();
+                ).apply();
                 Toast.makeText(this, "Invalid url!", Toast.LENGTH_SHORT).show();
             }
             break;

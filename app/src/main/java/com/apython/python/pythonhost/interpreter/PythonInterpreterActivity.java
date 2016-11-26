@@ -89,7 +89,7 @@ public class PythonInterpreterActivity extends Activity {
                     ListView listView = ((AlertDialog) dialog).getListView();
                     String version = versions.get(listView.getCheckedItemPosition());
                     PreferenceManager.getDefaultSharedPreferences(PythonInterpreterActivity.this)
-                            .edit().putString(PythonSettingsActivity.KEY_PYTHON_VERSION, version).commit();
+                            .edit().putString(PythonSettingsActivity.KEY_PYTHON_VERSION, version).apply();
                     startInterpreter(version);
                 }
             });

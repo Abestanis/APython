@@ -64,13 +64,11 @@ public class Util {
                 Log.w(MainActivity.TAG, "Could not make file '" + file.getAbsolutePath() + "' accessible: Could not create file.", e);
                 return false;
             }
-        }
-        //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) { // TODO: Check this
-        //            if (file.setReadable(true, false) && file.setExecutable(true, false)) {
+        } 
+        //            if (file.setReadable(true, false) && file.setExecutable(true, false)) { // TODO: Check this
         //                Log.d(TAG, "Successfully made '" + file.getAbsolutePath() + "' accessible.");
         //                return true;
         //            }
-        //        }
         String rec = recursive ? "-R " : "";
         try {
             int result = Runtime.getRuntime().exec("chmod " + rec + "755 " + file.getAbsolutePath()).waitFor();
@@ -338,8 +336,10 @@ public class Util {
                                 outputStream.write(buffer, 0, count);
                             }
                         } finally {
-                            outputStream.close();
-                            inputStream.close();
+                            try {
+                                outputStream.close();
+                                inputStream.close();
+                            } catch (IOException unused) { /* ignore it */ }
                         }
                     }
                     if (progressHandler != null) progressHandler.setProgress(entryCount / numEntries);

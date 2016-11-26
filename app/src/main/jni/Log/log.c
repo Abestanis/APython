@@ -46,7 +46,7 @@ void setStderrRedirect(void (*f)(const char*, int)) {
 void captureOutput(int streamFD) {
     ssize_t outputSize;
     char buffer[4096];
-    while ((outputSize = read(streamFD, buffer, sizeof(buffer) - 1)) != 0) {
+    while ((outputSize = read(streamFD, buffer, (sizeof(buffer) / sizeof(buffer[0])) - 1)) != 0) {
         if (outputSize == -1) {
             if (errno != EINTR) {
                 LOG_WARN("Failed to read from output pipe:");
@@ -56,15 +56,15 @@ void captureOutput(int streamFD) {
             }
             continue;
         }
-        buffer[outputSize] = 0; // add null-terminator
+        buffer[outputSize] = '\0'; // add null-terminator
         if (stdout_write != NULL) {
             stdout_write(buffer, (int) outputSize);
         } else {
             // Remove trailing newline
             if (outputSize > 0 && buffer[outputSize - 1] == '\n') {
-                buffer[outputSize - 1] = 0;
+                buffer[outputSize - 1] = '\0';
                 if (outputSize > 1 && buffer[outputSize - 2] == '\r') {
-                    buffer[outputSize - 2] = 0;
+                    buffer[outputSize - 2] = '\0';
                 }
             }
             LOG(buffer);

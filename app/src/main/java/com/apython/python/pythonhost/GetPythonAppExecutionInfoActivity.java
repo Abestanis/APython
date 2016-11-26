@@ -66,9 +66,11 @@ public class GetPythonAppExecutionInfoActivity extends Activity {
                     dialog.show();
                     WindowManager.LayoutParams windowLayoutParams = new WindowManager.LayoutParams();
                     Window window = dialog.getWindow();
-                    windowLayoutParams.copyFrom(window.getAttributes());
-                    windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
-                    window.setAttributes(windowLayoutParams);
+                    if (window != null) {
+                        windowLayoutParams.copyFrom(window.getAttributes());
+                        windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+                        window.setAttributes(windowLayoutParams);
+                    }
                 }
             }, null);
             new Thread(new Runnable() {

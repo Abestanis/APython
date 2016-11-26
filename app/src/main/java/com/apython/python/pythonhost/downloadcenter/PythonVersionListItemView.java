@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -44,7 +45,7 @@ public class PythonVersionListItemView {
     private Activity activity;
     private String   mainPythonVersion;
     private PythonVersionItem            installedSubVersion  = null;
-    private ArrayList<PythonVersionItem> avaliableSubVersions = new ArrayList<>();
+    private ArrayList<PythonVersionItem> availableSubVersions = new ArrayList<>();
     private TextView                     titleView            = null;
     private ImageView   actionButton;
     private ImageView   dropdownButton;
@@ -100,7 +101,7 @@ public class PythonVersionListItemView {
         subversionText = (TextView) detailViewContainer.findViewById(R.id.download_center_python_subversion_title);
         if (subversionAdapter == null) {
             subversionAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item);
-            for (PythonVersionItem subVersion : avaliableSubVersions) {
+            for (PythonVersionItem subVersion : availableSubVersions) {
                 subversionAdapter.add(subVersion.getPythonVersion());
             }
         }
@@ -128,13 +129,13 @@ public class PythonVersionListItemView {
                         }
                     });
                     if (state.selectedSubVersion != null) {
-                        pythonSubversionContainer.setSelection(avaliableSubVersions.indexOf(state.selectedSubVersion));
+                        pythonSubversionContainer.setSelection(availableSubVersions.indexOf(state.selectedSubVersion));
                     }
                     pythonSubversionContainer.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                             ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
-                            PythonVersionItem selectedVersion = avaliableSubVersions.get(position);
+                            PythonVersionItem selectedVersion = availableSubVersions.get(position);
                             if (selectedVersion != state.selectedSubVersion) {
                                 state.selectedSubVersion = selectedVersion;
                                 updateView();
@@ -158,13 +159,15 @@ public class PythonVersionListItemView {
                             moduleListView.setAdapter(new ArrayAdapter<PythonModuleItem>(
                                     activity.getApplicationContext(),
                                     android.R.layout.simple_list_item_1, additionalModules) {
+                                @NonNull
                                 @Override
-                                public View getView(int position, View convertView, ViewGroup parent) {
+                                public View getView(int position, View convertView, @NonNull ViewGroup parent) {
                                     if (convertView == null) {
                                         convertView = new CheckBox(activity.getApplicationContext());
                                     }
                                     CheckBox checkBox = (CheckBox) convertView;
                                     final PythonModuleItem module = getItem(position);
+                                    assert module != null;
                                     checkBox.setText(module.getModuleName());
                                     checkBox.setTextColor(Color.BLACK);
                                     checkBox.setOnCheckedChangeListener(null);
@@ -489,7 +492,7 @@ public class PythonVersionListItemView {
         }
         String filterPyVersion = filter.replace("python", "").trim();
         if (filterPyVersion.split("\\.").length == 3) {
-            for (PythonVersionItem subVersion : avaliableSubVersions) {
+            for (PythonVersionItem subVersion : availableSubVersions) {
                 if (subVersion.getPythonVersion().equals(filterPyVersion)) {
                     state.selectedSubVersion = subVersion;
                     state.detailViewShown = true;
@@ -506,15 +509,15 @@ public class PythonVersionListItemView {
 
     public void addPythonSubVersion(PythonVersionItem subVersion) {
         PythonVersionItem prev = null;
-        for (PythonVersionItem avaliableSubVersion : avaliableSubVersions) {
-            if (avaliableSubVersion.getPythonVersion().equals(subVersion.getPythonVersion())) {
-                prev = avaliableSubVersion;
+        for (PythonVersionItem availableSubVersion : availableSubVersions) {
+            if (availableSubVersion.getPythonVersion().equals(subVersion.getPythonVersion())) {
+                prev = availableSubVersion;
             }
         }
         if (prev != null) {
             prev.updateFromDependency(subVersion);
         } else {
-            avaliableSubVersions.add(subVersion);
+            availableSubVersions.add(subVersion);
             if (subversionAdapter != null) subversionAdapter.add(subVersion.getPythonVersion());
         }
         if (subVersion.isInstalled()) {
@@ -538,19 +541,19 @@ public class PythonVersionListItemView {
     }
 
     public ArrayList<PythonVersionItem> getSubVersions() {
-        return new ArrayList<>(avaliableSubVersions);
+        return new ArrayList<>(availableSubVersions);
     }
 
     public void removeSubVersion(PythonVersionItem subVersion) {
-        avaliableSubVersions.remove(subVersion);
+        availableSubVersions.remove(subVersion);
         if (state.selectedSubVersion == subVersion) {
-            state.selectedSubVersion = avaliableSubVersions.get(0);
+            state.selectedSubVersion = availableSubVersions.get(0);
             updateView();
         }
     }
 
     public boolean containsInformation() {
-        for (PythonVersionItem subVersion : avaliableSubVersions) {
+        for (PythonVersionItem subVersion : availableSubVersions) {
             if (subVersion.isInstalled() || (subVersion.getUrl() != null && subVersion.getMd5Checksum() != null)) {
                 return true;
             }

@@ -33,7 +33,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * The Adapter to show all avaliable and installed Python versions
+ * The Adapter to show all available and installed Python versions
  * in the {@link PythonDownloadCenterActivity}.
  *
  * Created by Sebastian on 16.08.2015.
@@ -378,7 +378,7 @@ public class PythonVersionListAdapter extends BaseAdapter {
                         }
                     }
                     if (library == null) {
-                        Log.w(MainActivity.TAG, "(Version " + dataVersion + ") The library " + libraryName + " is not avaliable for the current CPU Architecture.");
+                        Log.w(MainActivity.TAG, "(Version " + dataVersion + ") The library " + libraryName + " is not available for the current CPU Architecture.");
                         if (!requirements.containsKey("libraries/" + libraryName)) {
                             requirements.put("libraries/" + libraryName, new Requirement("libraries/" + libraryName));
                         }

@@ -8,7 +8,7 @@ void _assert_(const char*, const char*, int, const char*, ...);
 void setApplicationTag(const char*);
 void setStdoutRedirect(void (*f)(const char*, int));
 void setStderrRedirect(void (*f)(const char*, int));
-int startOutputCapturing(int);
+void captureOutput(int);
 int setupOutputRedirection(int pipe[2]);
 
 #define ASSERT(EX, message, args...) (void)((EX) || (_assert_ (#EX, __FILE__, __LINE__, message, ##args),0))

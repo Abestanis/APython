@@ -25,7 +25,7 @@ public class MainActivity extends Activity {
 //        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(
 //                PythonSettingsActivity.KEY_PYTHON_DOWNLOAD_URL,
 //                "http://10.0.2.2:8000"
-//        ).commit();
+//        ).apply();
 
         boolean skipSplashScreen = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
                 PythonSettingsActivity.KEY_SKIP_SPLASH_SCREEN,
