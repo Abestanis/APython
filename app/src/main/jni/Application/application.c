@@ -8,6 +8,7 @@
 #define WRAPPER_CLASS_PATH_PROPERTY     "python.android.app.wrapper.class"
 
 #define SET_WINDOW_DEF        "setWindow", "(ILandroid/view/ViewGroup;)Ljava/lang/Object;"
+#define ON_ACTIVITY_LCE_DEF   "onActivityLifecycleEvent", "(I)V"
 #define SET_LOG_TAG_DEF       "setLogTag", "(Ljava/lang/String;)V"
 #define START_INTERPRETER_DEF "startInterpreter", "([Ljava/lang/String;)I"
 
@@ -18,6 +19,7 @@ static JNINativeMethod nativeJMethods[] = {
                         (void *)&loadPythonHost },
     { "setLogTag", "(Ljava/lang/String;)V", (void *)&setLogTag },
     { SET_WINDOW_DEF,        (void *)&setWindow },
+    { ON_ACTIVITY_LCE_DEF,   (void *)&onActivityLifecycleEvent },
     { START_INTERPRETER_DEF, (void *)&startInterpreter },
 };
 
@@ -50,10 +52,7 @@ int appRegisterNativeMethods(JNIEnv *env) {
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-    LOG_ERROR("Test!");
     JNIEnv *env = NULL;
-    const char* javaClasspath = NULL;
-
     if((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) {
         return -1;
     }
@@ -185,4 +184,15 @@ JNIEXPORT jint JNICALL startInterpreter(JNIEnv *env, jobject obj, jobjectArray j
         ASSERT(mid, "Could not find the function '%s' (%s) in the Android class!", START_INTERPRETER_DEF);
     }
     return (*env)->CallIntMethod(env, appInterpreter, mid, jargs);
+}
+
+JNIEXPORT void JNICALL onActivityLifecycleEvent(JNIEnv *env, jobject obj, jint eventId) {
+    static jmethodID mid = NULL;
+    if (mid == NULL) {
+        jclass *cls = (*env)->GetObjectClass(env, appInterpreter);
+        ASSERT(cls, "Could not get an instance from the appInterpreter!");
+        mid = (*env)->GetMethodID(env, cls, ON_ACTIVITY_LCE_DEF);
+        ASSERT(mid, "Could not find the function '%s' (%s) in the Android class!", ON_ACTIVITY_LCE_DEF);
+    }
+    (*env)->CallVoidMethod(env, appInterpreter, mid, eventId);
 }

@@ -1,9 +1,11 @@
 package com.apython.python.pythonhost.interpreter.app;
 
 import android.annotation.SuppressLint;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -11,10 +13,12 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
+import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
+import com.apython.python.pythonhost.views.sdl.SDLLibraryHandler;
 import com.apython.python.pythonhost.views.sdl.SDLWindowFragment;
 import com.apython.python.pythonhost.views.terminal.TerminalFragment;
 import com.apython.python.pythonhost.views.terminalwm.WindowManagerFragment;
@@ -62,13 +66,11 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
     private String                 logTag                 = "PythonApp";
     private PythonInterpreter      interpreter            = null;
     private PythonFragment         windowFragment         = null;
-    private ActivityEventsListener activityEventsListener = null;
     
     public AppInterpreter(Context pyHostContext, Activity hostingAppActivity, String pythonVersion) {
         super();
         this.hostingAppActivity = new AppActivityProxy(hostingAppActivity, pyHostContext);
         interpreter = new PythonInterpreter(pyHostContext, pythonVersion);
-        SDLWindowFragment.setWindowManager(this);
     }
     
     @SuppressWarnings("unused")
@@ -122,6 +124,8 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                     });
                 }
             });
+        } else if (windowFragment instanceof SDLWindowFragment) {
+            SDLLibraryHandler.initLibraries(hostingAppActivity, this);
         }
     }
 
@@ -130,37 +134,11 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 //        interpreter.interrupt();
 //        terminalView.disableInput();
 //    }
-//
-//    @Override
-//    protected void onDestroy() {
-//        super.onDestroy();
-//        if (interpreter != null && interpreter.isRunning()) {
-//            interpreter.terminate();
-//        }
-//    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (activityEventsListener != null) activityEventsListener.onResume();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (activityEventsListener != null) activityEventsListener.onPause();
-    }
 
     @Override
     public void onLowMemory() {
-        super.onLowMemory();
-        if (activityEventsListener != null) activityEventsListener.onLowMemory();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (activityEventsListener != null) activityEventsListener.onDestroy();
+        if (windowFragment instanceof ActivityLifecycleEventListener)
+            ((ActivityLifecycleEventListener) windowFragment).onLowMemory();
     }
 
     @Override
@@ -198,16 +176,37 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 
     @Override
     public void setWindowIcon(Window window, Drawable icon) {
-//        getWindow().setIcon(icon);
-    }
-
-    @Override
-    public void setActivityEventsListener(ActivityEventsListener eventsListener) {
-        activityEventsListener = eventsListener;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            ActionBar actionBar = hostingAppActivity.getActionBar();
+            if (actionBar != null) {
+                actionBar.setIcon(icon);
+            }
+        }
     }
 
     @Override
     public PythonFragment getCurrentWindow() {
         return windowFragment;
+    }
+
+    public static final int ON_DESTROY = 0;
+    public static final int ON_PAUSE = 1;
+    public static final int ON_RESUME = 2;
+    
+    public void onActivityLifecycleEvent(int eventType) {
+        if (windowFragment instanceof ActivityLifecycleEventListener) {
+            switch (eventType) {
+                case ON_DESTROY:
+                    if (interpreter != null && interpreter.isRunning()) {
+                        interpreter.terminate();
+                    }
+                    ((ActivityLifecycleEventListener) windowFragment).onDestroy(); break;
+                case ON_PAUSE:
+                    ((ActivityLifecycleEventListener) windowFragment).onPause(); break;
+                case ON_RESUME:
+                    ((ActivityLifecycleEventListener) windowFragment).onResume(); break;
+            }
+        }
+        
     }
 }

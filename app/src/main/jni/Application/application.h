@@ -20,6 +20,7 @@ JNIEXPORT jboolean JNICALL loadPythonHost(JNIEnv*, jobject, jobject, jstring);
 JNIEXPORT void JNICALL setLogTag(JNIEnv*, jobject, jstring);
 JNIEXPORT jobject JNICALL setWindow(JNIEnv*, jobject, jint, jobject);
 JNIEXPORT jint JNICALL startInterpreter(JNIEnv*, jobject, jobjectArray);
+JNIEXPORT void JNICALL onActivityLifecycleEvent(JNIEnv *, jobject, jint);
 
 #ifdef __cplusplus
 }
