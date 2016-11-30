@@ -1,3 +1,4 @@
+*.iml
 .gradle
 /local.properties
 /.idea/workspace.xml
@@ -6,7 +7,6 @@
 /build
 /captures
 Thumbs.db
-.idea
 .externalNativeBuild
 /app/src/main/libs
 /app/src/main/res/raw/python
