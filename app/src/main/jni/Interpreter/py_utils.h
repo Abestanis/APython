@@ -2,6 +2,8 @@
 #define PY_UTILS_H
 
 #include <stdio.h>
+#include <signal.h>
+#include "terminal.h"
 
 extern FILE *stdin_writer;
 
@@ -10,8 +12,9 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
                  const char* dataDir);
 void setupStdinEmulation(void);
 void readFromStdin(char* inputBuffer, int bufferSize);
-int runPythonInterpreter(int argc, char** argv);
+int runPythonInterpreter(PseudoTerminal* pseudoTerminal, int argc, char** argv);
 void interruptPython(void);
 void terminatePython(void);
+__sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler);
 
 #endif // PY_UTILS_H //

@@ -3,9 +3,11 @@
 #include "Log/log.h"
 #include "py_utils.h"
 #include "py_compatibility.h"
+#include "terminal.h"
 
 jobject jPyInterpreter = NULL;
 static JavaVM *Jvm = NULL;
+PseudoTerminal* pseudoTerminal = NULL;
 int isInterrupted = 0;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -15,7 +17,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 /* Java functions */
 
-void redirectOutputToJava(const char *string, int len) {
+void redirectOutputToJava(const char *string, size_t len) {
     if (jPyInterpreter == NULL) { return; }
     JNIEnv* env = NULL;
     jbyteArray jOutputByteArray = NULL;
@@ -23,9 +25,7 @@ void redirectOutputToJava(const char *string, int len) {
     static jmethodID mid = NULL;
     int detached = (*Jvm)->GetEnv(Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
 
-    if (detached) {
-        (*Jvm)->AttachCurrentThread(Jvm, &env, NULL);
-    }
+    if (detached) (*Jvm)->AttachCurrentThread(Jvm, &env, NULL);
 
     if (cls == NULL) {
         cls = (*env)->GetObjectClass(env, jPyInterpreter);
@@ -33,13 +33,11 @@ void redirectOutputToJava(const char *string, int len) {
         mid = (*env)->GetMethodID(env, cls, "addTextToOutput", "([B)V");
         ASSERT(mid, "Could not find the function 'addTextToOutput' in the Android class!");
     }
-    jOutputByteArray = (*env)->NewByteArray(env, len + 1);
-    (*env)->SetByteArrayRegion(env, jOutputByteArray, 0, len + 1, (const jbyte*) string);
+    jOutputByteArray = (*env)->NewByteArray(env, len);
+    (*env)->SetByteArrayRegion(env, jOutputByteArray, 0, len, (const jbyte*) string);
     (*env)->CallVoidMethod(env, jPyInterpreter, mid, jOutputByteArray);
     (*env)->DeleteLocalRef(env, jOutputByteArray);
-    if (detached) {
-        (*Jvm)->DetachCurrentThread(Jvm);
-    }
+    if (detached) (*Jvm)->DetachCurrentThread(Jvm);
 }
 
 char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, const char *prompt) {
@@ -157,9 +155,14 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
     if (!setPythonLibrary(pythonLibName)) { return 1; }
     if (redirectOutput == JNI_TRUE) {
-        setStdoutRedirect(redirectOutputToJava);
-        setStderrRedirect(redirectOutputToJava);
+        pseudoTerminal = createPseudoTerminal(redirectOutputToJava, redirectOutputToJava, NULL, NULL);
         set_PyOS_ReadlineFunctionPointer(readLineFromJavaInput);
+    } else {
+        pseudoTerminal = createPseudoTerminal(NULL, NULL, NULL, NULL);
+    }
+    if (pseudoTerminal == NULL) {
+        LOG_ERROR("Failed to create a pseudo terminal"); // TODO: maybe fall back to the pipe method?
+        return 1;
     }
 
     const char *programName    = (*env)->GetStringUTFChars(env, jProgramPath, 0);
@@ -204,7 +207,8 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
         argc++;
     }
 
-    int result = runPythonInterpreter(argc, argv);
+    int result = runPythonInterpreter(pseudoTerminal, argc, argv);
+    closePseudoTerminal(pseudoTerminal);
 
     int detached = (*Jvm)->GetEnv (Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
     if (detached) {
@@ -230,33 +234,32 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 }
 
 JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_dispatchKey(JNIEnv *env, jobject obj, jint character) {
-    if (stdin_writer == NULL) {
-        LOG_WARN("Tried to dispatch key event to the Python interpreter, but the input pipe is not initialized yet.");
+    if (pseudoTerminal == NULL) {
+        LOG_WARN("Tried to dispatch key event to the Python interpreter, but the pseudoTerminal is not initialized yet.");
         return;
     }
-    fputc(character, stdin_writer);
-    fflush(stdin_writer);
+    writeToPseudoTerminal(pseudoTerminal, (const char *) &character, 1);
 }
 
 JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_sendStringToStdin(JNIEnv *env, jobject obj, jstring jString) {
-    if (stdin_writer == NULL) {
-        LOG_WARN("Tried to write a string to stdin, but the input pipe is not initialized yet.");
+    if (pseudoTerminal == NULL) {
+        LOG_WARN("Tried to write a string to stdin, but the pseudoTerminal is not initialized yet.");
         return;
     }
     const char* string = (*env)->GetStringUTFChars(env, jString, 0);
-    fputs(string, stdin_writer);
+    writeToPseudoTerminal(pseudoTerminal, string, strlen(string));
     (*env)->ReleaseStringUTFChars(env, jString, string);
-    fflush(stdin_writer);
 }
 
 JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInput(JNIEnv *env, jclass obj) {
+    if (pseudoTerminal == NULL) return NULL;
     static const int INPUT_BUFFER_LENGTH = 8192;
     char* input = malloc(sizeof(char) * INPUT_BUFFER_LENGTH);
     if (input == NULL) {
         LOG_ERROR("Failed to read enqueued input: Out of memory!");
         return NULL;
     }
-    readFromStdin(input, INPUT_BUFFER_LENGTH);
+    readFromPseudoTerminalStdin(pseudoTerminal, input, INPUT_BUFFER_LENGTH);
     return (*env)->NewStringUTF(env, input);
 }
 

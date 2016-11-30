@@ -152,14 +152,16 @@ public class TerminalAdapter extends BaseAdapter {
      * @return An index or {@code -1}, if no special character was found.
      */
     private int getNextSpecialCharacterIndex(String text) {
-        final char[] specialCharacters = {'\r'};
+        final char[] specialCharacters = {'\r', '\n'};
+        int index = -1;
         for (char specialCharacter : specialCharacters) {
-            int index = text.indexOf(specialCharacter);
-            if (index != -1) {
-                return index;
+            int specialCharIndex = text.indexOf(specialCharacter);
+            if (specialCharIndex != -1) {
+                index = index == -1 ? specialCharIndex : Math.min(index, specialCharIndex);
+                if (index == 0) break;
             }
         }
-        return -1;
+        return index;
     }
 
     /**
@@ -174,13 +176,24 @@ public class TerminalAdapter extends BaseAdapter {
             case '\r':
                 internalAddToScreenData(text.substring(0, specialCharacterIndex));
                 int endIndex = cursorPosition == LAST_CHAR_OF_SCREEN_DATA ? screenData.length() : cursorPosition;
-                cursorPosition = screenData.substring(0, endIndex).lastIndexOf("\n") + 1;
-                text = text.substring(specialCharacterIndex + 1);
+                cursorPosition = screenData.lastIndexOf("\n", endIndex) + 1;
+                if (cursorPosition == -1) cursorPosition = 0;
+                break;
+            case '\n':
+                internalAddToScreenData(text.substring(0, specialCharacterIndex));
+                if (cursorPosition != LAST_CHAR_OF_SCREEN_DATA) {
+                    // We may not be on the last line. Check if there is line after this one.
+                    cursorPosition = screenData.indexOf("\n", cursorPosition);
+                }
+                if (cursorPosition == LAST_CHAR_OF_SCREEN_DATA) {
+                    internalAddToScreenData("\n");
+                } else cursorPosition++; // Use the existing newline
                 break;
             default:
                 throw new UnsupportedOperationException("Character '"
                           + text.charAt(specialCharacterIndex) + "' not implemented.");
             }
+            text = text.substring(specialCharacterIndex + 1);
             specialCharacterIndex = getNextSpecialCharacterIndex(text);
         }
         internalAddToScreenData(text);
@@ -199,7 +212,8 @@ public class TerminalAdapter extends BaseAdapter {
             // Just append the text
             if (lines == 1 || (screenData.charAt(screenData.length() - 1) != '\n' && lastIndex == lines)) {
                 // Recalculate lastStringEndIndex if we add to the last accessed line
-                lastStringEndIndex = screenData.length() + text.indexOf('\n');
+                int newLineIndex = text.indexOf('\n');
+                if (newLineIndex != -1) lastStringEndIndex = screenData.length() + newLineIndex;
             }
             lines += Util.countCharacterOccurrence(text, '\n');
             screenData.append(text);

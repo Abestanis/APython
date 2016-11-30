@@ -1,7 +1,6 @@
 #include "py_utils.h"
 #include <stdlib.h>
 #include <errno.h>
-#include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -13,10 +12,8 @@
 struct pythonThreadArguments {
     int argc;
     char** argv;
+    PseudoTerminal* pseudoTerminal;
 };
-FILE *stdin_writer = NULL;
-static int saved_stdout;
-static int saved_stderr;
 pthread_t pythonThread;
 
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
@@ -100,38 +97,14 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     }
 }
 
-void setupStdinEmulation() {
-    int p[2];
-    ASSERT(pipe(p) != -1, "Could not create the input pipe to replace stdin: %s", strerror(errno));
-    stdin_writer = fdopen(p[1], "w");
-    ASSERT(dup2(p[0], fileno(stdin)) != -1, "Could not link the input pipe with stdin: %s", strerror(errno));
-}
-
-void readFromStdin(char* inputBuffer, int bufferSize) {
-    int count = 0;
-    int character;
-    int flags = fcntl(fileno(stdin), F_GETFL);
-    fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
-    while ((character = fgetc(stdin)) != EOF) {
-        *inputBuffer++ = (char) character;
-        count++;
-        if (count == bufferSize - 1) {
-            break;
-        }
-    }
-    fcntl(fileno(stdin), F_SETFL, flags);
-    *inputBuffer = '\0';
-}
-
 static void cleanupPythonThread(void* arg) {
-    dup2(saved_stdout, fileno(stdout));
-    dup2(saved_stderr, fileno(stderr));
+    disconnectFromPseudoTerminal((PseudoTerminal*) arg);
 }
 
 void* startPythonInterpreter(void* arg) {
-    pthread_cleanup_push(cleanupPythonThread, NULL);
-
     struct pythonThreadArguments *args = (struct pythonThreadArguments*) arg;
+    pthread_cleanup_push(cleanupPythonThread, args->pseudoTerminal);
+    connectToPseudoTerminalFromChild(args->pseudoTerminal);
 
     LOG("Starting...");
     fflush(stdout);
@@ -139,30 +112,20 @@ void* startPythonInterpreter(void* arg) {
     pthread_cleanup_pop(0);
 }
 
-int runPythonInterpreter(int argc, char** argv) {
+int runPythonInterpreter(PseudoTerminal* pseudoTerminal, int argc, char** argv) {
     int outputPipe[2];
     void *status = NULL;
-
-    if (pipe(outputPipe) == -1) {
-        LOG_ERROR("Could not create the pipe to redirect stdout and stderr to.");
-        return 1;
-    }
-
-    saved_stderr = dup(fileno(stderr));
-    saved_stdout = dup(fileno(stdout));
-    setupOutputRedirection(outputPipe);
-    setupStdinEmulation();
-
     struct pythonThreadArguments args;
     args.argc = argc;
     args.argv = argv;
+    args.pseudoTerminal = pseudoTerminal;
 
     if (pthread_create(&pythonThread, NULL, startPythonInterpreter, (void *) &args) == -1) {
         LOG_ERROR("Could not create the Python thread!");
         return 1;
     }
 
-    captureOutput(outputPipe[0]);
+    handlePseudoTerminalOutput(pseudoTerminal);
     pthread_join(pythonThread, &status);
     terminatePython();
     return (int) status;
@@ -175,4 +138,15 @@ void interruptPython() {
 void terminatePython() {
     LOG_WARN("Killing Python thread");
     pthread_kill(pythonThread, SIGTERM);
+}
+
+__sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler) {
+    struct sigaction context, oldContext;
+    context.sa_handler = signalHandler;
+    sigemptyset(&context.sa_mask);
+    context.sa_flags = 0;
+    if (sigaction(signal, &context, &oldContext) == -1) {
+        return SIG_ERR;
+    }
+    return oldContext.sa_handler;
 }
