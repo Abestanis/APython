@@ -280,7 +280,6 @@ public class PackageManager {
 
     public static boolean installPythonExecutable(Context context, ProgressHandler progressHandler) {
         File executable = getPythonExecutable(context);
-        // TODO: Extract pie executable based on android sdk version
         if (executable.exists()) { // TODO: Check if we really need to update it.
             if (!executable.delete()) {
                 Log.w(MainActivity.TAG, "Could not delete previously installed python executable.");
@@ -290,7 +289,8 @@ public class PackageManager {
         if (progressHandler != null) {
             progressHandler.enable(context.getString(R.string.install_executable));
         }
-        return executable.exists() || Util.installFromInputStream(executable, context.getResources().openRawResource(R.raw.python), progressHandler);
+        return executable.exists() || Util.installFromInputStream(executable, context.getResources().openRawResource(
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ? R.raw.python_pie : R.raw.python), progressHandler);
     }
 
     public static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
