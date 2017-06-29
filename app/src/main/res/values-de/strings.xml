@@ -52,4 +52,6 @@
     <string name="content_description_settings_icon">Einstellungs Icon</string>
     <string name="content_description_tab_icon">Tab Icon</string>
     <string name="unknown">Unbekannt</string>
+    <string name="interpreter_wait_key">Drücken Sie eine beliebige Taste…</string>
+    <string name="always_ask">Immer nachfragen</string>
 </resources>

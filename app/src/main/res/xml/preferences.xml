@@ -6,7 +6,7 @@
         <ListPreference
             android:title="Default Python version"
             android:key="pref_key_default_python_version"
-            android:defaultValue="Always ask"/>
+            android:defaultValue="@string/always_ask"/>
         <CheckBoxPreference
             android:title="Skip Splash Screen"
             android:key="pref_key_skip_splash_screen"

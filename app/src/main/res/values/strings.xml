@@ -53,4 +53,6 @@
     <string name="content_description_close_button">Close button</string>
     <string name="content_description_separator">Separator</string>
     <string name="content_description_python_modules_configuration_button">Python modules configuration button</string>
+    <string name="interpreter_wait_key">Press any key to continue…</string>
+    <string name="always_ask">Always ask</string>
 </resources>
