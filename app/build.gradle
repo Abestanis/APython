@@ -29,29 +29,23 @@ android {
     }
     tasks.whenTaskAdded {
         task ->
-            if (task.name == 'processDebugResources') {
+            if (task.name.startsWith('externalNativeBuild')) {
                 task.dependsOn {
-                    copyPythonExecutable
+                    compileExecutable
                 }
             }
     }
     task compileExecutable(type: Exec, description: 'Generate the python executable binaries.') {
         workingDir file('src/main')
         inputs.dir file('src/main/jni')
-        outputs.dir file('src/main/libs')
+        outputs.dir file('src/main/assets')
         executable Os.isFamily(Os.FAMILY_WINDOWS) ? 'cmd' : 'sh'
-        args Os.isFamily(Os.FAMILY_WINDOWS) ? '/c' : '-c',
-                new File(getNdkDirectory(), 'ndk-build.cmd').absolutePath + 
-                ' NDK_APPLICATION_MK=jni/Application.mk APP_BUILD_SCRIPT=jni/PythonExecutable/Android.mk' +
+        args Os.isFamily(Os.FAMILY_WINDOWS) ? '/c' : '-c', new File(
+                getNdkDirectory(), 'ndk-build.cmd').absolutePath +
+                ' NDK_APPLICATION_MK=jni/Application.mk' +
+                ' APP_BUILD_SCRIPT=jni/PythonExecutable/Android.mk' +
+                ' NDK_APP_DST_DIR=assets/$(TARGET_ARCH_ABI)' +
                 ' NDK_OUT=' + getBuildDir().absolutePath + '/intermediates/ndkBuild/obj'
-    }
-    task copyPythonExecutable(type: Copy,
-            description: 'Creates a copy of the generated Python executable to the raw directory.') {
-        from('src/main/libs/armeabi-v7a') {
-            include 'python*'
-        }
-        into 'src/main/res/raw'
-        dependsOn compileExecutable
     }
 }
 

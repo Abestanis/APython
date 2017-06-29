@@ -15,6 +15,7 @@ import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -289,8 +290,15 @@ public class PackageManager {
         if (progressHandler != null) {
             progressHandler.enable(context.getString(R.string.install_executable));
         }
-        return executable.exists() || Util.installFromInputStream(executable, context.getResources().openRawResource(
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ? R.raw.python_pie : R.raw.python), progressHandler);
+        String pyExecutableName = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ?
+                "python_pie" : "python";
+        try {
+            return Util.installFromInputStream(executable, context.getAssets().open(
+                    getSupportedCPUABIS()[0] + "/" + pyExecutableName), progressHandler);
+        } catch (IOException e) {
+            Log.e(MainActivity.TAG, "Failed to install the python executable!", e);
+            return false;
+        }
     }
 
     public static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
