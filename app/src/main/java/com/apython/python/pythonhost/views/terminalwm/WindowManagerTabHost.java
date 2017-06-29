@@ -217,6 +217,7 @@ public class WindowManagerTabHost extends LinearLayout {
 
     protected void displayTabContent(Tab tab) {
         tabContentContainer.addView(tab.view);
+        tab.view.requestFocus();
     }
 
     protected void removeTabContent(Tab tab) {
@@ -244,7 +245,7 @@ public class WindowManagerTabHost extends LinearLayout {
             currTab = NO_INDEX;
             removeTabContent(tab);
             if (tab.previousSelected != null) {
-                setCurrentTab(tabs.indexOf(tab.previousSelected));
+                setCurrentTab(tab.previousSelected, tabs.indexOf(tab.previousSelected));
             } else if (tabs.size() != 0) {
                 setCurrentTab(0);
             }
