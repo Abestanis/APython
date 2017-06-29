@@ -105,6 +105,25 @@ public class PythonInterpreterActivity extends Activity {
         }
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        addTerminalWindow();
+    }
+    
+    private void addTerminalWindow() {
+        if (terminalView == null && terminalWindowManager != null) {
+            WindowManagerInterface.Window window = terminalWindowManager.createWindow(TerminalFragment.class);
+            terminalWindowManager.setWindowName(window, "Python");
+            terminalWindowManager.setWindowIcon(window, Util.getResourceDrawable(this, R.drawable.python_launcher_icon));
+            terminalView = (TerminalInterface) window;
+            terminalView.setProgramHandler(interpreter);
+            if (!enqueuedOutput.equals("")) {
+                terminalView.addOutput(enqueuedOutput);
+            }
+        }
+    }
+
     private void startInterpreter(String pythonVersion) {
         this.terminalWindowManager = PythonFragment.create(WindowManagerFragment.class, this, "wm");
         this.setContentView(R.layout.activity_python_interpreter);
@@ -130,17 +149,9 @@ public class PythonInterpreterActivity extends Activity {
             }
         }, this);
 
-        WindowManagerInterface.Window window = terminalWindowManager.createWindow(TerminalFragment.class);
-        terminalWindowManager.setWindowName(window, "Python");
-        terminalWindowManager.setWindowIcon(window, Util.getResourceDrawable(this, R.drawable.python_launcher_icon));
-        terminalView = (TerminalInterface) window;
-        terminalView.setProgramHandler(interpreter);
-        if (!enqueuedOutput.equals("")) {
-            terminalView.addOutput(enqueuedOutput);
-        }
-
         // Start the interpreter thread
         new Thread(this.interpreter).start();
+        addTerminalWindow();
     }
 
     @Override
