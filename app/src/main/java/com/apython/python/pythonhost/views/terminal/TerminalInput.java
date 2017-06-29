@@ -73,7 +73,7 @@ public class TerminalInput extends EditText {
         this.commandHistory.add("");
         this.commandHistoryAccessor = this.commandHistory.listIterator();
         inputWatcher = new TextWatcher() {
-            int start, count;
+            int start, count, numCharsAdded;
             private void restorePrompt() {
                 String text = getText().toString();
                 int promptMissingEnd = Math.min(prompt.length(), start + count);
@@ -88,6 +88,7 @@ public class TerminalInput extends EditText {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 this.start = start;
+                this.numCharsAdded = count;
                 this.count = before;
             }
 
@@ -99,11 +100,14 @@ public class TerminalInput extends EditText {
                         restorePrompt();
                     } else if (input.length() > 0) {
                         if (input.indexOf('\n', start) >= prompt.length() && commitHandler != null) {
+                            if (numCharsAdded == 1 && input.charAt(start) == '\n') {
+                                internalSetText(input.substring(0, start) + input.substring(start + 1) + '\n');
+                            }
                             commitHandler.onCommit(TerminalInput.this);
                         }
                     }
                 } else {
-                    /** Soft-input methods may not use {@link PythonInterpreterActivity#dispatchKeyEvent(KeyEvent)}. **/
+                    /* Soft-input methods may not use {@link PythonInterpreterActivity#dispatchKeyEvent(KeyEvent)}. **/
                     dispatchInputToMainWindow(input);
                     internalSetText("");
                 }
