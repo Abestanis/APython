@@ -138,7 +138,12 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             int unicodeChar = event.getUnicodeChar();
-            // TODO: Handle special events (like delete)
+            if (unicodeChar == 0) {
+                if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
+                    unicodeChar = '\b';
+                }
+                // TODO: Handle more special keys
+            }
             if (unicodeChar != 0) {
                 this.dispatchKey(unicodeChar);
             }
