@@ -52,9 +52,6 @@ public class SDLWindowFragment extends PythonFragment implements
     // Main components
     static final SDLJoystickHandler joystickHandler = new SDLJoystickHandler();
 
-    // Audio
-    private SDLAudioHandler audioHandler = null;
-
     private final InputMethodManager inputMethodManager;
 
     public SDLWindowFragment(Activity activity, String tag) {
@@ -63,7 +60,6 @@ public class SDLWindowFragment extends PythonFragment implements
         Log.v(TAG, "Device: " + Build.DEVICE);
         Log.v(TAG, "Model: " + Build.MODEL);
         Log.v(TAG, "onCreate():" + this);
-        this.audioHandler = new SDLAudioHandler();
         this.inputMethodManager = (InputMethodManager) getActivity().getApplicationContext()
                 .getSystemService(Context.INPUT_METHOD_SERVICE);
     }
@@ -111,9 +107,8 @@ public class SDLWindowFragment extends PythonFragment implements
     @Override
     public void onDestroy() {
         Log.v(TAG, "onDestroy()");
-            // Send a quit message to the application
+        // Send a quit message to the application
         SDLLibraryHandler.onActivityDestroyed();
-        resetState();
     }
 
     @Override
@@ -131,10 +126,6 @@ public class SDLWindowFragment extends PythonFragment implements
         return keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
                 keyCode == KeyEvent.KEYCODE_CAMERA || keyCode == KEYCODE_ZOOM_IN ||
                 keyCode == KEYCODE_ZOOM_OUT;
-    }
-
-    private void resetState() {
-        audioHandler.audioQuit();
     }
 
     @Override
@@ -227,23 +218,6 @@ public class SDLWindowFragment extends PythonFragment implements
         return surface.waitForSurfaceCreation();
     }
 
-    // Audio
-    public int audioInit(int sampleRate, boolean is16Bit, boolean isStereo, int desiredFrames) {
-        return audioHandler.audioInit(sampleRate, is16Bit, isStereo, desiredFrames);
-    }
-
-    public void audioWriteShortBuffer(short[] buffer) {
-        audioHandler.audioWriteShortBuffer(buffer);
-    }
-
-    public void audioWriteByteBuffer(byte[] buffer) {
-        audioHandler.audioWriteByteBuffer(buffer);
-    }
-
-    public void audioQuit() {
-        audioHandler.audioQuit();
-    }
-
     // Input
 
     /**
@@ -288,7 +262,10 @@ public class SDLWindowFragment extends PythonFragment implements
 
     private void hideInput() {
         if (inputEditText != null) {
-            inputEditText.setVisibility(View.GONE);
+            // Note: On some devices setting view to GONE creates a flicker in landscape.
+            // Setting the View's sizes to 0 is similar to GONE but without the flicker.
+            // The sizes will be set to useful values when the keyboard is shown again.
+            inputEditText.setLayoutParams(new RelativeLayout.LayoutParams(0, 0));
             inputMethodManager.hideSoftInputFromWindow(inputEditText.getWindowToken(), 0);
         }
     }
@@ -464,7 +441,6 @@ public class SDLWindowFragment extends PythonFragment implements
     public native void onNativeTouch(int touchDevId, int pointerFingerId, int action, float x,
                                      float y, float p);
     public native void onNativeAccel(float x, float y, float z);
-    public native void onNativeSurfaceChanged();
     public native void onNativeSurfaceDestroyed();
     public native static int nativeAddJoystick(int device_id, String name,
                                                int is_accelerometer, int nbuttons,

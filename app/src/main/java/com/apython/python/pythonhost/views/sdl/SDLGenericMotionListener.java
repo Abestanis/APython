@@ -24,8 +24,7 @@ class SDLGenericMotionListener implements View.OnGenericMotionListener {
         case InputDevice.SOURCE_JOYSTICK:
         case InputDevice.SOURCE_GAMEPAD:
         case InputDevice.SOURCE_DPAD:
-            SDLWindowFragment.joystickHandler.handleMotionEvent(event);
-            return true;
+            return SDLWindowFragment.joystickHandler.handleMotionEvent(event);
 
         case InputDevice.SOURCE_MOUSE:
             action = event.getActionMasked();

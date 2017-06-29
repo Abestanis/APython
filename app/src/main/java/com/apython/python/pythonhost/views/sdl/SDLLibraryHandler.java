@@ -12,8 +12,6 @@ import android.view.WindowManager;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
 
-import java.io.File;
-
 /**
  * Handler for the native shared SDL library.
  * There is only one handler per process.
@@ -26,6 +24,9 @@ public class SDLLibraryHandler {
     private static boolean libraryIsLoaded = false;
     private static WindowManagerInterface windowManager;
     private static Handler                commandHandler;
+
+    // Audio
+    private static SDLAudioHandler audioHandler = new SDLAudioHandler();
 
     /**
      * If we want to separate mouse and touch events.
@@ -60,11 +61,9 @@ public class SDLLibraryHandler {
     @SuppressLint("UnsafeDynamicallyLoadedCode")
     private static boolean loadLibraries(Context context) {
         try {
-            System.load(new File(PackageManager.getDynamicLibraryPath(context),
-                                 System.mapLibraryName("pythonPatch")).getAbsolutePath());
+            PackageManager.loadDynamicLibrary(context, "pythonPatch");
             for (String library : getSDLLibraries()) {
-                System.load(new File(PackageManager.getDynamicLibraryPath(context),
-                                     System.mapLibraryName(library)).getAbsolutePath());
+                PackageManager.loadDynamicLibrary(context, library);
             }
         } catch (Error e) {
             libraryLoadingError = e;
@@ -87,6 +86,8 @@ public class SDLLibraryHandler {
     }
     
     public static void onActivityDestroyed() {
+        audioHandler.audioClose();
+        audioHandler.captureClose();
         if (!libraryIsLoaded) return;
         nativeQuit();
     }
@@ -109,6 +110,8 @@ public class SDLLibraryHandler {
         return libraryLoadingError;
     }
 
+    /** These methods are called by SDL using JNI. */
+    
     public static boolean sendMessage(int command, int param) {
         if (commandHandler == null) {
             Log.e(SDLWindowFragment.TAG, "No command handler given to handle message " + command
@@ -137,7 +140,39 @@ public class SDLLibraryHandler {
         }
     }
 
-    // 
+    // Audio
+    public static int audioOpen(int sampleRate, boolean is16Bit, boolean isStereo, int desiredFrames) {
+        return audioHandler.audioOpen(sampleRate, is16Bit, isStereo, desiredFrames);
+    }
+
+    public static void audioWriteShortBuffer(short[] buffer) {
+        audioHandler.audioWriteShortBuffer(buffer);
+    }
+
+    public static void audioWriteByteBuffer(byte[] buffer) {
+        audioHandler.audioWriteByteBuffer(buffer);
+    }
+
+    public static int captureOpen(int sampleRate, boolean is16Bit, boolean isStereo, int desiredFrames) {
+        return audioHandler.captureOpen(sampleRate, is16Bit, isStereo, desiredFrames);
+    }
+    
+    public static int captureReadShortBuffer(short[] buffer, boolean blocking) {
+        return audioHandler.captureReadShortBuffer(buffer, blocking);
+    }
+    
+    public static int captureReadByteBuffer(byte[] buffer, boolean blocking) {
+        return audioHandler.captureReadByteBuffer(buffer, blocking);
+    }
+
+    public static void audioClose() {
+        audioHandler.audioClose();
+    }
+
+    public static void captureClose() {
+        audioHandler.captureClose();
+    }
+    
     private native static void nativeInitLibrary(Class windowFragmentClass);
 
     private native static void nativeLowMemory();

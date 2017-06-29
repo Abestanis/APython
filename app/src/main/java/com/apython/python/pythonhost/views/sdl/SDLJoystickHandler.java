@@ -38,6 +38,23 @@ class SDLJoystickHandler {
         isApiAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1;
         joysticks = new ArrayList<>();
     }
+
+    // Check if a given device is considered a possible SDL joystick
+    static boolean isDeviceSDLJoystick(int deviceId) {
+        final int SOURCE_GAMEPAD = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1
+                ? InputDevice.SOURCE_GAMEPAD : 0x00000401;
+        InputDevice device = InputDevice.getDevice(deviceId);
+        // We cannot use InputDevice.isVirtual before API 16, so let's accept
+        // only non-negative device ids (VIRTUAL_KEYBOARD equals -1)
+        if ((device == null) || (deviceId < 0)) {
+            return false;
+        }
+        int sources = device.getSources();
+        return (((sources & InputDevice.SOURCE_CLASS_JOYSTICK) == InputDevice.SOURCE_CLASS_JOYSTICK) ||
+                ((sources & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD) ||
+                ((sources & SOURCE_GAMEPAD) == SOURCE_GAMEPAD)
+        );
+    }
     
     void pollInputDevices() {
         if (!isApiAvailable) { return; }
@@ -52,7 +69,7 @@ class SDLJoystickHandler {
             if (joystick == null) {
                 joystick = new SDLJoystick();
                 InputDevice joystickDevice = InputDevice.getDevice(deviceIds[i]);
-                if ((joystickDevice.getSources() & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {
+                if (isDeviceSDLJoystick(deviceIds[i])) {
                     joystick.device_id = deviceIds[i];
                     joystick.name = joystickDevice.getName();
                     joystick.axes = new ArrayList<>();
@@ -61,7 +78,7 @@ class SDLJoystickHandler {
                     List<InputDevice.MotionRange> ranges = joystickDevice.getMotionRanges();
                     Collections.sort(ranges, new RangeComparator());
                     for (InputDevice.MotionRange range : ranges ) {
-                        if ((range.getSource() & InputDevice.SOURCE_CLASS_JOYSTICK) != 0 ) {
+                        if ((range.getSource() & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {
                             if (range.getAxis() == MotionEvent.AXIS_HAT_X ||
                                     range.getAxis() == MotionEvent.AXIS_HAT_Y) {
                                 joystick.hats.add(range);
