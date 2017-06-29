@@ -238,8 +238,8 @@ public class Util {
             outputFile.close();
             Util.makeFileAccessible(destination, false);
         } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to install resource to " + destination.getAbsolutePath() + "!");
-            e.printStackTrace();
+            Log.e(MainActivity.TAG, "Failed to install resource to " +
+                    destination.getAbsolutePath() + "!", e);
             return false;
         }
         return true;
@@ -323,7 +323,7 @@ public class Util {
                     zipEntry = zipEntries.nextElement();
                     File file = new File(destDir, zipEntry.getName());
                     File dir = zipEntry.isDirectory() ? file : file.getParentFile();
-                    if (!dir.isDirectory() && !dir.mkdirs()) {
+                    if (!dir.isDirectory() && !dir.mkdirs() && !dir.isDirectory()) {
                         throw new FileNotFoundException("Failed to ensure directory: " +
                                                                 dir.getAbsolutePath());
                     }
