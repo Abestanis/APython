@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <errno.h>
+#include <sys/stat.h>
 
 void printUsage(const char* programName) {
     static int mExecPrev = 0;
@@ -19,7 +19,7 @@ void printUsage(const char* programName) {
         "-N  : Launch the latest Python N.x version\n"
         "-X.Y: Launch the specified Python version\n"
         "\n"
-        "The following help text is from Python:\n",
+        "The following help text is from Python:\n\n",
         programName
     );
 }
@@ -43,31 +43,32 @@ void removeArgFromArgv(size_t index, int *argc, char** argv) {
 char* parseLauncherArgs(const char* programName, int* argc, char** argv) {
     // Check the command arguments for -X.Y, -N, -h or --help
     char* versionArg = NULL;
-    size_t i;
-    int isLauncherArg = 1;
+    size_t i, j;
+    int hadPossibleLauncherArg = 0;
     for (i = 0; i < *argc; i++) {
         if (argv[i][0] == '-') {
             if (argv[i][1] == 'h' || (argv[i][1] == '-' && (strcmp(&argv[i][2], "help") == 0))) {
                 printUsage(programName);
-            } else if (isLauncherArg && versionArg == NULL) {
-                char* character = &argv[i][0];
+            } else if (!hadPossibleLauncherArg && versionArg == NULL) {
+                int haveLauncherArg = 0;
                 int hasDecimalPoint = 0;
-                while (*(++character) != '\0') {
-                    if (*character == '.') {
-                        if (hasDecimalPoint++ || character == &argv[i][1]) { isLauncherArg = 0; break; }
-                    } else if (*character < '0' || *character > '9') {
-                        isLauncherArg = 0; break;
+                hadPossibleLauncherArg = 1;
+                for (j = 1; argv[i][j] != '\0'; j++) {
+                    if (argv[i][j] < '0' || argv[i][j] > '9') {
+                        if (argv[i][j] != '.' || hasDecimalPoint++ > 1 || j == 1 || argv[i][j + 1] == '\0') {
+                            haveLauncherArg = 0; break;
+                        }
                     }
+                    haveLauncherArg = 1;
                 }
-                if (isLauncherArg) {
+                if (haveLauncherArg) {
                     versionArg = argv[i];
                     removeArgFromArgv(i, argc, argv);
                     i--;
                 }
-            }
+            } else break;
         } else if (i != 0) break;
     }
-    printf("versionArg = %s\n", versionArg);
     return versionArg;
 }
 
@@ -75,10 +76,18 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
     char* libName = NULL;
     if (pyVersionArg != NULL) {
         if (strchr(pyVersionArg, '.') != NULL) { // Exact Python version (-X.Y)
-            printf("Exact python version given\n");
             size_t libNameLen = strlen("libpython.so") + strlen(&pyVersionArg[1]) + 1;
             libName = malloc(sizeof(char) * libNameLen);
             snprintf(libName, libNameLen, "libpython%s.so", &pyVersionArg[1]);
+            char libFilePath[PATH_MAX];
+            snprintf(libFilePath, PATH_MAX, "%s/%s", pythonLibDir, libName);
+            struct stat statBuffer;
+            if (stat(libFilePath, &statBuffer) != 0) {
+                LOG_ERROR("Failed to find a python version matching command line argument %s",
+                          pyVersionArg);
+                free(libName);
+                libName = NULL;
+            }
         } else { // Get best installed Python version of major version N (-N)
             // Check for the best match of the specified version in the lib dir
             char fileNameStart[32];
@@ -159,19 +168,38 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
     return libName;
 }
 
+void addPathToEnvVariable(const char* variableName, const char* path) {
+    const char* value = (const char*) getenv(variableName);
+    if (value == NULL) value = "";
+    if (strstr(value, path) == NULL) { // Check if our path is already in LD_LIBRARY_PATH
+        size_t valueLen = strlen(path) + strlen(value) + 2;
+        const char* newValue = malloc(sizeof(char) * (valueLen));
+        if (newValue == NULL) {LOG_ERROR("Not enough memory to change '%s'!", variableName); return; }
+        snprintf((char*) newValue, valueLen, "%s:%s", path, value);
+        setenv(variableName, newValue, 1);
+        free((char*) newValue);
+    }
+}
+
 void* openInterpreterHandle(const char* pyLibName, const char* hostLibPath) {
     void* handle = dlopen("libpyInterpreter.so", RTLD_LAZY);
     if (handle == NULL) {
-        LOG_ERROR("LD_LIBRARY_PATH is '%s'", getenv("LD_LIBRARY_PATH"));
-        if (strncmp(hostLibPath, getenv("LD_LIBRARY_PATH"), strlen(hostLibPath)) == 0) {
-            char buff[512];
+        if (strncmp(hostLibPath, getenv("LD_LIBRARY_PATH"), strlen(hostLibPath)) != 0) {
+            // Add the hostLibPath to LD_LIBRARY_PATH
+            addPathToEnvVariable("LD_LIBRARY_PATH", hostLibPath);
+            handle = dlopen("libpyInterpreter.so", RTLD_LAZY);
+        }
+        if (handle == NULL) {
+            // Try to load the absolute path
+            char buff[512], subLibBuff[512];
+            subLibBuff[0] = '\0';
             snprintf(buff, 512, "%s/libpyInterpreter.so", hostLibPath);
-            printf("LOADING '%s'!\n", buff);
             handle = dlopen(buff, RTLD_LAZY);
         }
     }
     if (handle == NULL) {
         LOG_ERROR("Failed to load library %s: %s", "interpreter.so", dlerror());
+        LOG_ERROR("Try to type 'export LD_LIBRARY_PATH=%s' and retry", getenv("LD_LIBRARY_PATH"));
     } else {
         int (*setPythonLibrary)(const char*) = dlsym(handle, "setPythonLibrary");
         if (setPythonLibrary == NULL) {
@@ -192,19 +220,6 @@ void closePythonLibrary(void* handle) {
         closePyLibrary();
     }
     dlclose(handle);
-}
-
-void addPathToEnvVariable(const char* variableName, const char* path) {
-    const char* value = (const char*) getenv(variableName);
-    if (value == NULL) value = "";
-    if (strstr(value, path) == NULL) { // Check if our path is already in LD_LIBRARY_PATH
-        size_t valueLen = strlen(path) + strlen(value) + 2;
-        const char* newValue = malloc(sizeof(char) * (valueLen));
-        if (newValue == NULL) {LOG_ERROR("Not enough memory to change '%s'!", variableName); return; }
-        snprintf((char*) newValue, valueLen, "%s:%s", path, value);
-        setenv(variableName, newValue, 1);
-        free((char*) newValue);
-    }
 }
 
 int main(int argc, char** argv) {
@@ -235,14 +250,12 @@ int main(int argc, char** argv) {
             char cwdBuff[PATH_MAX];
             ASSERT(getcwd(cwdBuff, sizeof(cwdBuff) / sizeof(cwdBuff[0])) != NULL, "getcwd failed!");
             cwdLen = strlen(cwdBuff);
-            printf("cwd = '%s', cwdLen = %zu\n", cwdBuff, cwdLen);
             const char* tmpPath = malloc(sizeof(char) * (cwdLen + strlen(programPath)));
             strncpy((char*) tmpPath, cwdBuff, cwdLen + 1);
             strcpy((char*) &tmpPath[cwdLen], ++programPath);
             programPath = tmpPath;
             baseDirLen = cwdLen + baseDirLen - 1;
         }
-        printf("programPath = '%s', baseDirLen = %zu\n", programPath, baseDirLen);
         basePath = malloc(sizeof(char) * (baseDirLen + 1));
         strncpy((char*) basePath, programPath, baseDirLen);
         *(((char*) basePath) + baseDirLen) = '\0';
@@ -250,14 +263,11 @@ int main(int argc, char** argv) {
         basePath = malloc(sizeof(char) * (strlen(defaultPath) + 1));
         strcpy((char*) basePath, defaultPath);
     }
-    printf("basePath = '%s', programPath = '%s'\n", basePath, programPath);
     // Setup the path to the other Python host libs
     const char* hostLibPath = malloc(sizeof(char) * (strlen(basePath) + strlen(libAppendix) + 1));
     ASSERT(hostLibPath != NULL, "Not enough memory to construct the path to the Python host libraries!");
     strcpy((char*) hostLibPath, basePath);
     strcat((char*) hostLibPath, libAppendix);
-    // Add the hostLibPath to LD_LIBRARY_PATH
-    addPathToEnvVariable("LD_LIBRARY_PATH", hostLibPath);
     // home
     const char *pythonHome = malloc(sizeof(char) * (strlen(basePath) + strlen(homeAppendix) + 1));
     ASSERT(pythonHome != NULL, "Not enough memory to construct the path to the Python home directory!");
@@ -272,7 +282,6 @@ int main(int argc, char** argv) {
     // load pythonLib
     char* pythonLibName = getPythonLibName(pythonLibs, pyVersionArg);
     if (pythonLibName == NULL) return 1;
-    printf("PythonLibName: %s\n", pythonLibName);
     if ((handle = openInterpreterHandle(pythonLibName, hostLibPath)) == NULL) return 1;
     free(pythonLibName);
     // temp
@@ -286,10 +295,9 @@ int main(int argc, char** argv) {
     strcpy((char*) xdgBasePath, basePath);
     strcat((char*) xdgBasePath, xdgAppendix);
     // dataDir
-    const char *dataDir = malloc(sizeof(char) * (strlen(basePath) + strlen(dataAppendix) + 1));
+    const char *dataDir = malloc(sizeof(char) * (strlen(pythonHome) + strlen(dataAppendix) + 2));
     ASSERT(dataDir != NULL, "Not enough memory to construct the data dir path!");
-    strcpy((char*) dataDir, basePath);
-    strcat((char*) dataDir, dataAppendix);
+    sprintf((char *) dataDir, "%s/%s", pythonHome, dataAppendix);
     void (*setupPython)(const char*, const char*, const char*, const char*, const char*, const char*, const char*);
     // Setup and start the python interpreter
     setupPython = dlsym(handle, "setupPython");

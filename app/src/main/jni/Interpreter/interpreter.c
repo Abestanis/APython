@@ -1,6 +1,6 @@
 #include "interpreter.h"
 #include <errno.h>
-#include "Log/log.h"
+#include "log.h"
 #include "py_utils.h"
 #include "py_compatibility.h"
 #include "terminal.h"
@@ -24,7 +24,6 @@ void redirectOutputToJava(const char *string, size_t len) {
     static jclass *cls   = NULL;
     static jmethodID mid = NULL;
     int detached = (*Jvm)->GetEnv(Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
-
     if (detached) (*Jvm)->AttachCurrentThread(Jvm, &env, NULL);
 
     if (cls == NULL) {
@@ -176,10 +175,10 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 
     jsize argc = 1;
     if (jArgs != NULL) {
-        argc = (*env)->GetArrayLength(env, jArgs);
+        argc += (*env)->GetArrayLength(env, jArgs);
     }
     char** argv = NULL;
-    argv = malloc(sizeof(char) * (argc + 1));
+    argv = malloc(sizeof(char*) * argc);
     if (argv == NULL) {
         LOG_ERROR("Failed to allocate space for the argument list!");
         return 1;
@@ -187,26 +186,22 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 
     argv[0] = (char*) programName;
     if (jArgs != NULL) {
-        for (i = 0; i < argc; i++) {
-            jstring jArgument = (*env)->GetObjectArrayElement(env, jArgs, i);
+        for (i = 1; i < argc; i++) {
+            jstring jArgument = (*env)->GetObjectArrayElement(env, jArgs, i - 1);
             const char *argument = (*env)->GetStringUTFChars(env, jArgument, 0);
-            char *arg = malloc(sizeof(char) * (strlen(argument) + 1));
-            if (arg == NULL) {
+            argv[i] = strdup(argument);
+            (*env)->ReleaseStringUTFChars(env, jArgument, argument);
+            if (argv[i] == NULL) {
                 LOG_ERROR("Failed to allocate space for argument %d ('%s')!", i, argument);
-                (*env)->ReleaseStringUTFChars(env, jArgument, argument);
-                for (i--; i >= 2; i--) {
+                for (i--; i > 1; i--) {
                     free(argv[i]);
                 }
                 free(argv);
                 return 1; // TODO: Cleanup
             }
-            arg = strcpy(arg, argument);
-            argv[i + 1] = arg;
-            (*env)->ReleaseStringUTFChars(env, jArgument, argument);
         }
-        argc++;
     }
-
+    
     int result = runPythonInterpreter(pseudoTerminal, argc, argv);
     closePseudoTerminal(pseudoTerminal);
 
@@ -225,7 +220,7 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     (*env)->ReleaseStringUTFChars(env, jDataPath, dataPath);
     (*env)->DeleteGlobalRef(env, jPyInterpreter);
     closePythonLibrary();
-    for (i = 2; i < argc; i++) {
+    for (i = 1; i < argc; i++) {
         free(argv[i]);
     }
     free(argv);

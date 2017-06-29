@@ -3,11 +3,11 @@
 //
 
 #include "terminal.h"
-#include "Log/log.h"
+#include "log.h"
 #include "py_utils.h"
 
 #include <fcntl.h>
-#include <errno.h>
+#include <unistd.h>
 
 struct PseudoTerminal {
     int masterFd;
@@ -18,6 +18,9 @@ struct PseudoTerminal {
     void (*onError)(const char*, size_t);
 };
 
+#define STDIN_INDEX 0
+#define STDOUT_INDEX 1
+#define STDERR_INDEX 2
 
 PseudoTerminal* createPseudoTerminal(void (*onOutput)(const char*, size_t),
                                      void (*onError)(const char*, size_t),
@@ -124,14 +127,13 @@ void setAsControllingTerminal(PseudoTerminal* terminal) {
 void connectToPseudoTerminalFromChild(PseudoTerminal* terminal) {
     setAsControllingTerminal(terminal);
     
-    terminal->slaveStdStreams[STDIN_FILENO]  = dup(STDIN_FILENO);
-    terminal->slaveStdStreams[STDOUT_FILENO] = dup(STDOUT_FILENO);
-    terminal->slaveStdStreams[STDERR_FILENO] = dup(STDERR_FILENO);
+    terminal->slaveStdStreams[STDIN_INDEX]  = dup(fileno(stdin));
+    terminal->slaveStdStreams[STDOUT_INDEX] = dup(fileno(stdout));
+    terminal->slaveStdStreams[STDERR_INDEX] = dup(fileno(stderr));
     
-    while ((dup2(terminal->slaveFd, STDIN_FILENO)  == -1) && (errno == EINTR)) {}
-    while ((dup2(terminal->slaveFd, STDOUT_FILENO) == -1) && (errno == EINTR)) {}
-    while ((dup2(terminal->slaveFd, STDERR_FILENO) == -1) && (errno == EINTR)) {}
-    
+    while ((dup2(terminal->slaveFd, fileno(stdin))  == -1) && (errno == EINTR)) {}
+    while ((dup2(terminal->slaveFd, fileno(stdout)) == -1) && (errno == EINTR)) {}
+    while ((dup2(terminal->slaveFd, fileno(stderr)) == -1) && (errno == EINTR)) {}
     
     setvbuf(stdin, 0, _IOFBF, 0);
     setvbuf(stdout, 0, _IOLBF, 0);
@@ -142,9 +144,9 @@ void disconnectFromPseudoTerminal(PseudoTerminal* terminal) {
     close(terminal->slaveFd);
     terminal->slaveFd = -1;
     
-    while ((dup2(terminal->slaveStdStreams[STDIN_FILENO],  STDIN_FILENO)  == -1) && (errno == EINTR)) {}
-    while ((dup2(terminal->slaveStdStreams[STDOUT_FILENO], STDOUT_FILENO) == -1) && (errno == EINTR)) {}
-    while ((dup2(terminal->slaveStdStreams[STDERR_FILENO], STDERR_FILENO) == -1) && (errno == EINTR)) {}
+    while ((dup2(terminal->slaveStdStreams[STDIN_INDEX],  fileno(stdin))  == -1) && (errno == EINTR)) {}
+    while ((dup2(terminal->slaveStdStreams[STDOUT_INDEX], fileno(stdout)) == -1) && (errno == EINTR)) {}
+    while ((dup2(terminal->slaveStdStreams[STDERR_INDEX], fileno(stderr)) == -1) && (errno == EINTR)) {}
 }
 
 void writeToPseudoTerminal(PseudoTerminal* terminal, const char* input, size_t len) {
@@ -192,15 +194,11 @@ void handlePseudoTerminalOutput(PseudoTerminal* terminal) {
             continue;
         }
         buffer[outputSize] = '\0'; // add null-terminator
-        while (outputSize - 1 >= 0 && buffer[outputSize - 1] == '\0') {
-            outputSize--; // Don't count trailing null-terminators
-        }
         if (terminal->onOutput != NULL) {
-            LOG(buffer);
             terminal->onOutput(buffer, (size_t) outputSize);
-        } else {
-            LOG(buffer);
-        }
+        } //else {
+            LOG("%s", buffer);
+        //}
     }
     LOG_WARN("Returning from %s", __func__);
 }

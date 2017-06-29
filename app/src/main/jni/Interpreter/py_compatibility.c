@@ -4,8 +4,8 @@
 
 #include "py_compatibility.h"
 #include <dlfcn.h>
-#include <link.h>
-#include "Log/log.h"
+#include <string.h>
+#include "log.h"
 
 void* pythonLib = NULL;
 char pythonVersion[32] = { [0] = '\0'};
@@ -28,7 +28,8 @@ int setPythonLibrary(const char* libName) {
                           "value of 'Py_GetVersion' : '%s'", pythonVersionStr);
             }
         } else {
-            LOG_ERROR("Py_compatibility: Didn't found method 'Py_GetVersion' in the python library.");
+            LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.",
+                      "Py_GetVersion");
         }
     } else {
         LOG_ERROR("Failed to load the Python library (%s): %s", libName, dlerror());
@@ -51,7 +52,8 @@ const char* getPythonVersion() {
 int call_Py_Main(int argc, char** argv) {
     static const char* pyMain = "Py_Main";
     static const char* pyMain3 = "main";
-    const char* mainFuncName = pythonVersion[0] >= '3' || pythonVersion[1] != '.' ? pyMain3 : pyMain;
+    const char* mainFuncName = pythonVersion[0] >= '3' || pythonVersion[1] != '.'
+                               ? pyMain3 : pyMain;
     int (*Py_Main)(int, char **) = dlsym(pythonLib, mainFuncName);
     if (Py_Main != NULL) {
         return Py_Main(argc, argv);
@@ -72,16 +74,16 @@ void callCharSetterFunction(const char* funcName, char* arg) {
         wchar_t* (*_Py_char2wchar) (char*, size_t*);
         _Py_char2wchar = dlsym(pythonLib, "_Py_char2wchar");
         if (_Py_char2wchar == NULL) {
-            LOG_ERROR("Py_compatibility: Didn't found method '_Py_char2wchar' in the python library.");
+            LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.",
+                      "_Py_char2wchar");
             return;
         }
         func = dlsym(pythonLib, funcName);
         if (func != NULL) {
             return func(_Py_char2wchar(arg, NULL));
         }
-        LOG_ERROR("Py_compatibility: Didn't found method '%s' in python library.", funcName);
     }
-    LOG_ERROR("Py_compatibility: Didn't found '%s' in the python library.", funcName);
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", funcName);
 }
 
 void call_Py_SetPythonHome(char* arg) {
@@ -99,7 +101,8 @@ void* call_PyMem_Malloc(size_t length) {
     if (PyMalloc != NULL) {
         return PyMalloc(length);
     }
-    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", pyMallocFuncName);
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.",
+              pyMallocFuncName);
     return NULL;
 }
 
@@ -119,5 +122,6 @@ void set_PyOS_ReadlineFunctionPointer(char *(*func)(FILE *, FILE *, const char *
         set_PyOS_ReadlineFunctionPointer(func);
         return;
     }
-    LOG_ERROR("Py_compatibility: Didn't found method 'set_PyOS_ReadlineFunctionPointer' in the python library.");
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.",
+              "set_PyOS_ReadlineFunctionPointer");
 }

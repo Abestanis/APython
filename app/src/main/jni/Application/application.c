@@ -1,6 +1,6 @@
 #include "application.h"
 #include <stdlib.h>
-#include <stdio.h>
+#include <string.h>
 
 #define PY_HOST_PACKAGE_PATH            "com.apython.python.pythonhost"
 #define APP_INTERPRETER_CLASS_PATH      PY_HOST_PACKAGE_PATH ".interpreter.app.AppInterpreter"
@@ -175,7 +175,7 @@ JNIEXPORT jobject JNICALL setWindow(JNIEnv *env, jobject obj, jint windowType, j
     return (*env)->CallObjectMethod(env, appInterpreter, mid, windowType, parent);
 }
 
-JNIEXPORT jint JNICALL startInterpreter(JNIEnv *env, jobject obj, jobjectArray jargs) {
+JNIEXPORT jint JNICALL startInterpreter(JNIEnv *env, jobject obj, jobjectArray jArgs) {
     static jmethodID mid = NULL;
     if (mid == NULL) {
         jclass *cls = (*env)->GetObjectClass(env, appInterpreter);
@@ -183,7 +183,7 @@ JNIEXPORT jint JNICALL startInterpreter(JNIEnv *env, jobject obj, jobjectArray j
         mid = (*env)->GetMethodID(env, cls, START_INTERPRETER_DEF);
         ASSERT(mid, "Could not find the function '%s' (%s) in the Android class!", START_INTERPRETER_DEF);
     }
-    return (*env)->CallIntMethod(env, appInterpreter, mid, jargs);
+    return (*env)->CallIntMethod(env, appInterpreter, mid, jArgs);
 }
 
 JNIEXPORT void JNICALL onActivityLifecycleEvent(JNIEnv *env, jobject obj, jint eventId) {

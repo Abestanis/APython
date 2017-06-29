@@ -8,5 +8,4 @@
 /captures
 Thumbs.db
 .externalNativeBuild
-/app/src/main/libs
-/app/src/main/res/raw/python
+/app/src/main/assets/*

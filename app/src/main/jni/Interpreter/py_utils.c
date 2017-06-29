@@ -1,12 +1,9 @@
 #include "py_utils.h"
-#include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <pthread.h>
 #include <libgen.h>
 #include <dirent.h>
-#include "Log/log.h"
+#include "log.h"
 #include "py_compatibility.h"
 
 struct pythonThreadArguments {
