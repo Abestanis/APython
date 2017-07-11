@@ -7,59 +7,53 @@
               android:theme="@style/PyHostAppTheme">
 
     <TextView
+        android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/downloadManager_title"
-        android:id="@+id/textView"
         android:layout_gravity="center_horizontal"
-        android:paddingLeft="10dp"
-        android:paddingTop="10dp"
-        android:paddingRight="10dp"
-        android:paddingBottom="20dp"/>
+        android:paddingBottom="10dp"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        android:paddingTop="5dp"
+        android:text="@string/downloadManager_title"
+        android:textAppearance="?android:attr/textAppearanceLarge"/>
 
     <LinearLayout
-        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:paddingBottom="20dp">
+        android:orientation="horizontal"
+        android:paddingBottom="5dp">
 
         <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:id="@+id/search_input"
-            android:completionHint="@string/downloadManager_search_hint"
-            android:selectAllOnFocus="true"
-            android:singleLine="true"
-            android:textIsSelectable="true"
-            android:keepScreenOn="true"
-            android:enabled="true"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:clickable="true"
+            android:completionHint="@string/downloadManager_search_hint"
             android:drawableLeft="@android:drawable/ic_menu_search"
+            android:drawableStart="@android:drawable/ic_menu_search"
+            android:enabled="true"
             android:hint="@string/downloadManager_search_hint"
             android:inputType="text"
-            android:clickable="true"/>
-
-        <ImageButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/refresh_button"
-            android:layout_weight="1"
-            android:src="@android:drawable/stat_notify_sync"
-            android:adjustViewBounds="false"
-            android:contentDescription="@string/content_description_refresh_list_button"/>
-
-        <Spinner
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/order_selector"
-            android:layout_weight="1"/>
+            android:keepScreenOn="true"
+            android:maxLines="1"
+            android:selectAllOnFocus="true"
+            android:textIsSelectable="true"/>
     </LinearLayout>
 
-    <ListView
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id="@+id/refresh_layout"
+        xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/pythonVersions_scrollContainer"
-        android:animateLayoutChanges="true"/>
+        android:layout_height="match_parent">
+
+        <ListView
+            android:id="@+id/pythonVersions_scrollContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+    </android.support.v4.widget.SwipeRefreshLayout>
+
 </LinearLayout>

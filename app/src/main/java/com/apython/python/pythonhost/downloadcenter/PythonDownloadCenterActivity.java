@@ -9,6 +9,7 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -18,7 +19,6 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,7 +49,7 @@ public class PythonDownloadCenterActivity extends Activity {
 
     private PythonVersionListAdapter pythonVersionListAdapter;
     private volatile boolean isUpdateRunning = false;
-    private ImageButton refreshButton;
+    SwipeRefreshLayout refreshLayout;
 
     public class ServiceActionRunnable {
         private final Dependency                              dependency;
@@ -134,8 +134,7 @@ public class PythonDownloadCenterActivity extends Activity {
 
         final ListView pythonVersionsContainer = (ListView) findViewById(R.id.pythonVersions_scrollContainer);
         final EditText searchInput = (EditText) findViewById(R.id.search_input);
-        Spinner orderSelector = (Spinner) findViewById(R.id.order_selector);
-        refreshButton = (ImageButton) findViewById(R.id.refresh_button);
+        refreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh_layout);
 
         pythonVersionListAdapter = new PythonVersionListAdapter(this);
         pythonVersionListAdapter.setActionHandler(new PythonVersionListAdapter.ActionHandler() {
@@ -149,14 +148,13 @@ public class PythonDownloadCenterActivity extends Activity {
         emptyTextView.setText(R.string.downloadManager_no_matches);
         ((ViewGroup) pythonVersionsContainer.getParent()).addView(emptyTextView);
         pythonVersionsContainer.setEmptyView(emptyTextView);
-        refreshButton.setOnClickListener(new View.OnClickListener() {
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
-            public void onClick(View v) {
+            public void onRefresh() {
                 updatePythonVersions();
             }
         });
-
-        searchInput.requestFocus();
+        
         searchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -202,6 +200,7 @@ public class PythonDownloadCenterActivity extends Activity {
                 searchInput.addTextChangedListener(this);
             }
         });
+        refreshLayout.setRefreshing(true);
         updatePythonVersions();
     }
 
@@ -233,23 +232,25 @@ public class PythonDownloadCenterActivity extends Activity {
                            getString(R.string.pref_default_python_download_url));
     }
 
-    private void handleVersionListUpdateFinished(boolean success) {
-        isUpdateRunning = false;
-        if (!success) {
-            if (false) {
-                // TODO: Check for connection and display dialog
-            } else {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), R.string.downloadManager_update_failed,
-                                       Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
-        }
-        // TODO: Stop rotation of the refresh button
+    private void handleVersionListUpdateFinished(final boolean success) {
         pythonVersionListAdapter.checkInstalledVersions();
+        isUpdateRunning = false;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                refreshLayout.setRefreshing(false);
+                if (!success) {
+                    if (false) {
+                        // TODO: Check for connection and display dialog
+                    } else {
+                        
+                                Toast.makeText(getApplicationContext(), R.string.downloadManager_update_failed,
+                                               Toast.LENGTH_LONG).show();
+                            
+                    }
+                }
+            }
+        });
     }
 
     public void updatePythonVersions() {
@@ -257,7 +258,6 @@ public class PythonDownloadCenterActivity extends Activity {
             return;
         }
         this.isUpdateRunning = true;
-        // TODO: Make the refresh button rotate
         new Thread(new Runnable() {
             @Override
             public void run() {
