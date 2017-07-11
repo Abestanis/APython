@@ -16,7 +16,7 @@
         android:allowBackup="true"
         android:icon="@drawable/python_launcher_icon"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/MainMenuTheme"> 
         <activity
             android:name="com.apython.python.pythonhost.MainActivity"
             android:label="@string/app_name" >
@@ -41,6 +41,7 @@
             </intent-filter>
         </activity>
         <activity
+            android:theme="@style/PyHostAppTheme"
             android:name=".downloadcenter.PythonDownloadCenterActivity"
             android:label="DownloadPythonSources"
             android:parentActivityName="com.apython.python.pythonhost.MainActivity"
@@ -50,7 +51,11 @@
                 android:value="com.apython.python.pythonhost.MainActivity"/>
         </activity>
         <activity android:name="com.apython.python.pythonhost.PythonSettingsActivity"
+                  android:theme="@style/PyHostAppTheme"
                   android:label="Settings"/>
+        <activity android:name="com.apython.python.pythonhost.ToolsActivity"
+                  android:theme="@style/PyHostAppTheme"
+                  android:label="Tools"/>
         <service
             android:name=".downloadcenter.PythonDownloadCenterService"
             android:exported="false"/>

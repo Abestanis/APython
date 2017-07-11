@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              style="@android:style/Theme"
-              android:background="@android:color/background_light"
-              android:padding="20dp">
+              android:orientation="vertical"
+              android:padding="10dp"
+              android:theme="@style/PyHostAppTheme">
 
     <TextView
         android:layout_width="wrap_content"

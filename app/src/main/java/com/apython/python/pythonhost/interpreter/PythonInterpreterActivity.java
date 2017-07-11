@@ -53,7 +53,7 @@ public class PythonInterpreterActivity extends Activity {
         if (!PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED.equals(pyVersion) && PackageManager.isPythonVersionInstalled(this, pyVersion)) {
             this.startInterpreter(Util.getMainVersionPart(pyVersion));
         } else {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppDialogTheme);
             final ArrayList<String> versions = PackageManager.getInstalledPythonVersions(getApplicationContext());
             if (versions.size() <= 1) {
                 if (versions.size() == 1) {
