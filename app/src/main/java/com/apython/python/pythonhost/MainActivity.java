@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
                 PythonSettingsActivity.KEY_SKIP_SPLASH_SCREEN,
                 getResources().getBoolean(R.bool.pref_default_skip_splash_screen)
         );
-        if (skipSplashScreen) {
+        if (skipSplashScreen || savedInstanceState != null) {
             setupMainMenu();
         } else {
             // Display the splash screen
