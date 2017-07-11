@@ -7,19 +7,18 @@
               android:theme="@style/AppDialogTheme">
 
     <TextView
+        android:id="@+id/dialog_center_python_modules_list_no_modules"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/downloadManager_no_modules"
-        android:id="@+id/dialog_center_python_modules_list_no_modules"
         android:layout_gravity="center_horizontal"
+        android:text="@string/downloadManager_no_modules"
         android:textSize="20sp"
-        android:visibility="gone"
-        />
+        android:visibility="gone"/>
 
     <ListView
+        android:id="@+id/dialog_center_python_modules_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/dialog_center_python_modules_list"
         android:layout_gravity="center_horizontal"/>
 
 </LinearLayout>

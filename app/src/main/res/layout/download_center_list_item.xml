@@ -17,7 +17,7 @@
                 android:layout_height="wrap_content"
                 android:id="@+id/download_center_item_title"
                 android:layout_weight="10"
-                android:singleLine="true"
+                android:maxLines="1"
                 android:textSize="20sp"
                 android:textColor="@android:color/black"/>
 

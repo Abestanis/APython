@@ -4,5 +4,6 @@
           android:layout_height="wrap_content"
           android:background="#ff000000"
           android:id="@+id/terminalView"
+          android:dividerHeight="0dp"
           android:theme="@android:style/Theme">
 </ListView>
