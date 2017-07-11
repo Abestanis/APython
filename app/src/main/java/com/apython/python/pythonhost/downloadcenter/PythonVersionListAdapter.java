@@ -39,9 +39,7 @@ import java.util.Map;
  * Created by Sebastian on 16.08.2015.
  */
 
-public class PythonVersionListAdapter extends BaseAdapter {
-    final short FILTER_OUT_INSTALLED    = 0x1000;
-    final short FILTER_OUT_DOWNLOADABLE = 0x0100;
+class PythonVersionListAdapter extends BaseAdapter {
     
     private Activity activity;
     private Context  context;
@@ -49,7 +47,6 @@ public class PythonVersionListAdapter extends BaseAdapter {
     private Map<String, DataItem>                  dataItems           = new HashMap<>();
     private Map<String, PythonVersionListItemView> versionMap          = new HashMap<>();
     private ArrayList<PythonVersionListItemView>   filteredItemList    = new ArrayList<>();
-    private short                                  filterSettings      = 0x0000;
     private String                                 filterString        = "";
 
     private class Requirement {
@@ -144,17 +141,6 @@ public class PythonVersionListAdapter extends BaseAdapter {
         }
         for (Iterator<Map.Entry<String, PythonVersionListItemView>> items = map.entrySet().iterator(); items.hasNext(); ) {
             PythonVersionListItemView item = items.next().getValue();
-            if ((filterSettings & FILTER_OUT_INSTALLED) != 0) {
-                if (item.isInstalled()) {
-                    items.remove();
-                    continue;
-                }
-            } else if ((filterSettings & FILTER_OUT_DOWNLOADABLE) != 0) {
-                if (!item.isInstalled()) {
-                    items.remove();
-                    continue;
-                }
-            }
             if (!item.matchesFilter(filterString)) {
                 items.remove();
             }
