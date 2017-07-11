@@ -56,7 +56,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                     context.getResources().getLayout(R.layout.terminal_input), scrollContainer, false);
             scrollContainer.addFooterView(this.pythonInput);
             scrollContainer.setAdapter(this.pythonOutput);
-            scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
+            scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
             scrollContainer.setItemsCanFocus(true);
             this.pythonInput.setOnTouchListener(new View.OnTouchListener() {
                 final GestureDetector detector = new GestureDetector(context, new GestureDetector.OnGestureListener() {
