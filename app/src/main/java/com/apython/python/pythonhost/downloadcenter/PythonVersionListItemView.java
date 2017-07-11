@@ -9,7 +9,6 @@ import android.graphics.Color;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
@@ -62,7 +61,53 @@ public class PythonVersionListItemView {
     private PythonVersionListAdapter.ActionHandler downloadHandler   = null;
     private TextView pyInfoValue;
     private TextView pyInfoText;
-    private View.OnTouchListener deleteSwipeDetector = null;
+    private View.OnClickListener actionButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            ProgressHandler.TwoLevelProgressHandler progressHandler = ProgressHandler.Factory
+                    .createTwoLevel(
+                            activity, pyInfoText, mainProgressBar,
+                            detailProgressBar, new Runnable() {
+                                @Override
+                                public void run() {
+                                    configureViewDuringAction();
+                                }
+                            }, new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (state.selectedSubVersion.isInstalled()) {
+                                        installedSubVersion = state.selectedSubVersion;
+                                    }
+                                    updateView();
+                                }
+                            }, new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (state.selectedSubVersion.isInstalled()) {
+                                        installedSubVersion = state.selectedSubVersion;
+                                    }
+                                    updateView();
+                                    Toast.makeText(
+                                            activity.getApplicationContext(),
+                                            String.format("%s Python version %s failed!", 
+                                                          state.selectedSubVersion.isInstalled() ?
+                                                                  "Downloading" : "Updating",
+                                                          state.selectedSubVersion.getPythonVersion()),
+                                            Toast.LENGTH_LONG
+                                    ).show();
+                                }
+                            }
+                    );
+            pyInfoValue.setText("");
+            pyInfoText.setText("");
+            if (!state.selectedSubVersion.isInstalled()) {
+                state.selectedSubVersion.setAction(Dependency.Action.DOWNLOAD);
+            }
+            if (downloadHandler != null) {
+                downloadHandler.onAction(state.selectedSubVersion, progressHandler);
+            }
+        }
+    };
 
     private class State {
 
@@ -106,6 +151,7 @@ public class PythonVersionListItemView {
             }
         }
         pythonSubversionContainer.setAdapter(subversionAdapter);
+        actionButton.setOnLongClickListener(this.actionButtonDeleteListener);
         updateView();
         return preserveView;
     }
@@ -256,6 +302,7 @@ public class PythonVersionListItemView {
             }
         });
         actionButton.setClickable(true);
+        actionButton.setLongClickable(false);
         pyInfoText.setText(R.string.downloadManager_download_size);
         pyInfoValue.setVisibility(View.VISIBLE);
         updateModuleInfo();
@@ -269,6 +316,7 @@ public class PythonVersionListItemView {
         subversionText.setVisibility(View.GONE);
         moduleConfigButton.setVisibility(View.GONE);
         actionButton.setClickable(false);
+        actionButton.setLongClickable(false);
         actionButton.setImageResource(R.drawable.downloading_icon);
         mainContainer.setOnTouchListener(null);
     }
@@ -327,90 +375,8 @@ public class PythonVersionListItemView {
                 }
             }
         });
+        actionButton.setLongClickable(true);
         updateModuleInfo();
-        if (deleteSwipeDetector == null) {
-            deleteSwipeDetector = new View.OnTouchListener() {
-                float startX;
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    float dist;
-                    switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startX = event.getX();
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        dist = startX - event.getX();
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                            mainContainer.setAlpha(1.0f - (dist / 100.0f));
-                        }
-                        if (dist > 100.0f) {
-                            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(activity);
-                            dialogBuilder.setTitle("Delete Python version " + installedSubVersion.getPythonVersion() + "?");
-                            dialogBuilder.setCancelable(true);
-                            dialogBuilder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.cancel();
-                                }
-                            });
-                            dialogBuilder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    installedSubVersion.setAction(Dependency.Action.REMOVE);
-                                    ProgressHandler.TwoLevelProgressHandler progressHandler = ProgressHandler.Factory
-                                            .createTwoLevel(
-                                                    activity, pyInfoText, mainProgressBar,
-                                                    detailProgressBar, new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            configureViewDuringAction();
-                                                        }
-                                                    }, new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            if (installedSubVersion != null && !installedSubVersion.isInstalled()) {
-                                                                installedSubVersion = null;
-                                                            }
-                                                            updateView();
-                                                        }
-                                                    }, new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            PythonVersionItem prevInstalledSubVersion = installedSubVersion;
-                                                            if (!installedSubVersion.isInstalled()) {
-                                                                installedSubVersion = null;
-                                                            }
-                                                            updateView();
-                                                            Toast.makeText(
-                                                                    activity.getApplicationContext(),
-                                                                    "Removing Python version " +
-                                                                            prevInstalledSubVersion.getPythonVersion()
-                                                                            + " failed!",
-                                                                    Toast.LENGTH_LONG
-                                                            ).show();
-                                                        }
-                                                    }
-                                            );
-                                    downloadHandler.onAction(installedSubVersion, progressHandler);
-                                    dialog.cancel();
-                                }
-                            });
-                            dialogBuilder.show();
-                            startX = Float.MIN_VALUE;
-                        }
-                        break;
-                    case MotionEvent.ACTION_CANCEL:
-                    case MotionEvent.ACTION_UP:
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                            mainContainer.setAlpha(1.0f);
-                        }
-                        break;
-                    }
-                    return true;
-                }
-            };
-        }
-        mainContainer.setOnTouchListener(deleteSwipeDetector);
         pyInfoText.setText(R.string.downloadManager_used_storage_space);
         String[] formattedSpace = Util.getFormattedBytes(PackageManager.getUsedStorageSpace(
                 activity.getApplicationContext(), Util.getMainVersionPart(installedSubVersion.getPythonVersion())));
