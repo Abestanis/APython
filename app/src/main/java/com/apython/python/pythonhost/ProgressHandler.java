@@ -21,7 +21,7 @@ public interface ProgressHandler {
             protected boolean enabled         = false;
             protected String text             = null;
             protected String progressText     = null;
-            private   Activity activity       = null;
+            protected Activity activity       = null;
             private   TextView output         = null;
             private   ProgressBar progressBar = null;
             private   Runnable onEnable       = null;
@@ -139,16 +139,26 @@ public interface ProgressHandler {
             }
 
             @Override
-            public void setTotalSteps(int totalSteps) {
+            public void setTotalSteps(final int totalSteps) {
                 this.totalSteps = totalSteps;
-                totalProgressBar.setMax(100 * totalSteps);
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        totalProgressBar.setMax(100 * totalSteps);
+                    }
+                });
             }
 
             @Override
             public void enable(String text) {
                 if (!enabled) {
-                    totalProgressBar.setIndeterminate(true);
-                    totalProgressBar.setMax(100 * totalSteps);
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            totalProgressBar.setIndeterminate(true);
+                            totalProgressBar.setMax(100 * totalSteps);
+                        }
+                    });
                 }
                 super.enable(text);
             }
@@ -162,8 +172,13 @@ public interface ProgressHandler {
                     } else {
                         totalProgress = Math.round(totalProgress) + progress;
                     }
-                    totalProgressBar.setIndeterminate(false);
-                    totalProgressBar.setProgress((int) (totalProgress * 100));
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            totalProgressBar.setIndeterminate(false);
+                            totalProgressBar.setProgress((int) (totalProgress * 100));
+                        }
+                    });
                     lastProgress = progress;
                 }
             }
