@@ -3,6 +3,7 @@ package com.apython.python.pythonhost.views.terminal;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.util.TypedValue;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 class TerminalAdapter extends BaseAdapter {
     private final Context context;
     private final OutputData screenData = new OutputData();
+    private TerminalTextSpan currentTextAttr = null;
     private static final int[] COLORS = { // https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
             Color.rgb(0, 0, 0),
             Color.rgb(205, 0, 0),
@@ -73,6 +75,7 @@ class TerminalAdapter extends BaseAdapter {
         view.setTextSize(TypedValue.COMPLEX_UNIT_PX, 
                          context.getResources().getDimension(R.dimen.interpreter_text_size));
         view.setFocusable(false);
+        view.setEnabled(false);
         view.setFocusableInTouchMode(false);
         return view;
     }
@@ -185,17 +188,7 @@ class TerminalAdapter extends BaseAdapter {
                         screenData.remove(start, end);
                         break;
                     case 'm': // Select Graphic Rendition
-                        if (args.size() == 1) {
-                            switch (args.get(0)) {
-                            case 0: // Reset / Normal
-                                screenData.addUiControl(new ForegroundColorSpan(Color.WHITE));
-                                break;
-                            default:
-                                if (args.get(0) >= 30 && args.get(0) <= 37) { // foregroundColor
-                                    screenData.addUiControl(new ForegroundColorSpan(COLORS[args.get(0) - 30]));
-                                }
-                            }
-                        }
+                        parseGraphicControl(args);
                         break;
                     }
                 }
@@ -208,5 +201,62 @@ class TerminalAdapter extends BaseAdapter {
             specialCharacterIndex = getNextSpecialCharacterIndex(text);
         }
         screenData.add(text);
+    }
+    
+    private void parseGraphicControl(ArrayList<Integer> args) {
+        if (args.size() == 1) {
+            switch (args.get(0)) {
+            case 0: // Reset / Normal
+                currentTextAttr = null;
+                screenData.addUiControl(null);
+                break;
+            case 1: // bold
+                currentTextAttr = new TerminalTextSpan(currentTextAttr).setStyle(Typeface.BOLD);
+                break;
+            case 22:
+                currentTextAttr = new TerminalTextSpan(currentTextAttr)
+                        .setStyle(Typeface.BOLD, false);
+                break;
+            case 3: // italic
+                currentTextAttr = new TerminalTextSpan(currentTextAttr).setStyle(Typeface.ITALIC);
+                break;
+            case 23:
+                currentTextAttr = new TerminalTextSpan(currentTextAttr)
+                        .setStyle(Typeface.ITALIC, false);
+                break;
+            default:
+                if (args.get(0) >= 30 && args.get(0) <= 37) { // foregroundColor
+                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(
+                            new ForegroundColorSpan(COLORS[args.get(0) - 30]));
+                    screenData.addUiControl(currentTextAttr);
+                } else if (args.get(0) == 39) {
+                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(null);
+                    screenData.addUiControl(currentTextAttr);
+                } else if (args.get(0) >= 40 && args.get(0) <= 47) { // backgroundColor
+                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(
+                            new BackgroundColorSpan(COLORS[args.get(0) - 40]));
+                    screenData.addUiControl(currentTextAttr);
+                } else if (args.get(0) == 49) {
+                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(null);
+                    screenData.addUiControl(currentTextAttr);
+                }
+            }
+        } else if (args.size() >= 5) {
+            if (args.get(0) == 38) {
+                if (args.get(1) == 2) {
+                    int color = Color.rgb(args.get(2), args.get(3), args.get(4));
+                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(
+                            new ForegroundColorSpan(color));
+                    screenData.addUiControl(currentTextAttr);
+                }
+            } else if (args.get(0) == 48) {
+                if (args.get(1) == 2) {
+                    int color = Color.rgb(args.get(2), args.get(3), args.get(4));
+                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(
+                            new BackgroundColorSpan(color));
+                    screenData.addUiControl(currentTextAttr);
+                }
+            }
+        }
     }
 }

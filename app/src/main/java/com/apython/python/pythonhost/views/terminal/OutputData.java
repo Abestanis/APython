@@ -1,12 +1,11 @@
 package com.apython.python.pythonhost.views.terminal;
 
-import android.support.v4.util.LongSparseArray;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
-import android.text.style.ForegroundColorSpan;
 
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.data.BinaryTreeMap;
 
 /**
  * Handles terminal output.
@@ -19,15 +18,15 @@ public class OutputData {
     private static final int INITIAL_OUTPUT_DATA_BUFFER_SIZE = 2048;
     private static final int LAST_CHAR_OF_OUTPUT_DATA        = -1;
 
-    private final StringBuffer outputData           = new StringBuffer(INITIAL_OUTPUT_DATA_BUFFER_SIZE);
-    private final LongSparseArray<ForegroundColorSpan> uiControlPoints = new LongSparseArray<>();
-    private int                lines                = 1;
-    private int                lastIndex            = 0;
+    private final StringBuffer                    outputData      = new StringBuffer(INITIAL_OUTPUT_DATA_BUFFER_SIZE);
+    private final BinaryTreeMap<TerminalTextSpan> uiControlPoints = new BinaryTreeMap<>();
+    private       int                             lines           = 1;
+    private       int                             lastIndex       = 0;
     /**
      * lastStringStartIndex might be -1 to indicate the start of the screen data,
      * but lastStringEndIndex can never be -1!
      **/
-    private int                lastStringStartIndex = -1, lastStringEndIndex = 0;
+    private       int                                lastStringStartIndex = -1, lastStringEndIndex = 0;
     private int cursorPosition = LAST_CHAR_OF_OUTPUT_DATA;
 
     public int getLineCount() {
@@ -46,8 +45,8 @@ public class OutputData {
         this.cursorPosition = cursorPosition;
     }
     
-    public void addUiControl(ForegroundColorSpan control) {
-        uiControlPoints.append(getCursorPosition(), control);
+    public void addUiControl(TerminalTextSpan control) {
+        uiControlPoints.put(getCursorPosition(), control);
     }
 
     public int getLength() {
@@ -55,24 +54,27 @@ public class OutputData {
     }
     
     public CharSequence getLineWithUiData(int line) {
+        BinaryTreeMap<TerminalTextSpan>.Surrounding surrounding;
         CharSequence text = getLine(line);
         int lineStartIndex = lastStringStartIndex + 1;
         int lineEndIndex = lineStartIndex + text.length();
-        int numControlIndices = uiControlPoints.size();
-        for (int i = 0; i < numControlIndices; i++) {
-            if (uiControlPoints.keyAt(i) > lineEndIndex) break;
-            if (i + 1 >= numControlIndices || uiControlPoints.keyAt(i + 1) > lineStartIndex) {
-                int endIndex = Math.min(text.length(), i + 1 < numControlIndices ? (int) (uiControlPoints.keyAt(i + 1) - lineStartIndex) : text.length());
-                int startIndex = Math.max(0, (int) (uiControlPoints.keyAt(i) - lineStartIndex));
-                Spannable spannable;
-                if (text instanceof Spannable) {
-                    spannable = (Spannable) text;
-                } else {
-                    spannable = new SpannableString(text);
-                }
-                spannable.setSpan(uiControlPoints.valueAt(i), startIndex, endIndex, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                text = spannable;
+        surrounding = uiControlPoints.getSurrounding(lineStartIndex);
+        if (surrounding.lesserObject != null) {
+            int endIndex = lineEndIndex - lineStartIndex;
+            if (surrounding.higherKey != -1) {
+                endIndex = Math.min(endIndex, (int) (surrounding.higherKey - lineStartIndex));
             }
+            text = surrounding.lesserObject.apply(text, 0, endIndex);
+        }
+        while (surrounding.higherKey != -1 && surrounding.higherKey <= lineEndIndex) {
+            surrounding = surrounding.getNext();
+            if (surrounding.lesserObject == null) continue;
+            int startIndex = (int) (surrounding.lesserKey - lineStartIndex);
+            int endIndex = lineEndIndex - lineStartIndex;
+            if (surrounding.higherKey != -1) {
+                endIndex = Math.min(endIndex, (int) (surrounding.higherKey - lineStartIndex));
+            }
+            text = surrounding.lesserObject.apply(text, startIndex, endIndex);
         }
         return text;
     }
