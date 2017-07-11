@@ -50,17 +50,17 @@ class PythonVersionListAdapter extends BaseAdapter {
     private String                                 filterString        = "";
 
     private class Requirement {
-
         String id;
-
         boolean                satisfied    = true;
         ArrayList<Requirement> requirements = new ArrayList<>();
         ArrayList<Requirement> requiredFor  = new ArrayList<>();
-        public Requirement(String id) {
+        
+        Requirement(String id) {
             super();
             this.id = id;
         }
-        public void setUnsatisfied() {
+        
+        void setUnsatisfied() {
             if (satisfied) {
                 satisfied = false;
                 for (Requirement requirement : requiredFor) {
@@ -68,15 +68,15 @@ class PythonVersionListAdapter extends BaseAdapter {
                 }
             }
         }
-
     }
-    public interface ActionHandler {
-
+    
+    interface ActionHandler {
         void onAction(Dependency dependency, ProgressHandler.TwoLevelProgressHandler progressHandler);
     }
+    
     private ActionHandler actionHandler = null;
 
-    public PythonVersionListAdapter(Activity activity) {
+    PythonVersionListAdapter(Activity activity) {
         super();
         this.context = activity.getApplicationContext();
         this.activity = activity;
@@ -122,11 +122,11 @@ class PythonVersionListAdapter extends BaseAdapter {
         return filteredItemList.isEmpty();
     }
 
-    public void setActionHandler(ActionHandler actionHandler) {
+    void setActionHandler(ActionHandler actionHandler) {
         this.actionHandler = actionHandler;
     }
 
-    public void setFilter(String filter) {
+    void setFilter(String filter) {
         filter = filter.trim().toLowerCase();
         if (!filterString.equals(filter)) {
             filterString = filter;
@@ -135,7 +135,7 @@ class PythonVersionListAdapter extends BaseAdapter {
 
     }
 
-    public void applyFilter(Map<String, PythonVersionListItemView> map) {
+    private void applyFilter(Map<String, PythonVersionListItemView> map) {
         if ("".equals(filterString)) {
             return;
         }
@@ -186,7 +186,7 @@ class PythonVersionListAdapter extends BaseAdapter {
         }
     }
 
-    public void updateInstalledLibraries() {
+    void updateInstalledLibraries() {
         ArrayList<String> installedLibraries = PackageManager.getInstalledDynLibraries(context);
         for (Iterator<Map.Entry<String, PythonVersionListItemView>> entries = versionMap.entrySet().iterator(); entries.hasNext();) {
             Map.Entry<String, PythonVersionListItemView> entry = entries.next();
@@ -229,7 +229,7 @@ class PythonVersionListAdapter extends BaseAdapter {
         checkForChangedUI();
     }
 
-    public boolean parseJSONData(JSONObject root, String serverUrl) {
+    boolean parseJSONData(JSONObject root, String serverUrl) {
         ArrayList<String> versions = new ArrayList<>(root.length());
         for (Iterator<String> keys = root.keys(); keys.hasNext();) versions.add(keys.next());
         // Get the data version
@@ -545,7 +545,7 @@ class PythonVersionListAdapter extends BaseAdapter {
     /*
      * Check the installed versions for errors (e.g. missing Python library zips)
      */
-    public void checkInstalledVersions() {
+    void checkInstalledVersions() {
         // TODO: Implement
     }
 }

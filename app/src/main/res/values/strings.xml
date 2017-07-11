@@ -55,4 +55,5 @@
     <string name="content_description_python_modules_configuration_button">Python modules configuration button</string>
     <string name="interpreter_wait_key">Press any key to continue…</string>
     <string name="always_ask">Always ask</string>
+    <string name="python_version_format">Python %s</string>
 </resources>

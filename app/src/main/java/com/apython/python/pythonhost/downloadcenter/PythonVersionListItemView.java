@@ -6,7 +6,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
-import android.os.Build;
+import android.view.ContextThemeWrapper;
 import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,7 +40,7 @@ import java.util.ArrayList;
  * 
  * Created by Sebastian on 02.04.2016.
  */
-public class PythonVersionListItemView {
+class PythonVersionListItemView {
     private Activity activity;
     private String   mainPythonVersion;
     private PythonVersionItem            installedSubVersion  = null;
@@ -109,20 +109,81 @@ public class PythonVersionListItemView {
         }
     };
 
+    private View.OnLongClickListener actionButtonDeleteListener = new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v) {
+            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(
+                    activity, R.style.AppDialogTheme);
+            dialogBuilder.setTitle("Delete Python version " + installedSubVersion.getPythonVersion() + "?");
+            dialogBuilder.setCancelable(true);
+            dialogBuilder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+            dialogBuilder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    installedSubVersion.setAction(Dependency.Action.REMOVE); // TODO: this falsly removes libPythonPatch if another py version is installed
+                    ProgressHandler.TwoLevelProgressHandler progressHandler = ProgressHandler.Factory
+                            .createTwoLevel(
+                                    activity, pyInfoText, mainProgressBar,
+                                    detailProgressBar, new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            configureViewDuringAction();
+                                        }
+                                    }, new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (installedSubVersion != null && !installedSubVersion.isInstalled()) {
+                                                installedSubVersion = null;
+                                            }
+                                            updateView();
+                                        }
+                                    }, new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            PythonVersionItem prevInstalledSubVersion = installedSubVersion;
+                                            if (!installedSubVersion.isInstalled()) {
+                                                installedSubVersion = null;
+                                            }
+                                            updateView();
+                                            Toast.makeText(
+                                                    activity.getApplicationContext(),
+                                                    "Removing Python version " +
+                                                            prevInstalledSubVersion.getPythonVersion()
+                                                            + " failed!",
+                                                    Toast.LENGTH_LONG
+                                            ).show();
+                                        }
+                                    }
+                            );
+                    downloadHandler.onAction(installedSubVersion, progressHandler);
+                    dialog.cancel();
+                }
+            });
+            dialogBuilder.show();
+            return true;
+        }
+    };
+
     private class State {
-
         PythonVersionItem selectedSubVersion = null;
-
         boolean           detailViewShown    = false;
     }
-    public PythonVersionListItemView(final Activity activity, String mainPythonVersion) {
+    
+    PythonVersionListItemView(Activity activity, String mainPythonVersion) {
         super();
         this.mainPythonVersion = mainPythonVersion;
         this.activity = activity;
     }
-    public View getView(Context context, View preserveView, ViewGroup parent) {
+    
+    View getView(Context context, View preserveView, ViewGroup parent) {
         if (preserveView == null) {
-            preserveView = LayoutInflater.from(context).inflate(R.layout.download_center_list_item, parent, false);
+            preserveView = LayoutInflater.from(context)
+                    .inflate(R.layout.download_center_list_item, parent, false);
         }
         mainContainer = preserveView;
         titleView = (TextView) preserveView.findViewById(R.id.download_center_item_title);
@@ -151,104 +212,116 @@ public class PythonVersionListItemView {
             }
         }
         pythonSubversionContainer.setAdapter(subversionAdapter);
+        actionButton.setOnClickListener(this.actionButtonClickListener);
         actionButton.setOnLongClickListener(this.actionButtonDeleteListener);
         updateView();
         return preserveView;
     }
+    
     private void updateView() {
-        if (titleView != null) {
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    dropdownButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            state.detailViewShown = !state.detailViewShown;
-                            detailViewContainer.setVisibility(state.detailViewShown
-                                                                      ? View.VISIBLE : View.GONE);
-                            Animation animation = AnimationUtils.loadAnimation(
-                                    activity.getApplicationContext(),
-                                    state.detailViewShown ? R.anim.python_version_list_expand_info :
-                                            R.anim.python_version_list_collaps_info
-                            );
-                            v.startAnimation(animation);
-                        }
-                    });
-                    if (state.selectedSubVersion != null) {
-                        pythonSubversionContainer.setSelection(availableSubVersions.indexOf(state.selectedSubVersion));
-                    }
-                    pythonSubversionContainer.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                        @Override
-                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                            ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
-                            PythonVersionItem selectedVersion = availableSubVersions.get(position);
-                            if (selectedVersion != state.selectedSubVersion) {
-                                state.selectedSubVersion = selectedVersion;
-                                updateView();
-                            }
-                        }
-
-                        @Override
-                        public void onNothingSelected(AdapterView<?> parent) {
-                        }
-                    });
-                    detailViewContainer.setVisibility(state.detailViewShown ? View.VISIBLE : View.GONE);
-                    moduleConfigButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(activity);
-                            @SuppressLint("InflateParams") View dialogView = LayoutInflater.from(
-                                    activity.getApplicationContext()).inflate(R.layout.download_center_python_module_dialog, null);
-                            dialogBuilder.setView(dialogView);
-                            ListView moduleListView = (ListView) dialogView.findViewById(R.id.dialog_center_python_modules_list);
-                            ArrayList<PythonModuleItem> additionalModules = state.selectedSubVersion.getAdditionalModules();
-                            moduleListView.setAdapter(new ArrayAdapter<PythonModuleItem>(
-                                    activity.getApplicationContext(),
-                                    android.R.layout.simple_list_item_1, additionalModules) {
-                                @NonNull
-                                @Override
-                                public View getView(int position, View convertView, @NonNull ViewGroup parent) {
-                                    if (convertView == null) {
-                                        convertView = new CheckBox(activity.getApplicationContext());
-                                    }
-                                    CheckBox checkBox = (CheckBox) convertView;
-                                    final PythonModuleItem module = getItem(position);
-                                    assert module != null;
-                                    checkBox.setText(module.getModuleName());
-                                    checkBox.setTextColor(Color.BLACK);
-                                    checkBox.setOnCheckedChangeListener(null);
-                                    checkBox.setChecked(module.isInstalled() || module.getAction() == Dependency.Action.DOWNLOAD);
-                                    checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                                        @Override
-                                        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                                            module.setAction(isChecked ? Dependency.Action.DOWNLOAD : Dependency.Action.REMOVE);
-                                        }
-                                    });
-                                    return convertView;
-                                }
-                            });
-                            dialogBuilder.setTitle("Additional Python Modules");
-                            dialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                                @Override
-                                public void onCancel(DialogInterface dialog) {
-                                    updateModuleInfo();
-                                }
-                            });
-                            dialogBuilder.show();
-                        }
-                    });
-                    if (isInstalled()) {
-                        configureViewInstalled();
-                    } else {
-                        configureViewForDownload();
-                    }
-                }
-            });
+        if (titleView == null) {
+            return;
         }
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                dropdownButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        state.detailViewShown = !state.detailViewShown;
+                        detailViewContainer.setVisibility(state.detailViewShown
+                                                                  ? View.VISIBLE : View.GONE);
+                        Animation animation = AnimationUtils.loadAnimation(
+                                activity.getApplicationContext(),
+                                state.detailViewShown ? R.anim.python_version_list_expand_info :
+                                        R.anim.python_version_list_collaps_info
+                        );
+                        v.startAnimation(animation);
+                    }
+                });
+                if (state.selectedSubVersion != null) {
+                    pythonSubversionContainer.setSelection(availableSubVersions.indexOf(state.selectedSubVersion));
+                }
+                pythonSubversionContainer.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                        ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
+                        PythonVersionItem selectedVersion = availableSubVersions.get(position);
+                        if (selectedVersion != state.selectedSubVersion) {
+                            state.selectedSubVersion = selectedVersion;
+                            updateView();
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {
+                    }
+                });
+                detailViewContainer.setVisibility(state.detailViewShown ? View.VISIBLE : View.GONE);
+                moduleConfigButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        onModuleConfigButtonClick();
+                    }
+                });
+                if (isInstalled()) {
+                    configureViewInstalled();
+                } else {
+                    configureViewForDownload();
+                }
+            }
+        });
+    }
+    
+    private void onModuleConfigButtonClick() {
+        Context context = new ContextThemeWrapper(
+                activity.getApplicationContext(), R.style.AppDialogTheme);
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(
+                activity, R.style.AppDialogTheme);
+        @SuppressLint("InflateParams")
+        View dialogView = LayoutInflater.from(context).inflate(
+                R.layout.download_center_python_module_dialog, null);
+        dialogBuilder.setView(dialogView);
+        ListView moduleListView = (ListView) dialogView.findViewById(
+                R.id.dialog_center_python_modules_list);
+        ArrayList<PythonModuleItem> additionalModules = state.selectedSubVersion.getAdditionalModules();
+        ArrayAdapter<PythonModuleItem> moduleItemAdapter = new ArrayAdapter<PythonModuleItem>(
+                context, android.R.layout.simple_list_item_1, additionalModules) {
+            @NonNull
+            @Override
+            public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+                if (convertView == null) {
+                    convertView = new CheckBox(getContext());
+                }
+                CheckBox checkBox = (CheckBox) convertView;
+                final PythonModuleItem module = getItem(position);
+                assert module != null;
+                checkBox.setText(module.getModuleName());
+                checkBox.setOnCheckedChangeListener(null);
+                checkBox.setChecked(module.isInstalled() || module.getAction() == Dependency.Action.DOWNLOAD);
+                checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                        module.setAction(isChecked ? Dependency.Action.DOWNLOAD : Dependency.Action.REMOVE);
+                    }
+                });
+                return convertView;
+            }
+        };
+        moduleListView.setAdapter(moduleItemAdapter);
+        moduleListView.setEmptyView(dialogView.findViewById(R.id.dialog_center_python_modules_list_no_modules));
+        dialogBuilder.setTitle("Additional Python Modules");
+        dialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                updateModuleInfo();
+            }
+        });
+        dialogBuilder.show();
     }
     
     private void configureViewForDownload() {
-        titleView.setText("Python " + mainPythonVersion);
+        titleView.setText(activity.getString(R.string.python_version_format, mainPythonVersion));
         mainProgressBar.setVisibility(View.GONE);
         detailProgressBar.setVisibility(View.GONE);
         pythonSubversionContainer.setVisibility(View.VISIBLE);
@@ -256,51 +329,6 @@ public class PythonVersionListItemView {
         moduleConfigButton.setVisibility(View.VISIBLE);
         mainContainer.setOnTouchListener(null);
         actionButton.setImageResource(R.drawable.add);
-        actionButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ProgressHandler.TwoLevelProgressHandler progressHandler = ProgressHandler.Factory
-                        .createTwoLevel(
-                                activity, pyInfoText, mainProgressBar,
-                                detailProgressBar, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        configureViewDuringAction();
-                                    }
-                                }, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (state.selectedSubVersion.isInstalled()) {
-                                            installedSubVersion = state.selectedSubVersion;
-                                        }
-                                        updateView();
-                                    }
-                                }, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (state.selectedSubVersion.isInstalled()) {
-                                            installedSubVersion = state.selectedSubVersion;
-                                        }
-                                        updateView();
-                                        Toast.makeText(
-                                                activity.getApplicationContext(),
-                                                "Downloading Python version " +
-                                                        state.selectedSubVersion.
-                                                                getPythonVersion()
-                                                        + " failed!",
-                                                Toast.LENGTH_LONG
-                                        ).show();
-                                    }
-                                }
-                        );
-                pyInfoValue.setText("");
-                pyInfoText.setText("");
-                state.selectedSubVersion.setAction(Dependency.Action.DOWNLOAD);
-                if (downloadHandler != null) {
-                    downloadHandler.onAction(state.selectedSubVersion, progressHandler);
-                }
-            }
-        });
         actionButton.setClickable(true);
         actionButton.setLongClickable(false);
         pyInfoText.setText(R.string.downloadManager_download_size);
@@ -309,7 +337,7 @@ public class PythonVersionListItemView {
     }
 
     private void configureViewDuringAction() {
-        titleView.setText("Python " + state.selectedSubVersion.getPythonVersion());
+        titleView.setText(activity.getString(R.string.python_version_format, mainPythonVersion));
         mainProgressBar.setVisibility(View.VISIBLE);
         detailProgressBar.setVisibility(View.VISIBLE);
         pythonSubversionContainer.setVisibility(View.GONE);
@@ -322,59 +350,14 @@ public class PythonVersionListItemView {
     }
 
     private void configureViewInstalled() {
-        titleView.setText("Python " + installedSubVersion.getPythonVersion());
+        titleView.setText(activity.getString(R.string.python_version_format, mainPythonVersion));
         mainProgressBar.setVisibility(View.GONE);
         detailProgressBar.setVisibility(View.GONE);
         pythonSubversionContainer.setVisibility(View.VISIBLE);
         subversionText.setVisibility(View.VISIBLE);
         moduleConfigButton.setVisibility(View.VISIBLE);
         actionButton.setImageResource(R.drawable.installed);
-        actionButton.setOnClickListener(null);
         actionButton.setClickable(true);
-        actionButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ProgressHandler.TwoLevelProgressHandler progressHandler = ProgressHandler.Factory
-                        .createTwoLevel(
-                                activity, pyInfoText, mainProgressBar,
-                                detailProgressBar, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        configureViewDuringAction();
-                                    }
-                                }, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (state.selectedSubVersion.isInstalled()) {
-                                            installedSubVersion = state.selectedSubVersion;
-                                        }
-                                        updateView();
-                                    }
-                                }, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (state.selectedSubVersion.isInstalled()) {
-                                            installedSubVersion = state.selectedSubVersion;
-                                        }
-                                        updateView();
-                                        Toast.makeText(
-                                                activity.getApplicationContext(),
-                                                "Updating Python version " +
-                                                        state.selectedSubVersion.
-                                                                getPythonVersion()
-                                                        + " failed!",
-                                                Toast.LENGTH_LONG
-                                        ).show();
-                                    }
-                                }
-                        );
-                pyInfoValue.setText("");
-                pyInfoText.setText("");
-                if (downloadHandler != null) {
-                    downloadHandler.onAction(state.selectedSubVersion, progressHandler);
-                }
-            }
-        });
         actionButton.setLongClickable(true);
         updateModuleInfo();
         pyInfoText.setText(R.string.downloadManager_used_storage_space);
@@ -440,17 +423,18 @@ public class PythonVersionListItemView {
             }
             moduleDescription.setText(moduleInfoText);
         }
+        // TODO: Update Icon if modules need changing
     }
 
-    public String getMainPythonVersion() {
+    String getMainPythonVersion() {
         return mainPythonVersion;
     }
 
-    public void setActionHandler(PythonVersionListAdapter.ActionHandler downloadHandler) {
+    void setActionHandler(PythonVersionListAdapter.ActionHandler downloadHandler) {
         this.downloadHandler = downloadHandler;
     }
 
-    public boolean matchesFilter(String filter) {
+    boolean matchesFilter(String filter) {
         String pyVersion = mainPythonVersion;
         if (isInstalled()) pyVersion = installedSubVersion.getPythonVersion();
         if (("python " + pyVersion).contains(filter)) {
@@ -473,7 +457,7 @@ public class PythonVersionListItemView {
         return installedSubVersion != null && installedSubVersion.isInstalled();
     }
 
-    public void addPythonSubVersion(PythonVersionItem subVersion) {
+    void addPythonSubVersion(PythonVersionItem subVersion) {
         PythonVersionItem prev = null;
         for (PythonVersionItem availableSubVersion : availableSubVersions) {
             if (availableSubVersion.getPythonVersion().equals(subVersion.getPythonVersion())) {
@@ -506,11 +490,11 @@ public class PythonVersionListItemView {
         }
     }
 
-    public ArrayList<PythonVersionItem> getSubVersions() {
+    ArrayList<PythonVersionItem> getSubVersions() {
         return new ArrayList<>(availableSubVersions);
     }
 
-    public void removeSubVersion(PythonVersionItem subVersion) {
+    void removeSubVersion(PythonVersionItem subVersion) {
         availableSubVersions.remove(subVersion);
         if (state.selectedSubVersion == subVersion) {
             state.selectedSubVersion = availableSubVersions.get(0);
@@ -518,7 +502,7 @@ public class PythonVersionListItemView {
         }
     }
 
-    public boolean containsInformation() {
+    boolean containsInformation() {
         for (PythonVersionItem subVersion : availableSubVersions) {
             if (subVersion.isInstalled() || (subVersion.getUrl() != null && subVersion.getMd5Checksum() != null)) {
                 return true;

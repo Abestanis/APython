@@ -21,7 +21,7 @@ import java.util.ArrayList;
  *
  * Created by Sebastian on 13.11.2015.
  */
-public class TerminalAdapter extends BaseAdapter {
+class TerminalAdapter extends BaseAdapter {
     private final Context context;
     private final OutputData screenData = new OutputData();
     private static final int[] COLORS = { // https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
@@ -35,7 +35,7 @@ public class TerminalAdapter extends BaseAdapter {
             Color.rgb(255, 255, 255),
     };
 
-    public TerminalAdapter(Context context) {
+    TerminalAdapter(Context context) {
         this.context = context;
     }
 
@@ -97,7 +97,7 @@ public class TerminalAdapter extends BaseAdapter {
      *
      * @param output The text to add.
      */
-    public void addOutput(String output) {
+    void addOutput(String output) {
         applyTerminalCodes(output);
         notifyDataSetChanged();
     }

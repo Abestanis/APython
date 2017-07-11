@@ -59,34 +59,14 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
             scrollContainer.setItemsCanFocus(true);
             this.pythonInput.setOnTouchListener(new View.OnTouchListener() {
-                final GestureDetector detector = new GestureDetector(context, new GestureDetector.OnGestureListener() {
+                final GestureDetector detector = new GestureDetector(
+                        context, new GestureDetector.SimpleOnGestureListener() {
                     @Override
-                    public boolean onDown(MotionEvent e) {
-                        return true;
-                    }
-
-                    @Override
-                    public void onShowPress(MotionEvent e) {
-                    }
-
-                    @Override
-                    public boolean onSingleTapUp(MotionEvent e) {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                        return true;
-                    }
-
-                    @Override
-                    public void onLongPress(MotionEvent e) {
-                    }
-
-                    @Override
-                    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                        if (e1 != null && e2 != null && Math.abs(e1.getX() - e2.getX()) > 30) {
-                            if (e1.getX() - e2.getX() > 0) {
+                    public boolean onFling(MotionEvent firstEvent, MotionEvent lastEvent,
+                                           float velocityX, float velocityY) {
+                        if (firstEvent != null && lastEvent != null &&
+                                Math.abs(firstEvent.getX() - lastEvent.getX()) > 30) {
+                            if (firstEvent.getX() - lastEvent.getX() > 0) {
                                 pythonInput.loadNextCommand();
                             } else {
                                 pythonInput.loadLastCommand();

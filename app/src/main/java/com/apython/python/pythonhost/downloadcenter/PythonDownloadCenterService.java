@@ -53,8 +53,7 @@ public class PythonDownloadCenterService extends IntentService {
         }
     }
 
-    class ProgressHandlerProxy implements ProgressHandler.TwoLevelProgressHandler {
-
+    private class ProgressHandlerProxy implements ProgressHandler.TwoLevelProgressHandler {
         TwoLevelProgressHandler progressHandler;
         String text            = null;
         String progressText    = null;
@@ -62,7 +61,7 @@ public class PythonDownloadCenterService extends IntentService {
         float  secProgress     = -1.0f;
         private int totalSteps = 1;
 
-        public ProgressHandlerProxy(TwoLevelProgressHandler progressHandler) {
+        ProgressHandlerProxy(TwoLevelProgressHandler progressHandler) {
             this.progressHandler = progressHandler;
         }
 
@@ -161,7 +160,7 @@ public class PythonDownloadCenterService extends IntentService {
             this.progressHandler = progressHandler;
         }
 
-        public Notification buildNotification() {
+        Notification buildNotification() {
             Context context = PythonDownloadCenterService.this;
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context);
             notificationBuilder.setSmallIcon(R.drawable.python_grey_icon);
