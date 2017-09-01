@@ -15,8 +15,6 @@ import android.widget.TextView;
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.R;
 
-import java.util.ArrayList;
-
 /**
  * An adapter to use with a {@link android.widget.ListView} to display a terminal.
  *
@@ -26,6 +24,7 @@ class TerminalAdapter extends BaseAdapter {
     private final Context context;
     private final OutputData screenData = new OutputData();
     private TerminalTextSpan currentTextAttr = null;
+    private MultiCharTerminalEscSeq currentEscSeq = null;
     private static final int[] COLORS = { // https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
             Color.rgb(0, 0, 0),
             Color.rgb(205, 0, 0),
@@ -126,14 +125,22 @@ class TerminalAdapter extends BaseAdapter {
      * @param text The text to add to the screen data.
      */
     private void applyTerminalCodes(String text) {
+        if (currentEscSeq != null) {
+            text = '\033' + text;
+        }
         int specialCharacterIndex = getNextSpecialCharacterIndex(text);
         while (specialCharacterIndex != -1) {
             screenData.add(text.substring(0, specialCharacterIndex));
             switch (text.charAt(specialCharacterIndex)) {
             case '\r':
-                int endIndex = screenData.getCursorPosition();
-                screenData.setCursorPosition(screenData.lastIndexOf("\n", endIndex, -1) + 1);
-                break;
+                if (text.length() > specialCharacterIndex + 1 &&
+                        text.charAt(specialCharacterIndex + 1) == '\n') {
+                    specialCharacterIndex++; // ignore the \r and fall trough to the \n
+                } else {
+                    int endIndex = screenData.getCursorPosition();
+                    screenData.setCursorPosition(screenData.lastIndexOf("\n", endIndex, -1) + 1);
+                    break;
+                }
             case '\n': {
                 int cursorPosition = screenData.getCursorPosition();
                 // We may not be on the last line. Check if there is line after this one.
@@ -151,46 +158,27 @@ class TerminalAdapter extends BaseAdapter {
                 }
                 break; }
             case '\033': // ANSI escape sequence
-                if (text.charAt(specialCharacterIndex + 1) == '[') { // CSI code
+                if (currentEscSeq == null) currentEscSeq = new MultiCharTerminalEscSeq();
+                int charsParsed = currentEscSeq.parse(text, specialCharacterIndex + 1);
+                boolean invalidSeq = charsParsed == -1;
+                if (currentEscSeq.isComplete()) {
+                    if (applyEscapeSequence(currentEscSeq)) {
+                        specialCharacterIndex += 1 + charsParsed;
+                        currentEscSeq = null;
+                    } else {
+                        invalidSeq = true;
+                    }
+                }
+                if (invalidSeq) {
+                    // print a /033 and parse the rest
+                    screenData.add("\033");
                     specialCharacterIndex++;
-                    char character;
-                    ArrayList<Integer> args = new ArrayList<>();
-                    int argIndex = 0;
-                    String privateModeCharacters = "";
-                    String trailingIntermediateCharacters = "";
-                    while ((character = text.charAt(++specialCharacterIndex)) != '\0' && (character < 64 || character > 126)) {
-                        if (Character.isDigit(character)) {
-                            if (args.size() <= argIndex) {
-                                args.add(Character.getNumericValue(character));
-                            } else {
-                                args.set(argIndex, args.get(argIndex) * 10 + Character.getNumericValue(character));
-                            }
-                        } else if (character == ':') {
-                            argIndex++;
-                        } else if (character >= 32 && character <= 47) {
-                            trailingIntermediateCharacters += character;
-                        } else if (character >= 48 && character <= 63) {
-                            privateModeCharacters += character;
-                        }
+                    if (!currentEscSeq.getText().isEmpty()) {
+                        // TODO: Test this
+                        text = text.substring(0, specialCharacterIndex) + currentEscSeq.getText()
+                                + text.substring(specialCharacterIndex);
                     }
-                    switch (character) {
-                    case 'K': // EL – Erase in Line
-                        int start = screenData.getCursorPosition();
-                        int end = start;
-                        if (args.size() == 0 || args.get(0) == 0) {
-                            end = screenData.indexOf("\n", start + 1, screenData.getLength());
-                        } else if (args.get(0) == 1) {
-                            start = screenData.lastIndexOf("\n", end, 0);
-                        } else if (args.get(0) == 2) {
-                            end = screenData.indexOf("\n", start + 1, screenData.getLength());
-                            start = screenData.lastIndexOf("\n", start, 0);
-                        }
-                        screenData.remove(start, end);
-                        break;
-                    case 'm': // Select Graphic Rendition
-                        parseGraphicControl(args);
-                        break;
-                    }
+                    currentEscSeq = null;
                 }
                 break;
             default:
@@ -202,61 +190,95 @@ class TerminalAdapter extends BaseAdapter {
         }
         screenData.add(text);
     }
-    
-    private void parseGraphicControl(ArrayList<Integer> args) {
-        if (args.size() == 1) {
-            switch (args.get(0)) {
-            case 0: // Reset / Normal
-                currentTextAttr = null;
-                screenData.addUiControl(null);
-                break;
-            case 1: // bold
-                currentTextAttr = new TerminalTextSpan(currentTextAttr).setStyle(Typeface.BOLD);
-                break;
-            case 22:
-                currentTextAttr = new TerminalTextSpan(currentTextAttr)
-                        .setStyle(Typeface.BOLD, false);
-                break;
-            case 3: // italic
-                currentTextAttr = new TerminalTextSpan(currentTextAttr).setStyle(Typeface.ITALIC);
-                break;
-            case 23:
-                currentTextAttr = new TerminalTextSpan(currentTextAttr)
-                        .setStyle(Typeface.ITALIC, false);
-                break;
-            default:
-                if (args.get(0) >= 30 && args.get(0) <= 37) { // foregroundColor
-                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(
-                            new ForegroundColorSpan(COLORS[args.get(0) - 30]));
-                    screenData.addUiControl(currentTextAttr);
-                } else if (args.get(0) == 39) {
-                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(null);
-                    screenData.addUiControl(currentTextAttr);
-                } else if (args.get(0) >= 40 && args.get(0) <= 47) { // backgroundColor
-                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(
-                            new BackgroundColorSpan(COLORS[args.get(0) - 40]));
-                    screenData.addUiControl(currentTextAttr);
-                } else if (args.get(0) == 49) {
-                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(null);
-                    screenData.addUiControl(currentTextAttr);
+
+    /**
+     * Apply the given multi char sequence to the terminal data.
+     * Unknown sequences are ignored.
+     * @param seq The sequence to apply.
+     * @return False, if the sequence was invalid.
+     */
+    private boolean applyEscapeSequence(MultiCharTerminalEscSeq seq) {
+        MultiCharTerminalEscSeq.CSIData csiData = seq.getCsiData();
+        if (csiData != null) {
+            switch (csiData.command) {
+            case 'K': // EL – Erase in Line
+                int start = screenData.getCursorPosition();
+                int end = start;
+                if (csiData.parameters.size() == 0 || csiData.getIntParam(0, -1) == 0) {
+                    end = screenData.indexOf("\n", start + 1, screenData.getLength());
+                } else if (csiData.getIntParam(0, -1) == 1) {
+                    start = screenData.lastIndexOf("\n", end, 0);
+                } else if (csiData.getIntParam(0, -1) == 2) {
+                    end = screenData.indexOf("\n", start + 1, screenData.getLength());
+                    start = screenData.lastIndexOf("\n", start, 0);
                 }
-            }
-        } else if (args.size() >= 5) {
-            if (args.get(0) == 38) {
-                if (args.get(1) == 2) {
-                    int color = Color.rgb(args.get(2), args.get(3), args.get(4));
-                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(
-                            new ForegroundColorSpan(color));
-                    screenData.addUiControl(currentTextAttr);
+                screenData.remove(start, end);
+                break;
+            case 'm': // Select Graphic Rendition
+                if (csiData.parameters.size() == 1) {
+                    switch (csiData.getIntParam(0, -1)) {
+                    case -1: // Invalid
+                        break;
+                    case 0: // Reset / Normal
+                        currentTextAttr = null;
+                        screenData.addUiControl(null);
+                        break;
+                    case 1: // bold
+                        currentTextAttr = new TerminalTextSpan(currentTextAttr).setStyle(Typeface.BOLD);
+                        break;
+                    case 22:
+                        currentTextAttr = new TerminalTextSpan(currentTextAttr)
+                                .setStyle(Typeface.BOLD, false);
+                        break;
+                    case 3: // italic
+                        currentTextAttr = new TerminalTextSpan(currentTextAttr).setStyle(Typeface.ITALIC);
+                        break;
+                    case 23:
+                        currentTextAttr = new TerminalTextSpan(currentTextAttr)
+                                .setStyle(Typeface.ITALIC, false);
+                        break;
+                    default:
+                        int parameter = csiData.getIntParam(0, -1);
+                        if (parameter >= 30 && parameter <= 37) { // foregroundColor
+                            currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(
+                                    new ForegroundColorSpan(COLORS[parameter - 30]));
+                            screenData.addUiControl(currentTextAttr);
+                        } else if (parameter == 39) {
+                            currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(null);
+                            screenData.addUiControl(currentTextAttr);
+                        } else if (parameter >= 40 && parameter <= 47) { // backgroundColor
+                            currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(
+                                    new BackgroundColorSpan(COLORS[parameter - 40]));
+                            screenData.addUiControl(currentTextAttr);
+                        } else if (parameter == 49) {
+                            currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(null);
+                            screenData.addUiControl(currentTextAttr);
+                        }
+                    }
+                } else if (csiData.parameters.size() >= 5) {
+                    if (csiData.getIntParam(0, -1) == 38) {
+                        if (csiData.getIntParam(1, -1) == 2) {
+                            int color = Color.rgb(csiData.getIntParam(2, 0),
+                                                  csiData.getIntParam(3, 0), 
+                                                  csiData.getIntParam(4, 0));
+                            currentTextAttr = new TerminalTextSpan(currentTextAttr).setForeground(
+                                    new ForegroundColorSpan(color));
+                            screenData.addUiControl(currentTextAttr);
+                        }
+                    } else if (csiData.getIntParam(0, -1) == 48) {
+                        if (csiData.getIntParam(1, -1) == 2) {
+                            int color = Color.rgb(csiData.getIntParam(2, 0),
+                                                  csiData.getIntParam(3, 0),
+                                                  csiData.getIntParam(4, 0));
+                            currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(
+                                    new BackgroundColorSpan(color));
+                            screenData.addUiControl(currentTextAttr);
+                        }
+                    }
                 }
-            } else if (args.get(0) == 48) {
-                if (args.get(1) == 2) {
-                    int color = Color.rgb(args.get(2), args.get(3), args.get(4));
-                    currentTextAttr = new TerminalTextSpan(currentTextAttr).setBackground(
-                            new BackgroundColorSpan(color));
-                    screenData.addUiControl(currentTextAttr);
-                }
+                break;
             }
         }
+        return true;
     }
 }
