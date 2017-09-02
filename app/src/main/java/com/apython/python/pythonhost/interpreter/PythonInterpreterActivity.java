@@ -3,6 +3,7 @@ package com.apython.python.pythonhost.interpreter;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -158,6 +159,11 @@ public class PythonInterpreterActivity extends Activity {
     public void onBackPressed() {
         interpreter.interrupt();
         terminalView.disableInput();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
     }
 
     @Override
