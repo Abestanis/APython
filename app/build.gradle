@@ -1,4 +1,5 @@
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.apache.tools.ant.DirectoryScanner
 
 apply plugin: 'com.android.application'
 
@@ -11,10 +12,15 @@ android {
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             ndkBuild {
                 arguments 'NDK_APPLICATION_MK:=' + file('src/main/jni/Application.mk').absolutePath
             }
+        }
+        ndk {
+//            abiFilters 'armeabi-v7a'
+//            abiFilters 'x86_64'
         }
     }
     buildTypes {
@@ -29,6 +35,10 @@ android {
     }
     tasks.whenTaskAdded {
         task ->
+            if (task.name in ['prepareDebugDependencies', 'prepareReleaseDependencies']) {
+                task.finalizedBy updatePythonZip27
+                task.finalizedBy updatePythonZip34
+            }
             if (task.name.startsWith('externalNativeBuild')) {
                 task.dependsOn {
                     compileExecutable
@@ -47,9 +57,495 @@ android {
                 ' NDK_APP_DST_DIR=assets/$(TARGET_ARCH_ABI)' +
                 ' NDK_OUT=' + getBuildDir().absolutePath + '/intermediates/ndkBuild/obj'
     }
+    task createDiffs(type: DiffMaker, description: 'Create the diffs for the python versions') {
+        versionsSourceDir = file('src/main/jni/DevLibs')
+        patchOutputDir = file('src/main/jni/DevLibs/patches')
+        downloadUrl = 'https://www.python.org/ftp/python/%VERSION%/Python-%VERSION%.tgz'
+        libConfigFile file('../../../GitHub/Repositories/APython-Libs/libraries.cfg')
+    }
+    task setupAdditionalLibrarySources(type: SetupAdditionalLibrarySources,
+            description: 'Download and extract sources for all additional libraries') {
+        libConfigFile file('../../../GitHub/Repositories/APython-Libs/libraries.cfg')
+    }
+    task updatePythonZip27(type: Zip, description: 'Update the Python library zip') {
+        from file('src/main/jni/DevLibs/Python2.7.2/source/Lib')
+        destinationDir file('src/main/assets/DevAssets/')
+        baseName 'lib2_7'
+        version null
+        extension 'zip'
+    }
+    task updatePythonZip34(type: Zip, description: 'Update the Python library zip') {
+        from file('src/main/jni/DevLibs/Python3.4.3/source/Lib')
+        destinationDir file('src/main/assets/DevAssets/')
+        baseName 'lib3_4'
+        version null
+        extension 'zip'
+    }
+    productFlavors {
+    }
 }
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:23.4.0'
+    testCompile 'junit:junit:4.12'
+    androidTestCompile 'com.android.support:support-annotations:23.4.0'
+    androidTestCompile 'com.android.support.test:runner:0.5'
+    androidTestCompile 'com.android.support.test:rules:0.5'
+    androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
+}
+
+
+class Util {
+    /**
+     * Find and verify a git executable path.
+     * @return A path to a valid git executable
+     */
+    static String getGitExecPath(Project project) {
+        try {
+            'git --version'.execute().waitFor()
+            return 'git'
+        } catch (IOException ignored) {}
+        Properties properties = new Properties()
+        File propertiesFile = project.rootProject.file('local.properties')
+        try {
+            properties.load(propertiesFile.newDataInputStream())
+        } catch (FileNotFoundException ignored) {}
+        String gitPath = properties.getProperty('git.path')
+        if (gitPath == null) {
+            throw new InvalidUserDataException('No Git executable found! Define the location with' +
+                    ' git.path in ' + propertiesFile.absolutePath + '.')
+        }
+        try {
+            (gitPath + ' --version').execute().waitFor()
+            return gitPath
+        } catch (IOException ignored) {
+            thow new InvalidUserDataException('Git executable not found at the location specified' +
+                    ' with git.path in ' + propertiesFile.absolutePath + '.')
+        }
+    }
+    
+    static String getGitBranch(String gitPath) {
+        def execReturn
+        def execState = (gitPath + ' status').execute()
+        if ((execReturn = execState.waitFor()) != 0) {
+            throw new GradleException('git status failed with exit code ' + execReturn)
+        }
+        def gitStatusLines = execState.inputStream.readLines()
+        if (gitStatusLines.size() < 1 || !gitStatusLines[0].startsWith('On branch ')) {
+            println('Data returned by "git status":')
+            for (def line in gitStatusLines) {println(line)}
+            throw new GradleException('git status returned invalid data')
+        }
+        return gitStatusLines[0].substring(10).trim()
+    }
+    
+    static File download(String url, File destDir) {
+        if (url.contains('github.com') && !url.endsWith('.zip')) {
+            if (!url.endsWith('/')) url += '/'
+            url += 'archive/master.zip'
+        }
+        def urlSource = new URL(url)
+        def segments = urlSource.getPath().split("/")
+        File dest = new File(destDir, segments[segments.length - 1])
+        println('Downloading source files from \'' + url + '\'...')
+        try {
+            urlSource.withInputStream { i ->
+                dest.withOutputStream {
+                    it << i
+                }
+            }
+        } catch (Exception e) {
+            if (dest.exists()) {
+                dest.delete()
+            }
+            throw new GradleException('Downloading source files from "' + url + '" failed.', e)
+        }
+        return dest
+    }
+    
+    static boolean copy(Project project, sourceTree, File dest,
+                        filter) {
+        def success = false
+        DirectoryScanner.removeDefaultExclude("**/.gitignore")
+        DirectoryScanner.removeDefaultExclude("**/.gitattributes")
+        if (filter != null) {
+            sourceTree = sourceTree.matching(filter)
+        }
+        try {
+            success = project.copy({
+                from sourceTree
+                into dest
+            }).didWork
+        } catch (GradleException e) {
+            e.printStackTrace()
+        } finally {
+            DirectoryScanner.resetDefaultExcludes()
+        }
+        return success
+    }
+    
+    static boolean extract(Project project, File src, File dest,
+                           filter, boolean deleteSrc, boolean removeFirstDir) {
+        println('Extracting files...')
+        if (dest.exists()) {
+            dest.deleteDir()
+        }
+        def srcTree = null
+        if (src.getName().endsWith('.zip')) {
+            srcTree = project.zipTree(src)
+        } else if (src.getName().contains('.tar') || src.getName().endsWith('.tgz')) {
+            srcTree = project.tarTree(src)
+        }
+        if (srcTree == null) {
+            throw new GradleException('Unsupportet archive format "' + src.getName() + '".')
+        }
+        def success = copy(project, srcTree, dest, removeFirstDir ? null : filter)
+        if (deleteSrc) src.delete()
+        if (success && removeFirstDir) {
+            def children = dest.listFiles()
+            if (children.size() != 1) {
+                throw new GradleException('Extracted directory from archive ' + src.absolutePath + 
+                        ' does not contain just one directory.')
+            }
+            def childDir = children[0] 
+            if (!childDir.isDirectory()) {
+                throw new GradleException('The extracted archive ' + src.absolutePath +
+                        ' does not contain a directory at its top level.')
+            }
+            if (new File(childDir, childDir.getName()).exists()) {
+                def oldChildDir = childDir
+                childDir = new File(childDir.getParentFile(), 'TempMovingDir-ApythonProject-Py-Random')
+                GFileUtils.moveDirectory(oldChildDir, childDir)
+            }
+            success = copy(project, project.fileTree(childDir), childDir.getParentFile(), filter);
+            GFileUtils.deleteDirectory(childDir)
+        }
+        return success
+    }
+    
+    static int execIgnoreOutput(String command) {
+        def execState = command.execute()
+        execState.waitForProcessOutput(null, null)
+        return execState.waitFor()
+    }
+
+    static def parseLibConfigFile(File libConfigFile) {
+        HashMap<String, HashMap<String, String>> config = new HashMap<>()
+        String currentSectionName = null
+        HashMap<String, String> currentSection = null
+        for (line in libConfigFile.readLines()) {
+            line = line.trim()
+            if (line.startsWith('[') && line.endsWith(']')) {
+                if (currentSection != null) {
+                    config.put(currentSectionName, currentSection)
+                }
+                currentSectionName = line.substring(1, line.length() - 1).trim()
+                currentSection = new HashMap<>()
+            } else if (!line.isEmpty()) {
+                def parts = line.split('=', 2)
+                if (parts.size() != 2) {
+                    throw new GradleException('library config file at '
+                            + libConfigFile.absolutePath + ' contains an invalid line:\n' + line)
+                }
+                currentSection.put(parts[0].trim(), parts[1].trim())
+            }
+        }
+        if (currentSection != null) {
+            config.put(currentSectionName, currentSection)
+        }
+        return config
+    }
+    
+    static def formatDiffOutput(String output, String[] pathsToDelete) {
+        def diffString = ""
+        def pathsToDeleteFormat = "(\\Q" + pathsToDelete.join("\\E|\\Q") + "\\E)"
+        for (String line : output.split('\n')) {
+            if (line.matches( "(index .*?\\.\\.|similarity index |" +
+                    "rename from |rename to ).*")) {
+                continue
+            }
+            if (pathsToDelete.length > 0) {
+                line = line.replaceAll(pathsToDeleteFormat, "")
+            }
+            if (line.startsWith('--- "') || line.startsWith('+++ "')) {
+                line = line.replaceFirst("\"", "")
+                int pos = line.lastIndexOf("\"");
+                if (pos > -1) {
+                    line = line.substring(0, pos) + line.substring(pos + 1);
+                }
+            }
+            diffString += line + '\n'
+        }
+        return diffString
+    }
+}
+
+
+class SetupAdditionalLibrarySources extends DefaultTask {
+    @InputFile
+    def File libConfigFile
+    
+    @TaskAction
+    def run() {
+        def gitExecPath = Util.getGitExecPath(project)
+        def libConfig = Util.parseLibConfigFile(libConfigFile)
+        int execReturn;
+        if ((execReturn = (gitExecPath + ' stash').execute().waitFor()) != 0) {
+            throw new GradleException('git stash failed with exit code ' + execReturn)
+        }
+        try {
+            // Check that we are clean
+            def currBranch = Util.getGitBranch(gitExecPath)
+            println('Current branch: ' + currBranch)
+            if (currBranch == 'updateLibraries') {
+                throw new GradleException('Invalid state: Currently on branch ' + currBranch +
+                        ". If this is a branch generated by a prevoius execution of this script, " +
+                        "switch to another branch and execute this script again.")
+            }
+            def execState = (gitExecPath + ' status').execute()
+            if ((execReturn = execState.waitFor()) != 0) {
+                throw new GradleException('git status failed with exit code ' + execReturn)
+            }
+            def gitStatusLines = execState.inputStream.readLines()
+            if (gitStatusLines.size() < 1 || !gitStatusLines[0].startsWith('On branch ')) {
+                println('Data returned by "git status":')
+                for (def line in gitStatusLines) {println(line)}
+                throw new GradleException('git status returned invalid data')
+            }
+            for (line in gitStatusLines) {
+                if (line.startsWith('Changes not staged for commit:')) {
+                    throw new GradleException('There are still changes in the working tree ' +
+                            'after git stash')
+                }
+            }
+            // Check if updateLibraries exists
+            execState = (gitExecPath + ' branch --list updateLibraries').execute()
+            if ((execReturn = execState.waitFor()) != 0) {
+                throw new GradleException('git branch --list failed with exit code ' + execReturn)
+            }
+            def branchExists = false
+            for (line in execState.inputStream.readLines()) {
+                if (!line.trim().isEmpty()) {
+                    branchExists = true
+                    break
+                }
+            }
+            if (branchExists) {
+                execState = (gitExecPath + ' checkout updateLibraries').execute()
+            } else {
+                execState = (gitExecPath + ' checkout -b updateLibraries').execute()
+            }
+            if ((execReturn = execState.waitFor()) != 0) {
+                throw new GradleException('git checkout failed with exit code ' + execReturn)
+            }
+            assert Util.getGitBranch(gitExecPath) == 'updateLibraries'
+            try {
+                if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' reset --hard ' + currBranch)) != 0) {
+                    throw new GradleException('git reset failed with exit code ' + execReturn)
+                }
+                def updatedLibs = updateLibraries(libConfig)
+                println('Committing changes...')
+                String message = ''
+                for (lib in updatedLibs) {
+                    message += lib + ' from ' + libConfig.get(lib).get('url') + '\n'
+                }
+                if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' add -A')) != 0) {
+                    throw new GradleException('git add failed with exit code ' + execReturn)
+                }
+                def command = (gitExecPath + ' commit -m "Update libraries\n\n' + message + '"')
+                if ((execReturn = Util.execIgnoreOutput(command)) != 0) {
+                    throw new GradleException('git commit failed with exit code ' + execReturn)
+                }
+            } finally {
+                // Switch back to the previous branch
+                if (Util.execIgnoreOutput(gitExecPath + ' checkout ' + currBranch) != 0) {
+                    (gitExecPath + ' stash').execute().waitForProcessOutput(null, null)
+                    if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' checkout ' + currBranch)) != 0) {
+                        getLogger().log(LogLevel.ERROR, "!!!\ngit checkout " + currBranch +
+                                " failed with exit code " + execReturn + "! Try to run it " +
+                                "manually and the git stash apply to fix your branch state.\n!!!")
+                    }
+                }
+            }
+        } finally {
+            // Cleanup
+            if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' stash apply')) != 0) {
+                getLogger().log(LogLevel.ERROR, "!!!\ngit stash apply failed with exit code " + 
+                        execReturn + "! Try to run it manually to see what is wrong.\n!!!")
+            } else {
+                if ((execReturn = (gitExecPath + ' stash drop').execute().waitFor()) != 0) {
+                    getLogger().log(LogLevel.ERROR, "git stash drop failed wit exit code " +
+                            execReturn + ".")
+                }
+            }
+        }
+        // Display message
+        println('############################################\n' +
+                '# !Additional libraries have been updated! #\n' +
+                '# Merge from the "updateLibraries" branch. #\n' +
+                '############################################')
+    }
+    
+    ArrayList<String> updateLibraries(HashMap<String, HashMap<String, String>> libConfig) {
+        // Check version
+        def libsToUpdate = new ArrayList<String>()
+        for (libData in libConfig.entrySet()) {
+            def libName = libData.key
+            if (!libData.value.containsKey('url')) {
+                getLogger().log(LogLevel.ERROR,
+                        "Section " + libName + ' misses entry "url". Skipping it.')
+                continue
+            }
+            if (libName == 'SDL2X11Emulation') continue
+            libsToUpdate.add(libName)
+        }
+        for (libName in libsToUpdate) {
+            println('Updating ' + libName)
+            // Download
+            def url = libConfig.get(libName).get('url')
+            File archive = Util.download(url, this.temporaryDir)
+            // extract and overwrite
+            def libDirName = libName.capitalize()
+            File sourceDir = project.file('src/main/jni/DevLibs/' + libDirName + '/source') // TODO: Extract path as config
+            if (!Util.extract(project, archive, sourceDir, null, true, true)) {
+                getLogger().log(LogLevel.ERROR, 'Failed to extract archive ' + archive.absolutePath)
+                currentLibData.remove(libName)
+            }
+        }
+        return libsToUpdate
+    }
+}
+
+class DiffMaker extends DefaultTask {
+    @InputDirectory
+    def File versionsSourceDir
+
+    @InputFile
+    def File libConfigFile
+
+    @Input
+    def String downloadUrl
+    
+    @OutputDirectory
+    def File patchOutputDir
+    
+    @TaskAction
+    def main() {
+        def String gitExecPath = Util.getGitExecPath(project)
+        def libConfig = Util.parseLibConfigFile(libConfigFile)
+        // Add the Python versions
+        def sourceDirs = versionsSourceDir.listFiles()
+        def pythonIncludes = ['Include', 'Lib', 'Modules', 'Objects', 'Parser', 'Python', 'LICENSE',
+                              'README']
+        def pyFileTypeFilter = ['*.c', '*.h', '*.py', '*.pyc', '*.inc', '*.txt', '*.gif', '*.png',
+                                '*.def']
+        for (File sourceDir : sourceDirs) {
+            if (!sourceDir.name.matches("Python\\d\\.\\d.*")) continue;
+            def version = sourceDir.name.substring(6)
+            HashMap<String, String> data = new HashMap<>();
+            data.put('url', downloadUrl.replaceAll("%VERSION%", version))
+            data.put('extraction_filter', pythonIncludes.join(", "))
+            data.put('file_type_filter', pyFileTypeFilter.join(", "))
+            libConfig.put(sourceDir.name, data)
+        }
+        for (libData in libConfig.entrySet()) {
+            def libName = libData.key
+            if (!libData.value.containsKey('url')) {
+                getLogger().log(LogLevel.ERROR,
+                        "Section " + libName + ' misses entry "url". Skipping it.')
+                continue
+            }
+            if (libName == 'sdl2X11Emulation') continue
+            def url = libData.value.get('url')
+            def sourceDir = null
+            for (File dir : sourceDirs) {
+                if (libName.equalsIgnoreCase(dir.name)) {
+                    sourceDir = dir
+                }
+            }
+            if (sourceDir == null) {
+                throw new GradleException('Failed to find source dir of ' + libName
+                        + ' in ' + versionsSourceDir.absolutePath)
+            }
+            def archiveFile = Util.download(url, this.temporaryDir)
+
+            def filter = null
+            if (libData.value.containsKey('extraction_filter')) {
+                filter = new PatternSet();
+                def includes = []
+                def directoryIncludes = []
+                for (String include : libData.value.get('extraction_filter').split(', ')) {
+                    if (include.contains('*.')) {
+                        includes.add(include)
+                    } else {
+                        includes.add(include)
+                        directoryIncludes.add(include)
+                    }
+                }
+                def fileTypeIncludes = libData.value.get('file_type_filter', '').split(', ') 
+                for (String dirInclude : directoryIncludes) {
+                    if (fileTypeIncludes.size() != 0) {
+                        for (String extInclude : fileTypeIncludes) {
+                            includes.add(dirInclude + "/" + extInclude)
+                            includes.add(dirInclude + "/**/" + extInclude)
+                        }
+                    } else {
+                        includes.add(dirInclude + "/**")
+                    }
+                }
+                filter.setIncludes(includes)
+            }
+            def extractDir = new File(this.temporaryDir, libName + '.orig')
+            if (!Util.extract(project, archiveFile, extractDir, filter, true, true)) {
+                throw new GradleException('Failed to extract ' + archiveFile.getAbsolutePath() + '.')
+            }
+            
+            println("Copying sources of " + libName + "...")
+            def modifiedSourcesDir = new File(sourceDir, 'source')
+            sourceDir = new File(this.temporaryDir, sourceDir.name + '.new')
+            if (!Util.copy(project, project.fileTree(modifiedSourcesDir), sourceDir, filter)) {
+                throw new GradleException('Failed to copy ' 
+                        + modifiedSourcesDir.getAbsolutePath() + '.')
+            }
+            
+            println("Creating patch for " + libName + "...")
+            patchOutputDir.mkdirs()
+            def patchFile = new File(patchOutputDir, libName + ".patch")
+            if (patchFile.exists()) patchFile.delete()
+            def gitDiffProcess = new ProcessBuilder(gitExecPath, "--no-pager", "diff", "--no-index",
+                    "--no-prefix", "--diff-filter=RMA", extractDir.name, sourceDir.name)
+                    .directory(sourceDir.parentFile).start()
+            StringBuilder output = new StringBuilder()
+            StringBuilder err = new StringBuilder()
+            gitDiffProcess.waitForProcessOutput(output, err)
+            if (err.contains("error: ")) {
+                getLogger().log(LogLevel.ERROR, err.toString())
+            } else {
+                println(err)
+            }
+            String[] pathsToDelete = [
+                extractDir.absolutePath.replaceAll("\\\\", "\\\\\\\\"),
+                sourceDir.absolutePath.replaceAll("\\\\", "\\\\\\\\")
+            ]
+            def diffString = Util.formatDiffOutput(output.toString(), pathsToDelete)
+            if (diffString.isEmpty()) {
+                throw new GradleException('Failed to create patch for ' + libName +
+                        ' (empty diff file).')
+            }
+            try {
+                patchFile.withDataOutputStream { out ->
+                    out.writeBytes(diffString)
+                }
+            } catch (IOException e) {
+                println('Failed to save diff to "' + patchFile.absolutePath + '": ' + e.message)
+                if (patchFile.exists()) patchFile.delete()
+                throw e
+            } finally {
+                extractDir.deleteDir()
+                sourceDir.deleteDir()
+            }
+            println('Sucessfully created diff at "' + patchFile.absolutePath + '".')
+        }
+    }
 }

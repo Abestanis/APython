@@ -179,8 +179,9 @@ size_t readFromPseudoTerminalStdin(PseudoTerminal* terminal, char* buff, size_t 
 
 void handlePseudoTerminalOutput(PseudoTerminal* terminal) {
     ssize_t outputSize;
-    char buffer[4096]; // TODO: Handle stderr
-    while ((outputSize = read(terminal->masterFd, buffer, (sizeof(buffer) / sizeof(buffer[0])) - 1)) != 0) {
+    char buffer[4096];
+    size_t MAX_BUFFER_SIZE = (sizeof(buffer) / sizeof(buffer[0])) - 1;
+    while ((outputSize = read(terminal->masterFd, buffer, MAX_BUFFER_SIZE)) != 0) {
         if (outputSize == -1) {
             if (errno != EINTR && errno != EAGAIN) {
                 if (terminal->slaveFd != -1) {
