@@ -14,10 +14,8 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,15 +24,8 @@ import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.ProgressHandler;
 import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.R;
-import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.downloadcenter.items.Dependency;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLConnection;
 import java.util.ArrayList;
 
 /**
@@ -45,17 +36,16 @@ import java.util.ArrayList;
 
 public class PythonDownloadCenterActivity extends Activity {
 
-    public static final String INDEX_PATH = "index.json";
-
+    private DownloadServer downloadServer;
     private PythonVersionListAdapter pythonVersionListAdapter;
     private volatile boolean isUpdateRunning = false;
     SwipeRefreshLayout refreshLayout;
 
-    public class ServiceActionRunnable {
+    class ServiceActionRunnable {
         private final Dependency                              dependency;
         private final ProgressHandler.TwoLevelProgressHandler progressHandler;
 
-        public ServiceActionRunnable(Dependency dependency, ProgressHandler.TwoLevelProgressHandler progressHandler) {
+        ServiceActionRunnable(Dependency dependency, ProgressHandler.TwoLevelProgressHandler progressHandler) {
             super();
             this.dependency = dependency;
             this.progressHandler = progressHandler;
@@ -69,13 +59,13 @@ public class PythonDownloadCenterActivity extends Activity {
             return progressHandler;
         }
 
-        public boolean applyAction(ProgressHandler.TwoLevelProgressHandler progressHandler) {
+        boolean applyAction(ProgressHandler.TwoLevelProgressHandler progressHandler) {
             return dependency.applyAction(progressHandler);
         }
     }
 
     private PythonDownloadServiceConnection downloadServiceConnection = new PythonDownloadServiceConnection();
-    class PythonDownloadServiceConnection implements ServiceConnection {
+    private class PythonDownloadServiceConnection implements ServiceConnection {
         private PythonDownloadCenterService      downloadService     = null;
         private boolean                          isBound             = false;
         private boolean                          displayNotification = false;
@@ -106,14 +96,14 @@ public class PythonDownloadCenterActivity extends Activity {
             }
         }
 
-        public void showProgressAsNotification(boolean showNotification) {
+        void showProgressAsNotification(boolean showNotification) {
             displayNotification = showNotification;
             if (downloadService != null) {
                 downloadService.showProgressAsNotification(showNotification);
             }
         }
 
-        public void addPendingActionToQueue(Dependency dependency, ProgressHandler.TwoLevelProgressHandler progressHandler) {
+        void addPendingActionToQueue(Dependency dependency, ProgressHandler.TwoLevelProgressHandler progressHandler) {
             ServiceActionRunnable action = new ServiceActionRunnable(dependency, progressHandler);
             if (downloadService == null) {
                 actionQueue.add(action);
@@ -121,16 +111,18 @@ public class PythonDownloadCenterActivity extends Activity {
                 downloadService.enqueueAction(action);
             }
         }
-
-        public ArrayList<ServiceActionRunnable> getActionQueue() {
-            return downloadService == null ? actionQueue : downloadService.getActionQueue();
-        }
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_python_download_center);
+        
+        try {
+            this.downloadServer = new DownloadServer(this, getDownloadServerUrl());
+        } catch (IllegalArgumentException error) {
+            throw error; // TODO: Handle
+        }
 
         final ListView pythonVersionsContainer = (ListView) findViewById(R.id.pythonVersions_scrollContainer);
         final EditText searchInput = (EditText) findViewById(R.id.search_input);
@@ -240,13 +232,13 @@ public class PythonDownloadCenterActivity extends Activity {
             public void run() {
                 refreshLayout.setRefreshing(false);
                 if (!success) {
+                    Log.w(MainActivity.TAG, "Failed to update the download versions");
                     if (false) {
                         // TODO: Check for connection and display dialog
                     } else {
-                        
-                                Toast.makeText(getApplicationContext(), R.string.downloadManager_update_failed,
-                                               Toast.LENGTH_LONG).show();
-                            
+                        Toast.makeText(getApplicationContext(),
+                                       R.string.downloadManager_update_failed, Toast.LENGTH_LONG
+                        ).show();
                     }
                 }
             }
@@ -261,33 +253,14 @@ public class PythonDownloadCenterActivity extends Activity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String indexString;
+                boolean success = false;
                 // Update installed libraries
                 pythonVersionListAdapter.updateInstalledLibraries();
-                // Update remote versions
-                URLConnection connection = Util.connectToUrl(getDownloadServerUrl() + "/" + INDEX_PATH, 10000);
-                if (connection == null) {
-                    handleVersionListUpdateFinished(false);
-                    return;
+                DownloadServer.ServerDownloads downloads = downloadServer.getDownloads();
+                if (downloads != null) {
+                    success = pythonVersionListAdapter.onUpdatedDownloads(downloads);
                 }
-                try {
-                    InputStream input = connection.getInputStream();
-                    indexString = Util.convertStreamToString(input);
-                    input.close();
-                } catch (IOException e) {
-                    Log.e(MainActivity.TAG, "Failed to download the version data", e);
-                    handleVersionListUpdateFinished(false);
-                    return;
-                }
-                JSONObject data;
-                try {
-                    data = new JSONObject(indexString);
-                } catch (JSONException e) {
-                    Log.e(MainActivity.TAG, "Parsing the version data failed", e);
-                    handleVersionListUpdateFinished(false);
-                    return;
-                }
-                handleVersionListUpdateFinished(pythonVersionListAdapter.parseJSONData(data, getDownloadServerUrl()));
+                handleVersionListUpdateFinished(success);
             }
         }).start();
     }

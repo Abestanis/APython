@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.ProgressHandler;
+import com.apython.python.pythonhost.Util;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class PythonVersionItem extends Dependency {
         this.pythonVersion = pythonVersion;
         pythonModulesZip = new PythonModulesZipItem(context);
         pythonModulesZip.setPythonVersion(pythonVersion);
+        setInstallLocation(new File(getInstallDir(), System.mapLibraryName( "python" + Util.getMainVersionPart(pythonVersion))));
     }
 
     @Override

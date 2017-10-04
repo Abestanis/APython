@@ -6,6 +6,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.support.annotation.UiThread;
 import android.view.ContextThemeWrapper;
 import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
@@ -218,59 +219,55 @@ class PythonVersionListItemView {
         return preserveView;
     }
     
+    @UiThread
     private void updateView() {
         if (titleView == null) {
             return;
         }
-        activity.runOnUiThread(new Runnable() {
+        dropdownButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
-                dropdownButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        state.detailViewShown = !state.detailViewShown;
-                        detailViewContainer.setVisibility(state.detailViewShown
-                                                                  ? View.VISIBLE : View.GONE);
-                        Animation animation = AnimationUtils.loadAnimation(
-                                activity.getApplicationContext(),
-                                state.detailViewShown ? R.anim.python_version_list_expand_info :
-                                        R.anim.python_version_list_collaps_info
-                        );
-                        v.startAnimation(animation);
-                    }
-                });
-                if (state.selectedSubVersion != null) {
-                    pythonSubversionContainer.setSelection(availableSubVersions.indexOf(state.selectedSubVersion));
-                }
-                pythonSubversionContainer.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                    @Override
-                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                        ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
-                        PythonVersionItem selectedVersion = availableSubVersions.get(position);
-                        if (selectedVersion != state.selectedSubVersion) {
-                            state.selectedSubVersion = selectedVersion;
-                            updateView();
-                        }
-                    }
-
-                    @Override
-                    public void onNothingSelected(AdapterView<?> parent) {
-                    }
-                });
-                detailViewContainer.setVisibility(state.detailViewShown ? View.VISIBLE : View.GONE);
-                moduleConfigButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        onModuleConfigButtonClick();
-                    }
-                });
-                if (isInstalled()) {
-                    configureViewInstalled();
-                } else {
-                    configureViewForDownload();
-                }
+            public void onClick(View v) {
+                state.detailViewShown = !state.detailViewShown;
+                detailViewContainer.setVisibility(state.detailViewShown
+                                                          ? View.VISIBLE : View.GONE);
+                Animation animation = AnimationUtils.loadAnimation(
+                        activity.getApplicationContext(),
+                        state.detailViewShown ? R.anim.python_version_list_expand_info :
+                                R.anim.python_version_list_collaps_info
+                );
+                v.startAnimation(animation);
             }
         });
+        if (state.selectedSubVersion != null) {
+            pythonSubversionContainer.setSelection(availableSubVersions.indexOf(state.selectedSubVersion));
+        }
+        pythonSubversionContainer.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
+                PythonVersionItem selectedVersion = availableSubVersions.get(position);
+                if (selectedVersion != state.selectedSubVersion) {
+                    state.selectedSubVersion = selectedVersion;
+                    updateView();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+        detailViewContainer.setVisibility(state.detailViewShown ? View.VISIBLE : View.GONE);
+        moduleConfigButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onModuleConfigButtonClick();
+            }
+        });
+        if (isInstalled()) {
+            configureViewInstalled();
+        } else {
+            configureViewForDownload();
+        }
     }
     
     private void onModuleConfigButtonClick() {
@@ -368,6 +365,7 @@ class PythonVersionListItemView {
     }
 
     private void updateModuleInfo() {
+        if (state.selectedSubVersion == null) { return; }
         ArrayList<String> toDownload = new ArrayList<>();
         ArrayList<String> toRemove   = new ArrayList<>();
         ArrayList<String> installed  = new ArrayList<>();
@@ -496,9 +494,17 @@ class PythonVersionListItemView {
 
     void removeSubVersion(PythonVersionItem subVersion) {
         availableSubVersions.remove(subVersion);
+        if (installedSubVersion == subVersion) {
+            installedSubVersion = null;
+        }
         if (state.selectedSubVersion == subVersion) {
-            state.selectedSubVersion = availableSubVersions.get(0);
-            updateView();
+            state.selectedSubVersion = availableSubVersions.size() > 0 ? availableSubVersions.get(0) : null;
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    updateView();
+                }
+            });
         }
     }
 
