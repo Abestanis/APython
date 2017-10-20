@@ -454,9 +454,6 @@ public class Util {
      */
     public static String getMainVersionPart(@NonNull String version) {
         String[] versionParts = version.split("\\.");
-        if (version.equals(versionParts[0] + "." + versionParts[1])) { // TODO: Remove debugging
-            Log.w(MainActivity.TAG, "Version given to Util.getMainVersionPart was already just main version part: " + version, new IllegalArgumentException());
-        }
         return versionParts[0] + "." + versionParts[1];
     }
 

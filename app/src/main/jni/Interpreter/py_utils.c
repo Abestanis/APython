@@ -49,10 +49,10 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     setenv("XDG_DATA_HOME", dataHome, 1);
     free((char*) dataHome);
     
-    size_t configHomeLen = strlen(xdgBasePath) + strlen("/.configy") + 1;
+    size_t configHomeLen = strlen(xdgBasePath) + strlen("/.config") + 1;
     const char* configHome = malloc(sizeof(char) * configHomeLen);
     ASSERT(configHome != NULL, "Not enough memory to construct 'XDG_CONFIG_HOME'!");
-    snprintf((char*) configHome, configHomeLen, "%s/.configy", xdgBasePath);
+    snprintf((char*) configHome, configHomeLen, "%s/.config", xdgBasePath);
     setenv("XDG_CONFIG_HOME", configHome, 1);
     free((char*) configHome);
 
