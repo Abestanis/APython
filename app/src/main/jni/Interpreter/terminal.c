@@ -154,3 +154,10 @@ size_t readFromPseudoTerminalStdin(int masterFd, char* buff, size_t buffLen) {
     return bytesRead;
 }
 
+int getPseudoTerminalAttributes(int slaveFd, struct termios* attributes) {
+    return tcgetattr(slaveFd, attributes);
+}
+
+int setPseudoTerminalAttributes(int slaveFd, int op, struct termios* attributes) {
+    return tcsetattr(slaveFd, op, attributes);
+}

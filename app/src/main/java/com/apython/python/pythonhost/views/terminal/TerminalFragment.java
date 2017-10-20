@@ -2,6 +2,10 @@ package com.apython.python.pythonhost.views.terminal;
 
 import android.app.Activity;
 import android.content.Context;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.method.TextKeyListener;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -9,9 +13,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 
+import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.views.PythonFragment;
@@ -32,6 +38,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     private View rootView = null;
     private FrameLayout rootLayout = null;
     private String outputBuffer = null;
+    private int terminalCharWith = 0, terminalCharHeight = 0;
 
     public TerminalFragment(Activity activity, String tag) {
         super(activity, tag);
@@ -46,6 +53,13 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootView = layoutInflater.inflate(context.getResources().getLayout(R.layout.view_terminal_layout),
                                         container, false);
             rootLayout.addView(rootView);
+            rootLayout.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                           int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    updateTerminalMetrics();
+                }
+            });
             ListView scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context);
             if (outputBuffer != null) {
@@ -170,5 +184,19 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
         if (programHandler != null) {
             programHandler.terminate();
         }
+    }
+    
+    private void updateTerminalMetrics() {
+        StringBuilder testString = new StringBuilder();
+        for (int i = pythonInput.getWidth(); i > 0; i -= 30) testString.append("MMM" + "MMM" + "MMM"); // TODO: This is ridicules
+        int charWidth = pythonInput.getPaint().breakText(testString, 0, testString.length(),
+                                                         true, pythonInput.getWidth(), null);
+        int charHeight = (int) Math.floor(rootLayout.getHeight() / pythonInput.getHeight());
+        if (charHeight != terminalCharHeight || charWidth != terminalCharWith) {
+            Log.i(MainActivity.TAG, "Terminal layout changed: " + charWidth + "x" + charHeight);
+            // TODO
+        }
+        terminalCharWith = charWidth;
+        terminalCharHeight = charHeight;
     }
 }
