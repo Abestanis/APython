@@ -93,12 +93,12 @@ int runPythonInterpreter(int argc, char** argv) {
 }
 
 void interruptPython() {
-    pthread_kill(pythonThread, SIGINT);
+//    pthread_kill(pythonThread, SIGINT);
 }
 
 void terminatePython() {
     LOG_WARN("Killing Python thread");
-    pthread_kill(pythonThread, SIGTERM);
+//    pthread_kill(pythonThread, SIGTERM);
 }
 
 __sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler) {
