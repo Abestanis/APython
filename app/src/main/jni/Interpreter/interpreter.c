@@ -7,134 +7,35 @@
 
 jobject jPyInterpreter = NULL;
 static JavaVM *Jvm = NULL;
-PseudoTerminal* pseudoTerminal = NULL;
-int isInterrupted = 0;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     Jvm = vm;
     return JNI_VERSION_1_6;
 }
 
-/* Java functions */
+/* Helper functions */
 
-void redirectOutputToJava(const char *string, size_t len) {
-    if (jPyInterpreter == NULL) { return; }
-    JNIEnv* env = NULL;
-    jbyteArray jOutputByteArray = NULL;
-    static jclass *cls   = NULL;
+int getFdFromFileDescriptor(JNIEnv *env, jobject fileDescriptor) {
+    static jclass *fileDescriptorClass = NULL;
     static jmethodID mid = NULL;
-    int detached = (*Jvm)->GetEnv(Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
-    if (detached) (*Jvm)->AttachCurrentThread(Jvm, &env, NULL);
-
-    if (cls == NULL) {
-        cls = (*env)->GetObjectClass(env, jPyInterpreter);
-        ASSERT(cls, "Could not get an instance from class 'com/apython/python/pythonhost/interpreter/PythonInterpreter'!");
-        mid = (*env)->GetMethodID(env, cls, "addTextToOutput", "([B)V");
-        ASSERT(mid, "Could not find the function 'addTextToOutput' in the Android class!");
+    static jfieldID fdFieldId = NULL;
+    
+    // TODO: Initialize these once.
+    // TODO: https://developer.android.com/training/articles/perf-jni.html#jclass_jmethodID_and_jfieldID
+    if (fileDescriptorClass == NULL) {
+        fileDescriptorClass = (*env)->FindClass(env, "java/io/FileDescriptor");
+        ASSERT(fileDescriptorClass, "Could not find class 'java/io/FileDescriptor'!");
+        mid = (*env)->GetMethodID(env, fileDescriptorClass, "<init>", "()V");
+        ASSERT(mid, "Could not find the constructor of the FileDescriptor class!");
+        fdFieldId = (*env)->GetFieldID(env, fileDescriptorClass, "descriptor", "I");
+        ASSERT(mid, "Could not find the 'descriptor' field of the FileDescriptor class!");
     }
-    jOutputByteArray = (*env)->NewByteArray(env, len);
-    (*env)->SetByteArrayRegion(env, jOutputByteArray, 0, len, (const jbyte*) string);
-    (*env)->CallVoidMethod(env, jPyInterpreter, mid, jOutputByteArray);
-    (*env)->DeleteLocalRef(env, jOutputByteArray);
-    if (detached) (*Jvm)->DetachCurrentThread(Jvm);
-}
-
-char* readLineFromJavaInput(FILE *sys_stdin, FILE *sys_stdout, const char *prompt) {
-    if (jPyInterpreter == NULL) { return NULL; }
-    JNIEnv* env;
-    static jclass *cls   = NULL;
-    static jmethodID mid = NULL;
-    char *line = NULL;
-
-    int detached = (*Jvm)->GetEnv(Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
-    if (detached) {
-        (*Jvm)->AttachCurrentThread(Jvm, &env, NULL);
-    }
-
-    if (cls == NULL) {
-        cls = (*env)->GetObjectClass(env, jPyInterpreter);
-        ASSERT(cls, "Could not get an instance from class 'com/apython/python/pythonhost/interpreter/PythonInterpreter'!");
-        mid = (*env)->GetMethodID(env, cls, "readLine", "(Ljava/lang/String;Z)Ljava/lang/String;");
-        ASSERT(mid, "Could not find the function 'readLine' in the Android class!");
-    }
-    PyOS_InputHookFunc PyOS_InputHook = get_PyOS_InputHook();
-    jstring jLine = (*env)->CallObjectMethod(env, jPyInterpreter, mid, (*env)->NewStringUTF(env, prompt),
-                                             PyOS_InputHook == NULL ? JNI_TRUE : JNI_FALSE);
-    if (PyOS_InputHook == NULL) {
-        // Java has blocked until we had an input
-        if (jLine == NULL) {
-            (*Jvm)->DetachCurrentThread(Jvm);
-            return NULL;
-        }
-        const char* lineCopy = (*env)->GetStringUTFChars(env, jLine, 0);
-        line = (char*) call_PyMem_Malloc((1 + strlen(lineCopy)) * sizeof(char));
-        if (line == NULL) {
-            LOG("Could not copy string!");
-            (*Jvm)->DetachCurrentThread(Jvm);
-            return NULL;
-        }
-        strcpy(line, lineCopy);
-        (*env)->ReleaseStringUTFChars(env, jLine, lineCopy);
-    } else {
-        // Java will not block, instead PYOS_InputHook does
-        (void) PyOS_InputHook();
-        if (isInterrupted) {
-            // Remove the emulated input from stdin
-            (void) fgetc(sys_stdin);
-            line = (char*) call_PyMem_Malloc(1 * sizeof(char));
-            line[0] = '\0';
-        } else {
-            static const int BUFFER_SIZE = 10;
-            char* buffer = malloc(sizeof(char) * BUFFER_SIZE);
-            char* bufferPointer = buffer;
-            int strLen = 0;
-            if (buffer == NULL) {
-                LOG_ERROR("Out of memory: Could not allocate input buffer!\n");
-                (*Jvm)->DetachCurrentThread(Jvm);
-                return NULL;
-            }
-            do {
-                clearerr(sys_stdin);
-                if (fgets(bufferPointer, BUFFER_SIZE, sys_stdin) == NULL) {
-                    if (ferror(sys_stdin)) {
-                        if (errno == EAGAIN) {
-                            continue;
-                        }
-                        LOG_ERROR("Failed to read from input: %s\n", strerror(errno));
-                        free(buffer);
-                        (*Jvm)->DetachCurrentThread(Jvm);
-                        return NULL;
-                    }
-                }
-                strLen += strlen(bufferPointer);
-                if (buffer[strLen - 1] == '\n') {
-                    break;
-                }
-                bufferPointer = malloc(sizeof(char) * (strLen + BUFFER_SIZE));
-                if (bufferPointer == NULL) {
-                    LOG_ERROR("Failed to allocate space for the input buffer!\n");
-                    free(buffer);
-                    (*Jvm)->DetachCurrentThread(Jvm);
-                    return NULL;
-                }
-                memcpy(bufferPointer, buffer, sizeof(char) * strLen);
-                free(buffer);
-                buffer = bufferPointer;
-                bufferPointer = buffer + strLen;
-            } while (1);
-            line = (char*) call_PyMem_Malloc((1 + strlen(buffer)) * sizeof(char));
-            strcpy(line, buffer);
-            free(buffer);
-        }
-    }
-    isInterrupted = 0;
-    (*Jvm)->DetachCurrentThread(Jvm);
-    return line;
+    return (*env)->GetIntField(env, fileDescriptor, fdFieldId);
 }
 
 /* JNI functions */
 
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_nativeGetPythonVersion(JNIEnv *env, jclass clazz, jstring jPythonLibName) {
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_nativeGetPythonVersion(JNIEnv *env, jclass cls, jstring jPythonLibName) {
     const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
     setPythonLibrary(pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
@@ -144,26 +45,28 @@ JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
 JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_runInterpreter(
            JNIEnv *env, jobject obj, jstring jPythonLibName, jstring jProgramPath, jstring jLibPath,
            jstring jPyHostLibPath, jstring jPythonHome, jstring jPythonTemp, jstring jXDGBasePath,
-           jstring jDataPath, jstring jAppTag, jobjectArray jArgs, jboolean redirectOutput) {
+           jstring jDataPath, jstring jAppTag, jobjectArray jArgs, jstring jPseudoTerminalPath) {
+    int i, result, pseudoTerminalFd = -1;
     jPyInterpreter = (*env)->NewGlobalRef(env, obj);
-    int i;
 
     const char *appTag = (*env)->GetStringUTFChars(env, jAppTag, 0);
     setApplicationTag(appTag);
+    (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
 
     const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
-    if (!setPythonLibrary(pythonLibName)) { return 1; }
-    if (redirectOutput == JNI_TRUE) {
-        pseudoTerminal = createPseudoTerminal(redirectOutputToJava, redirectOutputToJava, NULL, NULL);
-        set_PyOS_ReadlineFunctionPointer(readLineFromJavaInput);
-    } else {
-        pseudoTerminal = createPseudoTerminal(NULL, NULL, NULL, NULL);
+    result = setPythonLibrary(pythonLibName);
+    (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
+    if (!result) { return 1; }
+    if (jPseudoTerminalPath != NULL) {
+        const char *pseudoTerminalPath = (*env)->GetStringUTFChars(env, jPseudoTerminalPath, 0);
+        pseudoTerminalFd = openSlavePseudoTerminal(pseudoTerminalPath);
+        (*env)->ReleaseStringUTFChars(env, jPseudoTerminalPath, pseudoTerminalPath);
+        if (pseudoTerminalFd < 0) {
+            LOG_ERROR("Failed to create a pseudo terminal"); // TODO: maybe fall back to the pipe method?
+            return 1;
+        }
     }
-    if (pseudoTerminal == NULL) {
-        LOG_ERROR("Failed to create a pseudo terminal"); // TODO: maybe fall back to the pipe method?
-        return 1;
-    }
-
+    
     const char *programName    = (*env)->GetStringUTFChars(env, jProgramPath, 0);
     const char *pythonLibs     = (*env)->GetStringUTFChars(env, jLibPath, 0);
     const char *pythonHostLibs = (*env)->GetStringUTFChars(env, jPyHostLibPath, 0);
@@ -172,6 +75,12 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     const char *xdgBasePath    = (*env)->GetStringUTFChars(env, jXDGBasePath, 0);
     const char *dataPath       = (*env)->GetStringUTFChars(env, jDataPath, 0);
     setupPython(programName, pythonLibs, pythonHostLibs, pythonHome, pythonTemp, xdgBasePath, dataPath);
+    (*env)->ReleaseStringUTFChars(env, jLibPath, pythonLibs);
+    (*env)->ReleaseStringUTFChars(env, jPyHostLibPath, pythonHostLibs);
+    (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
+    (*env)->ReleaseStringUTFChars(env, jPythonTemp, pythonTemp);
+    (*env)->ReleaseStringUTFChars(env, jXDGBasePath, xdgBasePath);
+    (*env)->ReleaseStringUTFChars(env, jDataPath, dataPath);
 
     jsize argc = 1;
     if (jArgs != NULL) {
@@ -202,22 +111,18 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
         }
     }
     
-    int result = runPythonInterpreter(pseudoTerminal, argc, argv);
-    closePseudoTerminal(pseudoTerminal);
+    result = runPythonInterpreter(argc, argv);
+    if (pseudoTerminalFd >= 0) {
+        closePseudoTerminal(pseudoTerminalFd);
+    }
 
     int detached = (*Jvm)->GetEnv (Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
     if (detached) {
         (*Jvm)->AttachCurrentThread(Jvm, &env, NULL);
     }
-
-    (*env)->ReleaseStringUTFChars(env, jPythonHome, pythonHome);
-    (*env)->ReleaseStringUTFChars(env, jAppTag, appTag);
-    (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
-    (*env)->ReleaseStringUTFChars(env, jLibPath, pythonLibs);
-    (*env)->ReleaseStringUTFChars(env, jPyHostLibPath, pythonHostLibs);
+    
     (*env)->ReleaseStringUTFChars(env, jProgramPath, programName);
-    (*env)->ReleaseStringUTFChars(env, jXDGBasePath, xdgBasePath);
-    (*env)->ReleaseStringUTFChars(env, jDataPath, dataPath);
+    
     (*env)->DeleteGlobalRef(env, jPyInterpreter);
     closePythonLibrary();
     for (i = 1; i < argc; i++) {
@@ -228,41 +133,66 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     return result;
 }
 
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_dispatchKey(JNIEnv *env, jobject obj, jint character) {
-    if (pseudoTerminal == NULL) {
-        LOG_WARN("Tried to dispatch key event to the Python interpreter, but the pseudoTerminal is not initialized yet.");
-        return;
-    }
-    writeToPseudoTerminal(pseudoTerminal, (const char *) &character, 1);
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_interruptTerminal(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+    int masterFd = getFdFromFileDescriptor(env, fileDescriptor);
+#ifdef TIOCSIGNAL
+    ioctl(masterFd, TIOCSIGNAL, SIGINT);
+#else
+    struct termios terminalAttributes;
+    tcgetattr(masterFd, &terminalAttributes);
+    LOG_ERROR("Control+C = %u", terminalAttributes.c_cc[VINTR]);
+    writeToPseudoTerminal(masterFd, (const char *) &terminalAttributes.c_cc[VINTR], 1);
+#endif /* defined TIOCSIGNAL */
 }
 
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_sendStringToStdin(JNIEnv *env, jobject obj, jstring jString) {
-    if (pseudoTerminal == NULL) {
-        LOG_WARN("Tried to write a string to stdin, but the pseudoTerminal is not initialized yet.");
-        return;
-    }
-    const char* string = (*env)->GetStringUTFChars(env, jString, 0);
-    writeToPseudoTerminal(pseudoTerminal, string, strlen(string));
-    (*env)->ReleaseStringUTFChars(env, jString, string);
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter(JNIEnv *env, jclass cls) {
+    terminatePython();
 }
 
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInput(JNIEnv *env, jclass obj) {
-    if (pseudoTerminal == NULL) return NULL;
+JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_openPseudoTerminal(JNIEnv *env, jclass cls) {
+    int masterFd;
+    static jclass *fileDescriptorClass = NULL;
+    static jmethodID mid = NULL;
+    static jfieldID fdFieldId = NULL;
+    
+    if ((masterFd = createPseudoTerminal()) < 0) {
+        return NULL;
+    }
+    // TODO: Initialize these once.
+    // TODO: https://developer.android.com/training/articles/perf-jni.html#jclass_jmethodID_and_jfieldID
+    if (fileDescriptorClass == NULL) {
+        fileDescriptorClass = (*env)->FindClass(env, "java/io/FileDescriptor");
+        ASSERT(fileDescriptorClass, "Could not find class 'java/io/FileDescriptor'!");
+        mid = (*env)->GetMethodID(env, fileDescriptorClass, "<init>", "()V");
+        ASSERT(mid, "Could not find the constructor of the FileDescriptor class!");
+        fdFieldId = (*env)->GetFieldID(env, fileDescriptorClass, "descriptor", "I");
+        ASSERT(mid, "Could not find the 'descriptor' field of the FileDescriptor class!");
+    }
+    jobject fileDescriptor = (*env)->NewObject(env, fileDescriptorClass, mid);
+    (*env)->SetIntField(env, fileDescriptor, fdFieldId, masterFd);
+    return fileDescriptor;
+}
+
+JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getPseudoTerminalPath(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+    char* slavePath;
+    int masterFd = getFdFromFileDescriptor(env, fileDescriptor);
+    if ((slavePath = getPseudoTerminalSlavePath(masterFd)) == NULL) {
+        return NULL;
+    }
+    return (*env)->NewStringUTF(env, slavePath);
+}
+
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInput(JNIEnv *env, jclass cls, jobject fileDescriptor) {
     static const int INPUT_BUFFER_LENGTH = 8192;
+    int masterFd;
     char* input = malloc(sizeof(char) * INPUT_BUFFER_LENGTH);
     if (input == NULL) {
         LOG_ERROR("Failed to read enqueued input: Out of memory!");
         return NULL;
     }
-    readFromPseudoTerminalStdin(pseudoTerminal, input, INPUT_BUFFER_LENGTH);
-    return (*env)->NewStringUTF(env, input);
-}
-
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_interruptInterpreter(JNIEnv *env, jclass obj) {
-    isInterrupted = 1;
-    interruptPython();
-}
-
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter(JNIEnv *env, jclass obj) {
-    terminatePython();
+    masterFd = getFdFromFileDescriptor(env, fileDescriptor);
+    readFromPseudoTerminalStdin(masterFd, input, INPUT_BUFFER_LENGTH);
+    jstring jInput = (*env)->NewStringUTF(env, input);
+    free(input);
+    return jInput;
 }

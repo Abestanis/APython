@@ -83,22 +83,45 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                 }
             });
             this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {
+                TextKeyListener keyInputListener = new TextKeyListener(TextKeyListener.Capitalize.NONE, false);
+                Editable keyInput = Editable.Factory.getInstance().newEditable("");
+                
                 @Override
                 public void onCommit(TerminalInput terminalInput) {
                     String[] inputList = terminalInput.popCurrentInput();
                     String prompt = inputList[0], input = inputList[1];
                     int splitIndex = input.indexOf('\n') + 1;
                     pythonOutput.addOutput(prompt + input.substring(0, splitIndex));
-                    programHandler.notifyInput(input.substring(0, splitIndex));
-                    // Anything after the first newline must be send to stdin
-                    for (KeyEvent event : Util.stringToKeyEvents(input.substring(splitIndex))) {
-                        programHandler.dispatchKeyEvent(event);
-                    }
+                    if (programHandler == null) return;
+                    programHandler.sendInput(input);
                 }
 
                 @Override
                 public void onKeyEventWhileDisabled(KeyEvent event) {
-                    programHandler.dispatchKeyEvent(event);
+                    switch (event.getAction()) {
+                    case KeyEvent.ACTION_DOWN:
+                        keyInputListener.onKeyDown(null, keyInput, event.getKeyCode(), event);
+                        break;
+                    case KeyEvent.ACTION_UP:
+                        keyInputListener.onKeyUp(null, keyInput, event.getKeyCode(), event);
+                        break;
+                    default:
+                        keyInputListener.onKeyOther(null, keyInput, event);
+                    }
+                    if (programHandler != null) {
+                        String input = null;
+                        if (keyInput.length() > 0) {
+                            input = keyInput.toString();
+                            keyInput.clear();
+                        } else if (event.getAction() == KeyEvent.ACTION_DOWN
+                                && event.getKeyCode() == KeyEvent.KEYCODE_DEL) { // TODO: Handle more special keys
+                            input = "\b";
+                        }
+                        if (input != null) {
+                            pythonOutput.addOutput(input); // TODO: This is not correct
+                            programHandler.sendInput(input);
+                        }
+                    }
                 }
             });
         } else {
@@ -144,6 +167,8 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
 
     @Override
     public void close() {
-        programHandler.terminate();
+        if (programHandler != null) {
+            programHandler.terminate();
+        }
     }
 }

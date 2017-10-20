@@ -6,13 +6,6 @@
 #include "log.h"
 #include "py_compatibility.h"
 
-struct pythonThreadArguments {
-    int argc;
-    char** argv;
-    PseudoTerminal* pseudoTerminal;
-};
-pthread_t pythonThread;
-
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
                  const char* pythonHome, const char* pythonTemp, const char* xdgBasePath,
                  const char* dataDir) {
@@ -94,38 +87,9 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     }
 }
 
-static void cleanupPythonThread(void* arg) {
-    disconnectFromPseudoTerminal((PseudoTerminal*) arg);
-}
-
-void* startPythonInterpreter(void* arg) {
-    struct pythonThreadArguments *args = (struct pythonThreadArguments*) arg;
-    pthread_cleanup_push(cleanupPythonThread, args->pseudoTerminal);
-    connectToPseudoTerminalFromChild(args->pseudoTerminal);
-
-    LOG("Starting...");
-    fflush(stdout);
-    pthread_exit((void*) call_Py_Main(args->argc, args->argv));
-    pthread_cleanup_pop(0);
-}
-
-int runPythonInterpreter(PseudoTerminal* pseudoTerminal, int argc, char** argv) {
-    int outputPipe[2];
-    void *status = NULL;
-    struct pythonThreadArguments args;
-    args.argc = argc;
-    args.argv = argv;
-    args.pseudoTerminal = pseudoTerminal;
-
-    if (pthread_create(&pythonThread, NULL, startPythonInterpreter, (void *) &args) == -1) {
-        LOG_ERROR("Could not create the Python thread!");
-        return 1;
-    }
-
-    handlePseudoTerminalOutput(pseudoTerminal);
-    pthread_join(pythonThread, &status);
-    terminatePython();
-    return (int) status;
+int runPythonInterpreter(int argc, char** argv) {
+    LOG_INFO_("Running Python interpreter...");
+    return call_Py_Main(argc, argv);
 }
 
 void interruptPython() {

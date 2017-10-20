@@ -1,7 +1,5 @@
 package com.apython.python.pythonhost.views.interfaces;
 
-import android.view.KeyEvent;
-
 /**
  * Interface for the Terminal view.
  *
@@ -10,8 +8,7 @@ import android.view.KeyEvent;
 
 public interface TerminalInterface extends WindowManagerInterface.Window {
     interface ProgramHandler {
-        void notifyInput(String input);
-        boolean dispatchKeyEvent(KeyEvent event);
+        void sendInput(String input);
         void terminate();
     }
     void addOutput(String output);

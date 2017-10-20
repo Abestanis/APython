@@ -101,29 +101,29 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
     private void initWindowFragment() {
         if (windowFragment instanceof TerminalInterface) {
             final TerminalInterface terminal = (TerminalInterface) windowFragment;
-            terminal.setProgramHandler(interpreter);
-            interpreter.setIoHandler(new PythonInterpreter.IOHandler() {
-                @Override
-                public void addOutput(final String text) {
-                    hostingAppActivity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            terminal.addOutput(text);
-                        }
-                    });
-                }
-
-                @Override
-                public void setupInput(final String prompt) {
-                    final String enqueuedInput = interpreter.getEnqueueInput();
-                    hostingAppActivity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            terminal.enableInput(prompt, enqueuedInput);
-                        }
-                    });
-                }
-            });
+//            terminal.setProgramHandler(interpreter);
+//            interpreter.setIoHandler(new PythonInterpreter.IOHandler() {
+//                @Override
+//                public void addOutput(final String text) {
+//                    hostingAppActivity.runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            terminal.addOutput(text);
+//                        }
+//                    });
+//                }
+//
+//                @Override
+//                public void setupInput(final String prompt) {
+//                    final String enqueuedInput = interpreter.getEnqueueInput();
+//                    hostingAppActivity.runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            terminal.enableInput(prompt, enqueuedInput);
+//                        }
+//                    });
+//                }
+//            });
         } else if (windowFragment instanceof SDLWindowFragment) {
             SDLLibraryHandler.initLibraries(hostingAppActivity, this);
         }
@@ -146,7 +146,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
         if (windowFragment != null) {
             if (windowFragment instanceof TerminalInterface) {
                 if (event.getKeyCode() != KeyEvent.KEYCODE_BACK && !((TerminalInterface) windowFragment).isInputEnabled()) {
-                    return interpreter.dispatchKeyEvent(event);
+//                    return interpreter.dispatchKeyEvent(event);
                 }
             } else if (windowFragment instanceof SDLWindowInterface) {
                 return ((SDLWindowInterface) windowFragment).dispatchKeyEvent(event);
@@ -198,7 +198,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
             switch (eventType) {
                 case ON_DESTROY:
                     if (interpreter != null && interpreter.isRunning()) {
-                        interpreter.terminate();
+//                        interpreter.terminate();
                     }
                     ((ActivityLifecycleEventListener) windowFragment).onDestroy(); break;
                 case ON_PAUSE:

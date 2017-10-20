@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
+import com.apython.python.pythonhost.interpreter.PythonInterpreterHandle;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -33,11 +34,11 @@ public class Pip {
             e.printStackTrace();
             return false;
         }
-        PythonInterpreter.IOHandler ioHandler = null;
+        PythonInterpreterHandle.IOHandler ioHandler = null;
         if (progressHandler != null) {
             progressHandler.setProgress(-1);
             progressHandler.enable(context.getString(R.string.install_requirements));
-            ioHandler = new PythonInterpreter.IOHandler() {
+            ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
                 public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
 
@@ -45,8 +46,8 @@ public class Pip {
                 public void setupInput(String prompt) {}
             };
         }
-        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-        int result = interpreter.runPythonModule("pip", new String[] {"install", "-r", reqFile.getAbsolutePath()});
+//        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
+        int result = 1;//interpreter.runPythonModule("pip", new String[] {"install", "-r", reqFile.getAbsolutePath()});
         if (!reqFile.delete()) {
             Log.w(MainActivity.TAG, "Cannot delete temporary file '" + reqFile.getAbsolutePath() + "'!");
         }
@@ -109,11 +110,11 @@ public class Pip {
             Log.e(MainActivity.TAG, "Failed to save the pip installation file at '" + installFile.getAbsolutePath() + "'!");
             return false;
         }
-        PythonInterpreter.IOHandler ioHandler = null;
+        PythonInterpreterHandle.IOHandler ioHandler = null;
         if (progressHandler != null) {
             progressHandler.setProgress(-1);
             progressHandler.setText(context.getString(R.string.run_pip_installer));
-            ioHandler = new PythonInterpreter.IOHandler() {
+            ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
                 public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
 
@@ -121,8 +122,8 @@ public class Pip {
                 public void setupInput(String prompt) {}
             };
         }
-        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-        int res = interpreter.runPythonFile(installFile, null);
+//        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
+        int res = 1;//interpreter.runPythonFile(installFile, null);
         if (!installFile.delete()) {
             Log.w(MainActivity.TAG, "Failed to delete '" + installFile.getAbsolutePath() + "'!");
         }
