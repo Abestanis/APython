@@ -90,6 +90,32 @@
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:onClick="onToolsButtonClick">
+                
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@android:drawable/ic_menu_directions"
+                    android:adjustViewBounds="true"
+                    android:layout_weight="0.8"
+                    android:contentDescription="@string/content_description_download_manager_icon"/>
+                
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tools"
+                    android:layout_weight="0.2"
+                    android:paddingLeft="20sp"
+                    android:textColor="@android:color/white"
+                    android:textSize="30sp"
+                    android:paddingTop="10sp"
+                    android:paddingBottom="10sp"/>
+            </LinearLayout>
+            
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content">
                 
                 <ImageView
