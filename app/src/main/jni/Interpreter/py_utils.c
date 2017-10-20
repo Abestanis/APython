@@ -36,8 +36,13 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
         free(path);
     }
     
-    call_Py_SetPythonHome((char*) pythonHome);
-    call_Py_SetProgramName((char*) pythonProgramPath);
+    // These must not be freed before the interpreter exits.
+    char* pyHomeCopy = strdup(pythonHome);
+    ASSERT(pyHomeCopy != NULL, "Not enough memory to copy the Python home path!");    
+    char* pyProgramPathCopy = strdup(pythonHome);
+    ASSERT(pyProgramPathCopy != NULL, "Not enough memory to copy the Python program path!");
+    call_Py_SetPythonHome(pyHomeCopy);
+    call_Py_SetProgramName(pyProgramPathCopy);
 
     setenv("TMPDIR", pythonTemp, 1);
     setenv("XDG_CACHE_HOME", pythonTemp, 1);
