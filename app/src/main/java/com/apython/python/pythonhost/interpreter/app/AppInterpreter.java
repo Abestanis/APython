@@ -12,6 +12,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;

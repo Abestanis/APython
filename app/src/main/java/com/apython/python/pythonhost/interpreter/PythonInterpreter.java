@@ -10,6 +10,7 @@ import android.content.Context;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.Util;
