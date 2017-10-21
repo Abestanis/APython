@@ -2,6 +2,8 @@ package com.apython.python.pythonhost.views.terminal;
 
 import android.app.Activity;
 import android.content.Context;
+import android.text.Editable;
+import android.text.method.TextKeyListener;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
