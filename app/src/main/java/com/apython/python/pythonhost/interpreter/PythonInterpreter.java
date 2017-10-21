@@ -90,7 +90,6 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-m", module}, args));
     }
 
-    @SuppressWarnings("unused")
     public int runPythonString(String command, String[] args) {
         return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
     }
@@ -151,7 +150,7 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         return true;
     }
 
-    @SuppressWarnings("unused")
+    @CalledByNative
     protected void addTextToOutput(byte[] text) {
         if (ioHandler != null) {
             try {
@@ -162,7 +161,7 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
         }
     }
 
-    @SuppressWarnings("unused")
+    @CalledByNative
     protected String readLine(String prompt, boolean blockingInput) {
         inStartup = false;
         this.blockingInput = blockingInput;

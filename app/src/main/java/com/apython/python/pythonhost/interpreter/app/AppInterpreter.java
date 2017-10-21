@@ -53,8 +53,8 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
             for (WindowType windowType : WindowType.values()) {
                 if (windowType.ordinal() == ordinal) return windowType;
             }
-            throw new IllegalArgumentException("Invalid ordinal passed to WindowType#fromOrdinal: "
-                                                       + ordinal);
+            throw new IllegalArgumentException(
+                    "Invalid ordinal passed to WindowType#fromOrdinal: " + ordinal);
         }
 
         WindowType(Class<? extends PythonFragment> windowClass) {
@@ -73,7 +73,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
         interpreter = new PythonInterpreter(pyHostContext, pythonVersion);
     }
     
-    @SuppressWarnings("unused")
+    @CalledByNative
     public Object setWindow(int rawWindowType, ViewGroup parent) {
         WindowType windowType = WindowType.NO_WINDOW;
         try { windowType = WindowType.fromOrdinal(rawWindowType); }
@@ -87,13 +87,13 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
         return this;
     }
 
-    @SuppressWarnings("unused")
+    @CalledByNative
     public void setLogTag(String logTag) {
         this.logTag = logTag;
         interpreter.setLogTag(logTag);
     }
 
-    @SuppressWarnings("unused")
+    @CalledByNative
     public int startInterpreter(String[] args) {
         return interpreter.runPythonInterpreter(args);
     }
