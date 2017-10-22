@@ -7,7 +7,9 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.apython.python.pythonhost.downloadcenter.PythonDownloadCenterActivity;
 import com.apython.python.pythonhost.interpreter.PythonInterpreterActivity;
@@ -27,30 +29,15 @@ public class MainActivity extends Activity {
 //                "http://10.0.2.2:8000"
 //        ).apply();
 
-        boolean skipSplashScreen = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
-                PythonSettingsActivity.KEY_SKIP_SPLASH_SCREEN,
-                getResources().getBoolean(R.bool.pref_default_skip_splash_screen)
-        );
-        if (skipSplashScreen || savedInstanceState != null) {
+        boolean skipSplashScreen = savedInstanceState != null || 
+                PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
+                        PythonSettingsActivity.KEY_SKIP_SPLASH_SCREEN,
+                        getResources().getBoolean(R.bool.pref_default_skip_splash_screen)
+                );
+        if (skipSplashScreen) {
             setupMainMenu();
-        } else {
-            // Display the splash screen
-            Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                public void run() {
-                    setupMainMenu();
-                }
-            }, 4000);
-
-            RelativeLayout container = (RelativeLayout) findViewById(R.id.splash_container);
-            container.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    setupMainMenu();
-                }
-            });
-            PackageManager.installPythonExecutable(getApplicationContext(), null);
         }
+        runStartupTasks(!skipSplashScreen);
     }
 
     // Button callbacks
@@ -82,5 +69,59 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+    }
+    
+    private void runStartupTasks(final boolean visible) {
+        // Display the splash screen
+        final int MIN_SPLASH_SCREEN_TIME = 4000;
+        final long startSplashScreen = System.currentTimeMillis();
+        final Handler UiThreadHandler = new Handler();
+        final ProgressHandler progressHandler;
+        
+        if (visible) {
+            RelativeLayout container = (RelativeLayout) findViewById(R.id.splash_container);
+            container.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    setupMainMenu();
+                }
+            });
+            final LinearLayout progressContainer = (LinearLayout)
+                    findViewById(R.id.startupProcessContainer);
+            TextView startupProcessText = (TextView) findViewById(R.id.startupProcessDescription);
+            ProgressBar startupProcessBar = (ProgressBar) findViewById(R.id.startupProgressBar);
+            progressHandler = ProgressHandler.Factory.create(this, startupProcessText,
+                                                             startupProcessBar, new Runnable() {
+                        @Override
+                        public void run() {
+                            progressContainer.setVisibility(View.VISIBLE);
+                        }
+                    }, new Runnable() {
+                        @Override
+                        public void run() {
+                            // TODO: Handle error
+                        }
+                    });
+        } else {
+            progressHandler = null;
+        }
+        
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // TODO: Check access rights of all installed files
+                // TODO: Check checksum of all installed libraries
+                // TODO: Check for updated libraries
+                PackageManager.installPythonExecutable(getApplicationContext(), progressHandler);
+                
+                if (!visible) return;
+                long timeLeft = (System.currentTimeMillis() - startSplashScreen) - MIN_SPLASH_SCREEN_TIME;
+                UiThreadHandler.postDelayed(new Runnable() {
+                    public void run() {
+                        setupMainMenu();
+                    }
+                }, Math.max(0, timeLeft));
+            }
+        }).start();
     }
 }
