@@ -12,7 +12,6 @@ public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHa
     private Context context;
     private PythonInterpreterRunnable interpreter = null;
     private Integer exitCode = null;
-    String logTag = null;
 
     public PythonInterpreterThreadHandle(Context context) {
         this.context = context;
@@ -66,9 +65,9 @@ public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHa
 
     @Override
     public void setLogTag(String tag) {
-        logTag = tag;
+        super.setLogTag(tag);
         if (interpreter != null) {
-            interpreter.setLogTag(tag);
+            interpreter.setLogTag(logTag);
         }
     }
 }

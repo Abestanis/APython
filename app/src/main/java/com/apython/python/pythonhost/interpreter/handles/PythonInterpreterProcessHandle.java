@@ -113,6 +113,7 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
 
     @Override
     public void setLogTag(String tag) {
+        super.setLogTag(tag);
         Message logTagMessage = Message.obtain(null, PythonProcess.SET_LOG_TAG);
         Bundle data = new Bundle();
         data.putString("tag", tag);

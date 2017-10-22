@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHandle {
     private IOHandler ioHandler;
     private FileDescriptor pythonProcessFd = null;
+    protected String logTag = MainActivity.TAG;
     
     @Override
     public boolean startInterpreter(String pythonVersion, String[] args) {
@@ -46,9 +47,9 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
         try {
             pythonInput.write(input.getBytes("Utf-8"));
         } catch (UnsupportedEncodingException e) {
-            Log.wtf(MainActivity.TAG, "Utf-8 encoding is not supported?!", e);
+            Log.wtf(logTag, "Utf-8 encoding is not supported?!", e);
         } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to write input to the python process", e);
+            Log.e(logTag, "Failed to write input to the python process", e);
         }
     }
 
@@ -75,18 +76,23 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
                         try {
                             text = new String(buffer, 0, bytesRead, "Utf-8");
                         } catch (UnsupportedEncodingException e) {
-                            Log.wtf(MainActivity.TAG, "Utf-8 encoding is not supported?!", e);
+                            Log.wtf(logTag, "Utf-8 encoding is not supported?!", e);
                             break;
                         }
                         if (ioHandler != null) {
                             ioHandler.addOutput(text);
                         }
-                        Log.d(MainActivity.TAG, text);
+                        Log.d(logTag, text);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }).start();
+    }
+
+    @Override
+    public void setLogTag(String tag) {
+        logTag = tag;
     }
 }
