@@ -17,11 +17,12 @@ import com.apython.python.pythonhost.MainActivity;
  */
 public class PythonProcess extends Service {
     public static final String PYTHON_VERSION_KEY       = "pythonVersion";
+    public static final String PYTHON_ARGUMENTS_KEY     = "pythonArgs";
     public static final String PSEUDO_TERMINAL_PATH_KEY = "pseudoTerminalPath";
     
     
-//    /** Command to the service to display a message */
-//    static final int START_INTERPRETER = 1;
+    /** Command to the interpreter to set teh log tag. */
+    public static final int SET_LOG_TAG = 1;
 
     /**
      * Handler of incoming messages from clients.
@@ -30,8 +31,10 @@ public class PythonProcess extends Service {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-//            case START_INTERPRETER:
-//                break;
+            case SET_LOG_TAG:
+                String tag = msg.getData().getString("tag");
+                interpreter.setLogTag(tag);
+                break;
             default:
                 super.handleMessage(msg);
             }
@@ -48,11 +51,12 @@ public class PythonProcess extends Service {
             // TODO: Handle
         }
         String pythonVersion = intent.getStringExtra(PYTHON_VERSION_KEY);
-        String pseudoTerminalPath = intent.getStringExtra(PSEUDO_TERMINAL_PATH_KEY);
         if (pythonVersion == null) {
             // TODO: Handle
         }
-        startPythonInterpreter(pythonVersion, pseudoTerminalPath);
+        String pseudoTerminalPath = intent.getStringExtra(PSEUDO_TERMINAL_PATH_KEY);
+        String[] args = intent.getStringArrayExtra(PYTHON_ARGUMENTS_KEY);
+        startPythonInterpreter(pythonVersion, pseudoTerminalPath, args);
         return START_REDELIVER_INTENT;
     }
 
@@ -62,8 +66,9 @@ public class PythonProcess extends Service {
         return mMessenger.getBinder();
     }
 
-    private void startPythonInterpreter(String pythonVersion, String pseudoTerminalPath) {
-        interpreter = new PythonInterpreterRunnable(this, pythonVersion, pseudoTerminalPath) {
+    private void startPythonInterpreter(String pythonVersion, String pseudoTerminalPath,
+                                        String[] args) {
+        interpreter = new PythonInterpreterRunnable(this, pythonVersion, pseudoTerminalPath, args) {
             @Override
             protected void onPythonInterpreterFinished(int result) {
                 Log.d(MainActivity.TAG, "Python interpreter exited with result " + result);

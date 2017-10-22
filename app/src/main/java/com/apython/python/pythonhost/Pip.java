@@ -3,8 +3,7 @@ package com.apython.python.pythonhost;
 import android.content.Context;
 import android.util.Log;
 
-import com.apython.python.pythonhost.interpreter.PythonInterpreter;
-import com.apython.python.pythonhost.interpreter.PythonInterpreterHandle;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -41,9 +40,6 @@ public class Pip {
             ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
                 public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
-
-                @Override
-                public void setupInput(String prompt) {}
             };
         }
 //        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
@@ -117,9 +113,6 @@ public class Pip {
             ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
                 public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
-
-                @Override
-                public void setupInput(String prompt) {}
             };
         }
 //        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);

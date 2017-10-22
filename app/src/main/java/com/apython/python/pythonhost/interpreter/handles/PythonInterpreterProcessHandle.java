@@ -1,9 +1,10 @@
-package com.apython.python.pythonhost.interpreter;
+package com.apython.python.pythonhost.interpreter.handles;
 
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
@@ -11,6 +12,8 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.interpreter.PythonInterpreter;
+import com.apython.python.pythonhost.interpreter.PythonProcess;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -26,7 +29,7 @@ import java.util.Queue;
  * Created by Sebastian on 20.10.2017.
  */
 
-public class PythonInterpreterHandle {
+public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOHandle {
     private class PythonServiceConnection implements ServiceConnection {
         private Messenger      pythonProcess = null;
         private Queue<Message> messageQueue  = new ArrayDeque<>();
@@ -64,46 +67,32 @@ public class PythonInterpreterHandle {
             return pythonProcess != null;
         }
     }
-
-    public interface IOHandler {
-        void addOutput(String text);
-        void setupInput(String prompt);
-    }
-    
     private Context context;
-    private IOHandler ioHandler;
     private PythonServiceConnection pythonProcessConnection = new PythonServiceConnection();
-    private FileDescriptor pythonProcessFd = null;
-    private boolean pendingBind = false;
     
-    public PythonInterpreterHandle(Context context) {
+    public PythonInterpreterProcessHandle(Context context) {
         this.context = context;
     }
-    
-    public boolean startInterpreter(String pythonVersion) {
-        final FileDescriptor pythonProcessFd = PythonInterpreter.openPseudoTerminal();
-        this.pythonProcessFd = pythonProcessFd;
-        String pseudoTerminalPath = PythonInterpreter.getPseudoTerminalPath(pythonProcessFd);
+
+    @Override
+    public boolean startInterpreter(String pythonVersion, String[] args) {
+        super.startInterpreter(pythonVersion, args);
         Intent pythonProcessIntent = getPythonProcessIntent();
         pythonProcessIntent.putExtra(PythonProcess.PYTHON_VERSION_KEY, pythonVersion);
-        pythonProcessIntent.putExtra(PythonProcess.PSEUDO_TERMINAL_PATH_KEY, pseudoTerminalPath);
+        pythonProcessIntent.putExtra(PythonProcess.PYTHON_ARGUMENTS_KEY, args);
+        pythonProcessIntent.putExtra(PythonProcess.PSEUDO_TERMINAL_PATH_KEY,
+                                     getPseudoTerminalPath());
         context.startService(pythonProcessIntent);
-        if (pendingBind) {
-            pendingBind = false;
-            bindToInterpreter();
-        }
         return true;
     }
-    
+
+    @Override
     public boolean attach() {
-        if (pythonProcessFd == null) {
-            pendingBind = true;
-        } else {
-            bindToInterpreter();
-        }
+        bindToInterpreter();
         return true;
     }
-    
+
+    @Override
     public boolean detach() {
         if (pythonProcessConnection.connected()) {
             context.unbindService(pythonProcessConnection);
@@ -111,36 +100,26 @@ public class PythonInterpreterHandle {
         return true;
     }
 
+    @Override
     public boolean stopInterpreter() {
-        // TODO: Close pseudoterminal
-        return context.stopService(getPythonProcessIntent());
+        return super.stopInterpreter() && context.stopService(getPythonProcessIntent());
+        
     }
 
-    public void interrupt() {
-        if (pythonProcessFd != null) {
-            PythonInterpreter.interruptTerminal(pythonProcessFd);
-        }
+    @Override
+    public Integer getInterpreterResult(boolean block) {
+        return null; // TODO: Implement
     }
-    
-    public void sendInput(String input) {
-        OutputStream pythonInput = new FileOutputStream(pythonProcessFd);
-        try {
-            pythonInput.write(input.getBytes("Utf-8"));
-        } catch (UnsupportedEncodingException e) {
-            Log.wtf(MainActivity.TAG, "Utf-8 encoding is not supported?!", e);
-        } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to write input to the python process", e);
-        }
+
+    @Override
+    public void setLogTag(String tag) {
+        Message logTagMessage = Message.obtain(null, PythonProcess.SET_LOG_TAG);
+        Bundle data = new Bundle();
+        data.putString("tag", tag);
+        logTagMessage.setData(data);
+        pythonProcessConnection.sendMessage(logTagMessage);
     }
-    
-    public int getInterpreterResult() {
-        return 1;
-    }
-    
-    public void setIOHandler(IOHandler handler) {
-        this.ioHandler = handler;
-    }
-    
+
     private Intent getPythonProcessIntent() {
         return new Intent(context, PythonProcess.class);
     }
@@ -149,29 +128,6 @@ public class PythonInterpreterHandle {
         context.bindService(getPythonProcessIntent(), pythonProcessConnection,
                             Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT
                                     | Context.BIND_ADJUST_WITH_ACTIVITY); // TODO: Handle return value
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final byte[] buffer = new byte[256];
-                int bytesRead;
-                InputStream pythonOutput = new FileInputStream(pythonProcessFd);
-                try {
-                    while ((bytesRead = pythonOutput.read(buffer)) != -1) {
-                        final String text;
-                        try {
-                            text = new String(buffer, 0, bytesRead, "Utf-8");
-                        } catch (UnsupportedEncodingException e) {
-                            Log.wtf(MainActivity.TAG, "Utf-8 encoding is not supported?!", e);
-                            break;
-                        }
-                        if (ioHandler != null) {
-                            ioHandler.addOutput(text);
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+        startOutputListener();
     }
 }

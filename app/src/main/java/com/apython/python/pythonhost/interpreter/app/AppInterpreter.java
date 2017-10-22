@@ -13,6 +13,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterThreadHandle;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
@@ -63,14 +65,16 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
     }
 
     private final Activity hostingAppActivity;
-    private String                 logTag                 = "PythonApp";
-    private PythonInterpreter      interpreter            = null;
-    private PythonFragment         windowFragment         = null;
+    private       String   pythonVersion;
+    private String                  logTag         = "PythonApp";
+    private PythonInterpreterHandle interpreter    = null;
+    private PythonFragment          windowFragment = null;
     
     public AppInterpreter(Context pyHostContext, Activity hostingAppActivity, String pythonVersion) {
         super();
         this.hostingAppActivity = new AppActivityProxy(hostingAppActivity, pyHostContext);
-        interpreter = new PythonInterpreter(pyHostContext, pythonVersion);
+        interpreter = new PythonInterpreterThreadHandle(pyHostContext);
+        this.pythonVersion = pythonVersion;
     }
     
     @SuppressWarnings("unused")
@@ -95,24 +99,40 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 
     @SuppressWarnings("unused")
     public int startInterpreter(String[] args) {
-        return interpreter.runPythonInterpreter(args);
+        Integer exitCode;
+        interpreter.startInterpreter(pythonVersion, args);
+        interpreter.attach();
+        while ((exitCode = interpreter.getInterpreterResult(true)) == null) {
+            interpreter.interrupt();
+        }
+        return exitCode;
     }
     
     private void initWindowFragment() {
         if (windowFragment instanceof TerminalInterface) {
             final TerminalInterface terminal = (TerminalInterface) windowFragment;
-//            terminal.setProgramHandler(interpreter);
-//            interpreter.setIoHandler(new PythonInterpreter.IOHandler() {
-//                @Override
-//                public void addOutput(final String text) {
-//                    hostingAppActivity.runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            terminal.addOutput(text);
-//                        }
-//                    });
-//                }
-//
+            terminal.setProgramHandler(new TerminalInterface.ProgramHandler() {
+                @Override
+                public void sendInput(String input) {
+                    interpreter.sendInput(input);
+                }
+
+                @Override
+                public void terminate() {
+                    interpreter.interrupt(); // TODO: Or stop?
+                }
+            });
+            interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
+                @Override
+                public void addOutput(final String text) {
+                    hostingAppActivity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            terminal.addOutput(text);
+                        }
+                    });
+                }
+
 //                @Override
 //                public void setupInput(final String prompt) {
 //                    final String enqueuedInput = interpreter.getEnqueueInput();
@@ -123,7 +143,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 //                        }
 //                    });
 //                }
-//            });
+            });
         } else if (windowFragment instanceof SDLWindowFragment) {
             SDLLibraryHandler.initLibraries(hostingAppActivity, this);
         }
@@ -197,9 +217,8 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
         if (windowFragment instanceof ActivityLifecycleEventListener) {
             switch (eventType) {
                 case ON_DESTROY:
-                    if (interpreter != null && interpreter.isRunning()) {
-//                        interpreter.terminate();
-                    }
+                    interpreter.detach();
+                    interpreter.stopInterpreter();
                     ((ActivityLifecycleEventListener) windowFragment).onDestroy(); break;
                 case ON_PAUSE:
                     ((ActivityLifecycleEventListener) windowFragment).onPause(); break;

@@ -97,10 +97,6 @@ int runPythonInterpreter(int argc, char** argv) {
     return call_Py_Main(argc, argv);
 }
 
-void interruptPython() {
-//    pthread_kill(pythonThread, SIGINT);
-}
-
 void terminatePython() {
     LOG_WARN("Killing Python thread");
 //    pthread_kill(pythonThread, SIGTERM);
