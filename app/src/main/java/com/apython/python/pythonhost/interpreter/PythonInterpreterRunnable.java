@@ -8,7 +8,7 @@ import android.content.Context;
  * Created by Sebastian on 22.07.2015.
  */
 public class PythonInterpreterRunnable extends PythonInterpreter implements Runnable {
-    String[] args;
+    private String[] args;
     
     public PythonInterpreterRunnable(Context context, String pythonVersion,
                                      String pseudoTerminalPath, String[] args) {
@@ -18,9 +18,6 @@ public class PythonInterpreterRunnable extends PythonInterpreter implements Runn
 
     @Override
     public void run() {
-        int result = this.runPythonInterpreter(args);
-        onPythonInterpreterFinished(result);
+        this.runPythonInterpreter(args);
     }
-    
-    protected void onPythonInterpreterFinished(int result) {}
 }

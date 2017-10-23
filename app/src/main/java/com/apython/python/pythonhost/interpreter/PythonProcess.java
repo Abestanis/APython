@@ -68,12 +68,14 @@ public class PythonProcess extends Service {
 
     private void startPythonInterpreter(String pythonVersion, String pseudoTerminalPath,
                                         String[] args) {
-        interpreter = new PythonInterpreterRunnable(this, pythonVersion, pseudoTerminalPath, args) {
+        interpreter = new PythonInterpreterRunnable(this, pythonVersion, pseudoTerminalPath, args);
+        interpreter.setExitHandler(new PythonInterpreter.ExitHandler() {
             @Override
-            protected void onPythonInterpreterFinished(int result) {
-                Log.d(MainActivity.TAG, "Python interpreter exited with result " + result);
+            public void onExit(int exitCode) {
+                Log.d(MainActivity.TAG, "Python process will exit wit exit code " + exitCode);
+                // TODO: Send the exit code
             }
-        };
+        });
         interpreterThread = new Thread((PythonInterpreterRunnable) interpreter);
         interpreterThread.start();
     }

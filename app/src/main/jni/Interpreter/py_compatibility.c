@@ -49,6 +49,17 @@ const char* getPythonVersion() {
     return pythonVersion;
 }
 
+int call_setExitHandler(_exitHandler exitHandler) {
+    static const char* name = "setExitHandler";
+    void (*setExitHandler)(_exitHandler handler) = dlsym(pythonLib, name);
+    if (setExitHandler != NULL) {
+        setExitHandler(exitHandler);
+        return 1;
+    }
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", name);
+    return 0;
+}
+
 int call_Py_Main(int argc, char** argv) {
     static const char* pyMain = "Py_Main";
     static const char* pyMain3 = "main";

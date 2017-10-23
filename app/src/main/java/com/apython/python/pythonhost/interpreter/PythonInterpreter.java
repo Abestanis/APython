@@ -28,11 +28,17 @@ public class PythonInterpreter {
         System.loadLibrary("pyInterpreter");
     }
     
+    public interface ExitHandler {
+        void onExit(int exitCode);
+    }
+    
     protected final Context context;
     protected final String  pythonVersion;
     private String logTag = MainActivity.TAG;
     private boolean running   = false;
     private String pseudoTerminalPath = null;
+    private ExitHandler exitHandler = null;
+    private Integer exitCode = null;
     
     public PythonInterpreter(Context context, String pythonVersion, String pseudoTerminalPath) {
         this(context, pythonVersion);
@@ -68,6 +74,9 @@ public class PythonInterpreter {
                                       interpreterArgs,
                                       this.pseudoTerminalPath);
         running = false;
+        if (exitCode == null) {
+            setExitCode(res);
+        }
         // TODO: Show result and pause for a few seconds (add as config)
         return res;
     }
@@ -90,6 +99,18 @@ public class PythonInterpreter {
 
     public boolean isRunning() {
         return running;
+    }
+    
+    public void setExitHandler(ExitHandler handler) {
+        exitHandler = handler;
+    }
+    
+    @CalledByNative
+    protected void setExitCode(int exitCode) {
+        this.exitCode = exitCode;
+        if (exitHandler != null) {
+            exitHandler.onExit(exitCode);
+        }
     }
 
     private native String nativeGetPythonVersion(String pythonLibName);
