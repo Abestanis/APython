@@ -61,6 +61,13 @@ public class PythonInterpreterActivity extends Activity {
                 });
             }
         });
+        interpreter.setExitHandler(new PythonInterpreter.ExitHandler() {
+            @Override
+            public void onExit(int exitCode) {
+                Log.d(MainActivity.TAG, "Python interpreter exited with exit code " + exitCode);
+                finish();
+            }
+        });
         String pyVersion = getIntent().getStringExtra("pythonVersion");
         if (pyVersion == null) {
             pyVersion = PreferenceManager.getDefaultSharedPreferences(this).getString(
@@ -68,7 +75,8 @@ public class PythonInterpreterActivity extends Activity {
                     PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED
             );
         }
-        if (!PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED.equals(pyVersion) && PackageManager.isPythonVersionInstalled(this, pyVersion)) {
+        if (!PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED.equals(pyVersion)
+                && PackageManager.isPythonVersionInstalled(this, pyVersion)) {
             this.interpreter.startInterpreter(Util.getMainVersionPart(pyVersion), null);
         } else {
             showPythonVersionDialog();

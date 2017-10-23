@@ -52,7 +52,7 @@ public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHa
 
     @Override
     public Integer getInterpreterResult(boolean block) {
-        if (block) {
+        if (exitCode == null && block) {
             synchronized (this) {
                 try {
                     this.wait();

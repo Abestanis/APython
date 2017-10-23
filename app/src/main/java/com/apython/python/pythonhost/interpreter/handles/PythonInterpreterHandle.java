@@ -1,5 +1,7 @@
 package com.apython.python.pythonhost.interpreter.handles;
 
+import com.apython.python.pythonhost.interpreter.PythonInterpreter;
+
 /**
  * Created by Sebastian on 21.10.2017.
  */
@@ -18,4 +20,5 @@ public interface PythonInterpreterHandle {
     Integer getInterpreterResult(boolean block);
     void setIOHandler(IOHandler handler);
     void setLogTag(String tag);
+    void setExitHandler(PythonInterpreter.ExitHandler handler);
 }

@@ -5,23 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.apython.python.pythonhost.MainActivity;
-import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 import com.apython.python.pythonhost.interpreter.PythonProcess;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -31,6 +23,7 @@ import java.util.Queue;
 
 public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOHandle {
     private class PythonServiceConnection implements ServiceConnection {
+        private boolean isBound = false;
         private Messenger      pythonProcess = null;
         private Queue<Message> messageQueue  = new ArrayDeque<>();
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -50,7 +43,7 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
         }
 
         boolean sendMessage(Message message) {
-            if (connected()) {
+            if (pythonProcess != null) {
                 try {
                     pythonProcess.send(message);
                 } catch (RemoteException e) {
@@ -63,12 +56,52 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
             return true;
         }
 
-        boolean connected() {
-            return pythonProcess != null;
+        boolean bindToService() {
+            isBound = context.bindService(
+                    getPythonProcessIntent(), pythonProcessConnection, Context.BIND_AUTO_CREATE |
+                            Context.BIND_IMPORTANT | Context.BIND_ADJUST_WITH_ACTIVITY);
+            return isBound;
+        }
+        
+        void unbind() {
+            if (isBound) {
+                context.unbindService(pythonProcessConnection);
+                isBound = false;
+            }
         }
     }
+
+    /**
+     * Handler of incoming messages from the service.
+     */
+    private static class IncomingHandler extends Handler {
+        private final PythonInterpreterProcessHandle processHandle;
+
+        public IncomingHandler(PythonInterpreterProcessHandle processHandle) {
+            super();
+            this.processHandle = processHandle;
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+            case PythonProcess.PROCESS_EXIT:
+                Log.d(processHandle.logTag, "Python process is exiting with exit code " + msg.arg1);
+                processHandle.exitCode = msg.arg1;
+                synchronized (processHandle) {
+                    processHandle.notifyAll();
+                }
+                break;
+            default:
+                super.handleMessage(msg);
+            }
+        }
+    }
+    
     private Context context;
     private PythonServiceConnection pythonProcessConnection = new PythonServiceConnection();
+    private final Messenger messageHandler = new Messenger(new IncomingHandler(this));
+    private Integer exitCode = null;
     
     public PythonInterpreterProcessHandle(Context context) {
         this.context = context;
@@ -94,9 +127,7 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
 
     @Override
     public boolean detach() {
-        if (pythonProcessConnection.connected()) {
-            context.unbindService(pythonProcessConnection);
-        }
+        pythonProcessConnection.unbind();
         return true;
     }
 
@@ -108,7 +139,16 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
 
     @Override
     public Integer getInterpreterResult(boolean block) {
-        return null; // TODO: Implement
+        if (exitCode == null && block) {
+            synchronized (this) {
+                try {
+                    this.wait();
+                } catch (InterruptedException e) {
+                    return null;
+                }
+            }
+        }
+        return exitCode;
     }
 
     @Override
@@ -126,9 +166,10 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
     }
     
     private void bindToInterpreter() {
-        context.bindService(getPythonProcessIntent(), pythonProcessConnection,
-                            Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT
-                                    | Context.BIND_ADJUST_WITH_ACTIVITY); // TODO: Handle return value
+        pythonProcessConnection.bindToService();
         startOutputListener();
+        Message registerMsg = Message.obtain(null, PythonProcess.REGISTER_RESPONDER);
+        registerMsg.replyTo = messageHandler;
+        pythonProcessConnection.sendMessage(registerMsg);
     }
 }

@@ -20,7 +20,8 @@ import java.io.UnsupportedEncodingException;
 public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHandle {
     private IOHandler ioHandler;
     private FileDescriptor pythonProcessFd = null;
-    protected String logTag = MainActivity.TAG;
+    private PythonInterpreter.ExitHandler exitHandler = null;
+    String logTag = MainActivity.TAG;
     
     @Override
     public boolean startInterpreter(String pythonVersion, String[] args) {
@@ -58,13 +59,13 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
         this.ioHandler = handler;
     }
     
-    protected String getPseudoTerminalPath() {
+    String getPseudoTerminalPath() {
         if (pythonProcessFd == null) return null;
         return PythonInterpreter.getPseudoTerminalPath(pythonProcessFd);
     }
     
-    protected void startOutputListener() {
-        new Thread(new Runnable() {
+    Thread startOutputListener() {
+        Thread outputListenerThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 final byte[] buffer = new byte[256];
@@ -87,12 +88,23 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                if (exitHandler != null) {
+                    Integer exitCode = getInterpreterResult(false);
+                    exitHandler.onExit(exitCode == null ? 1 : exitCode);
+                }
             }
-        }).start();
+        });
+        outputListenerThread.start();
+        return outputListenerThread;
     }
 
     @Override
     public void setLogTag(String tag) {
         logTag = tag;
+    }
+
+    @Override
+    public void setExitHandler(PythonInterpreter.ExitHandler handler) {
+        exitHandler = handler;
     }
 }
