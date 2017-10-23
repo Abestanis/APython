@@ -10,6 +10,7 @@ import android.content.Context;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.Util;
@@ -86,7 +87,6 @@ public class PythonInterpreter {
         return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-m", module}, args));
     }
 
-    @SuppressWarnings("unused")
     public int runPythonString(String command, String[] args) {
         return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
     }

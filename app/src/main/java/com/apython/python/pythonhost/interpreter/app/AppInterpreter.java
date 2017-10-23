@@ -12,6 +12,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterThreadHandle;
@@ -55,8 +56,8 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
             for (WindowType windowType : WindowType.values()) {
                 if (windowType.ordinal() == ordinal) return windowType;
             }
-            throw new IllegalArgumentException("Invalid ordinal passed to WindowType#fromOrdinal: "
-                                                       + ordinal);
+            throw new IllegalArgumentException(
+                    "Invalid ordinal passed to WindowType#fromOrdinal: " + ordinal);
         }
 
         WindowType(Class<? extends PythonFragment> windowClass) {
@@ -77,7 +78,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
         this.pythonVersion = pythonVersion;
     }
     
-    @SuppressWarnings("unused")
+    @CalledByNative
     public Object setWindow(int rawWindowType, ViewGroup parent) {
         WindowType windowType = WindowType.NO_WINDOW;
         try { windowType = WindowType.fromOrdinal(rawWindowType); }
@@ -91,13 +92,13 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
         return this;
     }
 
-    @SuppressWarnings("unused")
+    @CalledByNative
     public void setLogTag(String logTag) {
         this.logTag = logTag;
         interpreter.setLogTag(logTag);
     }
 
-    @SuppressWarnings("unused")
+    @CalledByNative
     public int startInterpreter(String[] args) {
         Integer exitCode;
         interpreter.startInterpreter(pythonVersion, args);
