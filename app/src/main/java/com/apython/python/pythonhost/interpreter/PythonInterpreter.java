@@ -40,9 +40,6 @@ public class PythonInterpreter {
     }
 
     public PythonInterpreter(Context context, String pythonVersion) {
-        PackageManager.loadDynamicLibrary(context, "pythonPatch");
-        System.loadLibrary("pyLog");
-        System.loadLibrary("pyInterpreter");
         PackageManager.loadDynamicLibrary(context, "python" + pythonVersion);
         PackageManager.loadAdditionalLibraries(context);
         this.context = context;

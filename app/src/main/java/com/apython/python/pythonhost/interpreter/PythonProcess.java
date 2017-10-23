@@ -21,7 +21,7 @@ public class PythonProcess extends Service {
     public static final String PSEUDO_TERMINAL_PATH_KEY = "pseudoTerminalPath";
     
     
-    /** Command to the interpreter to set teh log tag. */
+    /** Command to the interpreter to set the log tag. */
     public static final int SET_LOG_TAG = 1;
 
     /**

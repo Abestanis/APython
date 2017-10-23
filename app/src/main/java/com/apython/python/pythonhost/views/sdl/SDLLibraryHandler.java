@@ -62,7 +62,6 @@ public class SDLLibraryHandler {
     @SuppressLint("UnsafeDynamicallyLoadedCode")
     private static boolean loadLibraries(Context context) {
         try {
-            PackageManager.loadDynamicLibrary(context, "pythonPatch");
             for (String library : getSDLLibraries()) {
                 PackageManager.loadDynamicLibrary(context, library);
             }
