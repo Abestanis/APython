@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="APythonDev" type="AndroidTestRunConfigurationType" factoryName="Android Instrumented Tests" activateToolWindowBeforeRun="false">
+  <configuration default="false" name="APythonDev" type="AndroidTestRunConfigurationType" factoryName="Android Instrumented Tests">
     <module name="app" />
     <option name="TESTING_TYPE" value="3" />
     <option name="INSTRUMENTATION_RUNNER_CLASS" value="android.support.test.runner.AndroidJUnitRunner" />

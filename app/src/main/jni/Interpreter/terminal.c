@@ -39,10 +39,12 @@ int createPseudoTerminal() {
     }
     setSignalHandler(SIGCHLD, oldSignalHandler);
     
-    struct termios attrs; // Enable line oriented input and erase and kill processing. 
+    struct termios attrs; // Enable line oriented input and erase and signal processing. 
     tcgetattr(masterFd, &attrs);
-    attrs.c_lflag &= ~ECHO;
-    attrs.c_lflag &= ~ICANON;
+    attrs.c_lflag |= ICANON;
+    attrs.c_lflag |= PENDIN;
+    attrs.c_lflag |= ISIG;
+    attrs.c_lflag &= ~ECHOCTL;
     tcsetattr(masterFd, TCSAFLUSH, &attrs);
     
     return masterFd;

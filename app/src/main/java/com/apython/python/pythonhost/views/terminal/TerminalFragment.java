@@ -15,7 +15,6 @@ import android.widget.FrameLayout;
 import android.widget.ListView;
 
 import com.apython.python.pythonhost.R;
-import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
@@ -118,10 +117,9 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                             keyInput.clear();
                         } else if (event.getAction() == KeyEvent.ACTION_DOWN
                                 && event.getKeyCode() == KeyEvent.KEYCODE_DEL) { // TODO: Handle more special keys
-                            input = "\b";
+                            input = "\u007F";
                         }
                         if (input != null) {
-                            pythonOutput.addOutput(input); // TODO: This is not correct
                             programHandler.sendInput(input);
                         }
                     }
