@@ -136,7 +136,7 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     
     result = runPythonInterpreter(argc, argv);
     if (pseudoTerminalFd >= 0) {
-        closePseudoTerminal(pseudoTerminalFd);
+        disconnectFromPseudoTerminal(pseudoTerminalFd);
     }
 
     int detached = (*Jvm)->GetEnv (Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
@@ -162,7 +162,7 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 #else
     struct termios terminalAttributes;
     tcgetattr(masterFd, &terminalAttributes);
-    writeToPseudoTerminal(masterFd, (const char *) &terminalAttributes.c_cc[VINTR], 1);
+    writeToPseudoTerminal(masterFd, (const char *) &terminalAttributes.c_cc[VINTR], sizeof(cc_t));
 #endif /* defined TIOCSIGNAL */
 }
 

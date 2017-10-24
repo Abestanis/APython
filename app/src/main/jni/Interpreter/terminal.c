@@ -41,10 +41,11 @@ int createPseudoTerminal() {
     
     struct termios attrs; // Enable line oriented input and erase and signal processing. 
     tcgetattr(masterFd, &attrs);
+    attrs.c_iflag |= IUTF8;
     attrs.c_lflag |= ICANON;
-    attrs.c_lflag |= PENDIN;
+    attrs.c_lflag |= PENDIN | ECHO;
     attrs.c_lflag |= ISIG;
-    attrs.c_lflag &= ~ECHOCTL;
+    attrs.c_lflag |= ECHOCTL;
     tcsetattr(masterFd, TCSAFLUSH, &attrs);
     
     return masterFd;
@@ -70,8 +71,7 @@ int openSlavePseudoTerminal(const char* path) {
     while ((dup2(slaveFd, fileno(stdout)) == -1) && (errno == EINTR)) {}
     while ((dup2(slaveFd, fileno(stderr)) == -1) && (errno == EINTR)) {}
     
-    setvbuf(stdin, 0, _IOFBF, 0);
-    setvbuf(stdout, 0, _IOLBF, 0);
+    setvbuf(stdout, NULL, _IOLBF, 0);
 //    setvbuf(stderr, 0, _IONBF, 0);
     return slaveFd;
 }

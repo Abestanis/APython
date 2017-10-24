@@ -115,9 +115,13 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                         if (keyInput.length() > 0) {
                             input = keyInput.toString();
                             keyInput.clear();
-                        } else if (event.getAction() == KeyEvent.ACTION_DOWN
-                                && event.getKeyCode() == KeyEvent.KEYCODE_DEL) { // TODO: Handle more special keys
-                            input = "\u007F";
+                        } else if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                            if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
+                                input = "\u007F";
+                            } else if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+                                programHandler.interrupt();
+                                return;
+                            }
                         }
                         if (input != null) {
                             programHandler.sendInput(input);

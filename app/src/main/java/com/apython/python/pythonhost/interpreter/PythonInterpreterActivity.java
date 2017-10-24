@@ -95,7 +95,12 @@ public class PythonInterpreterActivity extends Activity {
 
             @Override
             public void terminate() {
-                interpreter.interrupt(); // TODO: or kill?
+                // TODO: Handle
+            }
+
+            @Override
+            public void interrupt() {
+                interpreter.interrupt();
             }
         });
     }

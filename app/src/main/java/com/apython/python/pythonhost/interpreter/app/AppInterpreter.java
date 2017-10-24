@@ -120,7 +120,12 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 
                 @Override
                 public void terminate() {
-                    interpreter.interrupt(); // TODO: Or stop?
+                    // TODO: Handle
+                }
+
+                @Override
+                public void interrupt() {
+                    interpreter.interrupt();
                 }
             });
             interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
