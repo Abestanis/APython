@@ -130,7 +130,8 @@ public class Util {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(MainActivity.TAG, "Failed to check the accessibility of the directory "
+                    + dir.getAbsolutePath(), e);
         }
         return inaccessibleFiles;
     }

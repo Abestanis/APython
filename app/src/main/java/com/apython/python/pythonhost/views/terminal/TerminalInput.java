@@ -7,6 +7,7 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -114,6 +115,16 @@ public class TerminalInput extends EditText {
             }
         };
         this.addTextChangedListener(inputWatcher);
+        this.setOnKeyListener(new OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (!isInputEnabled() && commitHandler != null) {
+                    commitHandler.onKeyEventWhileDisabled(event);
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     /**
