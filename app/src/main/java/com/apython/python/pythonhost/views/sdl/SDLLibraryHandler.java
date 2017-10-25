@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
 
+import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
 
@@ -61,7 +62,6 @@ public class SDLLibraryHandler {
     @SuppressLint("UnsafeDynamicallyLoadedCode")
     private static boolean loadLibraries(Context context) {
         try {
-            PackageManager.loadDynamicLibrary(context, "pythonPatch");
             for (String library : getSDLLibraries()) {
                 PackageManager.loadDynamicLibrary(context, library);
             }
@@ -111,7 +111,8 @@ public class SDLLibraryHandler {
     }
 
     /** These methods are called by SDL using JNI. */
-    
+
+    @CalledByNative
     public static boolean sendMessage(int command, int param) {
         if (commandHandler == null) {
             Log.e(SDLWindowFragment.TAG, "No command handler given to handle message " + command
@@ -124,6 +125,7 @@ public class SDLLibraryHandler {
         return commandHandler.sendMessage(msg);
     }
 
+    @CalledByNative
     public static void setKeepScreenOn(final boolean value) {
         final Window window = staticActivity.getWindow();
         if (window != null) {
@@ -141,34 +143,42 @@ public class SDLLibraryHandler {
     }
 
     // Audio
+    @CalledByNative
     public static int audioOpen(int sampleRate, boolean is16Bit, boolean isStereo, int desiredFrames) {
         return audioHandler.audioOpen(sampleRate, is16Bit, isStereo, desiredFrames);
     }
 
+    @CalledByNative
     public static void audioWriteShortBuffer(short[] buffer) {
         audioHandler.audioWriteShortBuffer(buffer);
     }
 
+    @CalledByNative
     public static void audioWriteByteBuffer(byte[] buffer) {
         audioHandler.audioWriteByteBuffer(buffer);
     }
 
+    @CalledByNative
     public static int captureOpen(int sampleRate, boolean is16Bit, boolean isStereo, int desiredFrames) {
         return audioHandler.captureOpen(sampleRate, is16Bit, isStereo, desiredFrames);
     }
-    
+
+    @CalledByNative
     public static int captureReadShortBuffer(short[] buffer, boolean blocking) {
         return audioHandler.captureReadShortBuffer(buffer, blocking);
     }
     
+    @CalledByNative
     public static int captureReadByteBuffer(byte[] buffer, boolean blocking) {
         return audioHandler.captureReadByteBuffer(buffer, blocking);
     }
 
+    @CalledByNative
     public static void audioClose() {
         audioHandler.audioClose();
     }
 
+    @CalledByNative
     public static void captureClose() {
         audioHandler.captureClose();
     }

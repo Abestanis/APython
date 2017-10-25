@@ -60,6 +60,11 @@
         <service
             android:name=".downloadcenter.PythonDownloadCenterService"
             android:exported="false"/>
+        <service
+            android:name=".interpreter.PythonProcess"
+            android:process=":python"
+            android:exported="false"
+            android:icon="@drawable/python_launcher_icon"/>
     </application>
 
 </manifest>
