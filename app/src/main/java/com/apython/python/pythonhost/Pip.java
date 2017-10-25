@@ -3,8 +3,8 @@ package com.apython.python.pythonhost;
 import android.content.Context;
 import android.util.Log;
 
-import com.apython.python.pythonhost.interpreter.PythonInterpreter;
-import com.apython.python.pythonhost.interpreter.PythonInterpreterHandle;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterProcessHandle;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -30,8 +30,7 @@ public class Pip {
             bw.write(requirements);
             bw.close();
         } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to write requirements to a temporary file!");
-            e.printStackTrace();
+            Log.e(MainActivity.TAG, "Failed to write requirements to a temporary file!", e);
             return false;
         }
         PythonInterpreterHandle.IOHandler ioHandler = null;
@@ -40,14 +39,14 @@ public class Pip {
             progressHandler.enable(context.getString(R.string.install_requirements));
             ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
-                public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
-
-                @Override
-                public void setupInput(String prompt) {}
+                public void onOutput(String output) { parsePipOutput(context, progressHandler, output); }
             };
         }
-//        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-        int result = 1;//interpreter.runPythonModule("pip", new String[] {"install", "-r", reqFile.getAbsolutePath()});
+        PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);
+        interpreter.setIOHandler(ioHandler);
+        String[] interpreterArgs = {"-m", "pip", "install", "-r", reqFile.getAbsolutePath()};
+        interpreter.startInterpreter(pythonVersion, interpreterArgs);
+        int result = interpreter.getInterpreterResult(true);
         if (!reqFile.delete()) {
             Log.w(MainActivity.TAG, "Cannot delete temporary file '" + reqFile.getAbsolutePath() + "'!");
         }
@@ -89,7 +88,7 @@ public class Pip {
             stream = connection.getInputStream();
             totalDownloadSize = connection.getContentLength();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w(MainActivity.TAG, "Failed to download the pip installer.", e);
             return false;
         }
         if (!(downloadDir.mkdirs() || downloadDir.isDirectory())) {
@@ -116,14 +115,13 @@ public class Pip {
             progressHandler.setText(context.getString(R.string.run_pip_installer));
             ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
-                public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
-
-                @Override
-                public void setupInput(String prompt) {}
+                public void onOutput(String output) { parsePipOutput(context, progressHandler, output); }
             };
         }
-//        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-        int res = 1;//interpreter.runPythonFile(installFile, null);
+        PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);
+        interpreter.setIOHandler(ioHandler);
+        interpreter.startInterpreter(pythonVersion, new String[] {installFile.getAbsolutePath()});
+        int res = interpreter.getInterpreterResult(true);
         if (!installFile.delete()) {
             Log.w(MainActivity.TAG, "Failed to delete '" + installFile.getAbsolutePath() + "'!");
         }

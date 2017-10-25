@@ -9,6 +9,7 @@ package com.apython.python.pythonhost.views.interfaces;
 public interface TerminalInterface extends WindowManagerInterface.Window {
     interface ProgramHandler {
         void sendInput(String input);
+        void interrupt();
         void terminate();
     }
     void addOutput(String output);

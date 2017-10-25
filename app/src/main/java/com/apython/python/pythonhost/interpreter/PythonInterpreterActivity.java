@@ -18,6 +18,8 @@ import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterProcessHandle;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
@@ -47,21 +49,23 @@ public class PythonInterpreterActivity extends Activity {
         ViewGroup container = ((ViewGroup) this.findViewById(R.id.pyHostWindowContainer));
         container.addView(((PythonFragment) terminalWindowManager).createView(container));
         addTerminalWindow();
-        interpreter = new PythonInterpreterHandle(this);
+        interpreter = new PythonInterpreterProcessHandle(this);
         interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
             @Override
-            public void addOutput(final String text) {
+            public void onOutput(final String output) {
                 PythonInterpreterActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        terminalView.addOutput(text);
+                        terminalView.addOutput(output);
                     }
                 });
             }
-
+        });
+        interpreter.setExitHandler(new PythonInterpreter.ExitHandler() {
             @Override
-            public void setupInput(String prompt) {
-
+            public void onExit(int exitCode) {
+                Log.d(MainActivity.TAG, "Python interpreter exited with exit code " + exitCode);
+                finish();
             }
         });
         String pyVersion = getIntent().getStringExtra("pythonVersion");
@@ -71,8 +75,9 @@ public class PythonInterpreterActivity extends Activity {
                     PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED
             );
         }
-        if (!PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED.equals(pyVersion) && PackageManager.isPythonVersionInstalled(this, pyVersion)) {
-            this.interpreter.startInterpreter(Util.getMainVersionPart(pyVersion));
+        if (!PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED.equals(pyVersion)
+                && PackageManager.isPythonVersionInstalled(this, pyVersion)) {
+            this.interpreter.startInterpreter(Util.getMainVersionPart(pyVersion), null);
         } else {
             showPythonVersionDialog();
         }
@@ -90,7 +95,12 @@ public class PythonInterpreterActivity extends Activity {
 
             @Override
             public void terminate() {
-                interpreter.interrupt(); // TODO: or kill?
+                // TODO: Handle
+            }
+
+            @Override
+            public void interrupt() {
+                interpreter.interrupt();
             }
         });
     }
@@ -146,14 +156,7 @@ public class PythonInterpreterActivity extends Activity {
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
         PythonFragment currentWindow = terminalWindowManager.getCurrentWindow();
-        if (currentWindow instanceof TerminalInterface) {
-            if (!terminalView.isInputEnabled()) {
-                // input via stdin pipe
-//                if (interpreter.dispatchKeyEvent(event)) {
-//                    return true;
-//                }
-            }
-        } else if (currentWindow instanceof SDLWindowInterface) {
+        if (currentWindow instanceof SDLWindowInterface) {
             if (((SDLWindowInterface) currentWindow).dispatchKeyEvent(event)) {
                 return true;
             }
@@ -166,7 +169,7 @@ public class PythonInterpreterActivity extends Activity {
         final ArrayList<String> versions = PackageManager.getInstalledPythonVersions(getApplicationContext());
         if (versions.size() <= 1) {
             if (versions.size() == 1) {
-                interpreter.startInterpreter(versions.get(0));
+                interpreter.startInterpreter(versions.get(0), null);
                 return;
             }
             Log.i(MainActivity.TAG, "No Python version installed. Please download a version to use the interpreter.");
@@ -188,7 +191,7 @@ public class PythonInterpreterActivity extends Activity {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
                 ListView listView = ((AlertDialog) dialog).getListView();
-                interpreter.startInterpreter(versions.get(listView.getCheckedItemPosition()));
+                interpreter.startInterpreter(versions.get(listView.getCheckedItemPosition()), null);
             }
         });
         builder.setPositiveButton("Set as default", new DialogInterface.OnClickListener() {
@@ -199,7 +202,7 @@ public class PythonInterpreterActivity extends Activity {
                 String version = versions.get(listView.getCheckedItemPosition());
                 PreferenceManager.getDefaultSharedPreferences(PythonInterpreterActivity.this)
                         .edit().putString(PythonSettingsActivity.KEY_PYTHON_VERSION, version).apply();
-                interpreter.startInterpreter(version);
+                interpreter.startInterpreter(version, null);
             }
         });
         builder.setOnCancelListener(new DialogInterface.OnCancelListener() {

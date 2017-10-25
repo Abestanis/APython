@@ -10,6 +10,7 @@ import android.content.Context;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.Util;
@@ -26,12 +27,27 @@ public class PythonInterpreter {
         System.loadLibrary("pyLog");
         System.loadLibrary("pyInterpreter");
     }
+
+    /**
+     * A handler for the exit of the Python interpreter.
+     */
+    public interface ExitHandler {
+        /**
+         * Handle the exit of the Python interpreter.
+         * This may not be called on the main thread.
+         * 
+         * @param exitCode The exit code of the interpreter.
+         */
+        void onExit(int exitCode);
+    }
     
     protected final Context context;
     protected final String  pythonVersion;
     private String logTag = MainActivity.TAG;
     private boolean running   = false;
     private String pseudoTerminalPath = null;
+    private ExitHandler exitHandler = null;
+    private Integer exitCode = null;
     
     public PythonInterpreter(Context context, String pythonVersion, String pseudoTerminalPath) {
         this(context, pythonVersion);
@@ -39,9 +55,6 @@ public class PythonInterpreter {
     }
 
     public PythonInterpreter(Context context, String pythonVersion) {
-        PackageManager.loadDynamicLibrary(context, "pythonPatch");
-        System.loadLibrary("pyLog");
-        System.loadLibrary("pyInterpreter");
         PackageManager.loadDynamicLibrary(context, "python" + pythonVersion);
         PackageManager.loadAdditionalLibraries(context);
         this.context = context;
@@ -54,6 +67,10 @@ public class PythonInterpreter {
     
     public void setLogTag(String logTag) {
         this.logTag = logTag;
+    }
+    
+    String getLogTag() {
+        return logTag;
     }
 
     public int runPythonInterpreter(String[] interpreterArgs) {
@@ -70,39 +87,37 @@ public class PythonInterpreter {
                                       interpreterArgs,
                                       this.pseudoTerminalPath);
         running = false;
+        if (exitCode == null) {
+            setExitCode(res);
+        }
         // TODO: Show result and pause for a few seconds (add as config)
         return res;
-    }
-
-    public int runPythonFile(File file, String[] args) {
-        return this.runPythonFile(file.getAbsolutePath(), args);
-    }
-
-    public int runPythonFile(String filePath, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {filePath}, args));
-    }
-
-    public int runPythonModule(String module, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-m", module}, args));
-    }
-
-    @SuppressWarnings("unused")
-    public int runPythonString(String command, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
     }
 
     public boolean isRunning() {
         return running;
     }
+    
+    public void setExitHandler(ExitHandler handler) {
+        exitHandler = handler;
+    }
+    
+    @CalledByNative
+    protected void setExitCode(int exitCode) {
+        this.exitCode = exitCode;
+        if (exitHandler != null) {
+            exitHandler.onExit(exitCode);
+        }
+    }
 
     private native String nativeGetPythonVersion(String pythonLibName);
-    private native int    runInterpreter(String pythonLibName, String executable, String libPath,
-                                         String pyHostLibPath, String pythonHome, String pythonTemp,
-                                         String xdcBasePath, String dataPath, String appTag,
-                                         String[] interpreterArgs, String pseudoTerminalPath);
-    public native void   stopInterpreter();
+    private native int runInterpreter(String pythonLibName, String executable, String libPath,
+                                      String pyHostLibPath, String pythonHome, String pythonTemp,
+                                      String xdcBasePath, String dataPath, String appTag,
+                                      String[] interpreterArgs, String pseudoTerminalPath);
     public static native void interruptTerminal(FileDescriptor fd);
-    public static native FileDescriptor openPseudoTerminal(); // TODO: Close it when done.
+    public static native FileDescriptor openPseudoTerminal();
+    public static native void closePseudoTerminal(FileDescriptor fd);
     public static native String getPseudoTerminalPath(FileDescriptor fd);
     public static native String getEnqueueInput(FileDescriptor fd);
 }

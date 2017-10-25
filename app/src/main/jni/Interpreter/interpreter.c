@@ -33,6 +33,26 @@ int getFdFromFileDescriptor(JNIEnv *env, jobject fileDescriptor) {
     return (*env)->GetIntField(env, fileDescriptor, fdFieldId);
 }
 
+/* JNI to JAVA functions */
+
+void exitHandler(int exitCode) {
+    if (jPyInterpreter == NULL) { return; }
+    JNIEnv* env = NULL;
+    static jclass *interpreterClass = NULL;
+    static jmethodID setExitCodeMethodId;
+    int detached = (*Jvm)->GetEnv(Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
+    if (detached) { (*Jvm)->AttachCurrentThread(Jvm, &env, NULL); }
+    
+    if (interpreterClass == NULL) {
+        interpreterClass = (*env)->GetObjectClass(env, jPyInterpreter);
+        ASSERT(interpreterClass, "Could not get an instance from class 'com/apython/python/pythonhost/interpreter/PythonInterpreter'!");
+        setExitCodeMethodId = (*env)->GetMethodID(env, interpreterClass, "setExitCode", "(I)V");
+        ASSERT(setExitCodeMethodId, "Could not find the function 'setExitCode' in the Android class!");
+    }
+    (*env)->CallVoidMethod(env, jPyInterpreter, setExitCodeMethodId, exitCode);
+    if (detached) { (*Jvm)->DetachCurrentThread(Jvm); }
+}
+
 /* JNI functions */
 
 JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_nativeGetPythonVersion(JNIEnv *env, jclass cls, jstring jPythonLibName) {
@@ -57,6 +77,9 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     result = setPythonLibrary(pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
     if (!result) { return 1; }
+    if (!call_setExitHandler(exitHandler)) { 
+        LOG_ERROR("Failed to set an exit handler for the python interpreter!");
+    }
     if (jPseudoTerminalPath != NULL) {
         const char *pseudoTerminalPath = (*env)->GetStringUTFChars(env, jPseudoTerminalPath, 0);
         pseudoTerminalFd = openSlavePseudoTerminal(pseudoTerminalPath);
@@ -113,7 +136,7 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     
     result = runPythonInterpreter(argc, argv);
     if (pseudoTerminalFd >= 0) {
-        closePseudoTerminal(pseudoTerminalFd);
+        disconnectFromPseudoTerminal(pseudoTerminalFd);
     }
 
     int detached = (*Jvm)->GetEnv (Jvm, (void *) &env, JNI_VERSION_1_6) == JNI_EDETACHED;
@@ -122,14 +145,13 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     }
     
     (*env)->ReleaseStringUTFChars(env, jProgramPath, programName);
-    
     (*env)->DeleteGlobalRef(env, jPyInterpreter);
+    jPyInterpreter = NULL;
     closePythonLibrary();
     for (i = 1; i < argc; i++) {
         free(argv[i]);
     }
     free(argv);
-    jPyInterpreter = NULL;
     return result;
 }
 
@@ -140,13 +162,8 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 #else
     struct termios terminalAttributes;
     tcgetattr(masterFd, &terminalAttributes);
-    LOG_ERROR("Control+C = %u", terminalAttributes.c_cc[VINTR]);
-    writeToPseudoTerminal(masterFd, (const char *) &terminalAttributes.c_cc[VINTR], 1);
+    writeToPseudoTerminal(masterFd, (const char *) &terminalAttributes.c_cc[VINTR], sizeof(cc_t));
 #endif /* defined TIOCSIGNAL */
-}
-
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter(JNIEnv *env, jclass cls) {
-    terminatePython();
 }
 
 JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_openPseudoTerminal(JNIEnv *env, jclass cls) {
@@ -171,6 +188,11 @@ JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
     jobject fileDescriptor = (*env)->NewObject(env, fileDescriptorClass, mid);
     (*env)->SetIntField(env, fileDescriptor, fdFieldId, masterFd);
     return fileDescriptor;
+}
+
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_closePseudoTerminal(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+    int masterFd = getFdFromFileDescriptor(env, fileDescriptor);
+    closePseudoTerminal(masterFd);
 }
 
 JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getPseudoTerminalPath(JNIEnv *env, jclass cls, jobject fileDescriptor) {

@@ -19,7 +19,6 @@ import android.widget.ListView;
 
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.R;
-import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
@@ -72,6 +71,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             scrollContainer.setAdapter(this.pythonOutput);
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
             scrollContainer.setItemsCanFocus(true);
+            pythonInput.requestFocus();
             this.pythonInput.setOnTouchListener(new View.OnTouchListener() {
                 final GestureDetector detector = new GestureDetector(
                         context, new GestureDetector.SimpleOnGestureListener() {
@@ -127,12 +127,15 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                         if (keyInput.length() > 0) {
                             input = keyInput.toString();
                             keyInput.clear();
-                        } else if (event.getAction() == KeyEvent.ACTION_DOWN
-                                && event.getKeyCode() == KeyEvent.KEYCODE_DEL) { // TODO: Handle more special keys
-                            input = "\b";
+                        } else if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                            if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
+                                input = "\u007F";
+                            } else if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+                                programHandler.interrupt();
+                                return;
+                            }
                         }
                         if (input != null) {
-                            pythonOutput.addOutput(input); // TODO: This is not correct
                             programHandler.sendInput(input);
                         }
                     }

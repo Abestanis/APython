@@ -19,6 +19,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
+import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
@@ -148,6 +149,7 @@ public class SDLWindowFragment extends PythonFragment implements
         return surface;
     }
 
+    @CalledByNative
     public boolean setWindowTitle(final String title) {
         // Called from native thread and can't directly affect the view
         getActivity().runOnUiThread(new Runnable() {
@@ -167,6 +169,7 @@ public class SDLWindowFragment extends PythonFragment implements
      * This method is called by SDL using JNI.
      * @return result of getSystemService(name) but executed on UI thread.
      */
+    @CalledByNative
     public Object getSystemServiceFromUiThread(final String name) {
         final Object lock = new Object();
         final Object[] results = new Object[2]; // array for writable variables
@@ -192,6 +195,7 @@ public class SDLWindowFragment extends PythonFragment implements
         return results[0];
     }
 
+    @CalledByNative
     public boolean showTextInput(final int x, final int y, final int w, final int h) {
         // Transfer the task to the main thread as a Runnable
         getActivity().runOnUiThread(new Runnable() {
@@ -203,6 +207,7 @@ public class SDLWindowFragment extends PythonFragment implements
         return true;
     }
     
+    @CalledByNative
     public boolean hideTextInput() {
         // Transfer the task to the main thread as a Runnable
         getActivity().runOnUiThread(new Runnable() {
@@ -214,6 +219,7 @@ public class SDLWindowFragment extends PythonFragment implements
         return true;
     }
 
+    @CalledByNative
     public Surface getNativeSurface() {
         return surface.waitForSurfaceCreation();
     }
@@ -223,6 +229,7 @@ public class SDLWindowFragment extends PythonFragment implements
     /**
      * @return an array which may be empty but is never null.
      */
+    @CalledByNative
     public static int[] inputGetInputDeviceIds(int sources) {
         int[] ids = InputDevice.getDeviceIds();
         int[] filtered = new int[ids.length];
@@ -271,14 +278,17 @@ public class SDLWindowFragment extends PythonFragment implements
     }
 
     // Joystick glue code, just a series of stubs that redirect to the SDLJoystickHandler instance
+    @CalledByNative
     public boolean handleJoystickMotionEvent(MotionEvent event) {
         return joystickHandler.handleMotionEvent(event);
     }
 
+    @CalledByNative
     public static void pollInputDevices() {
         joystickHandler.pollInputDevices();
     }
 
+    @CalledByNative
     public void setPixelFormat(int pixelFormat) {
         //        surface.setPixelFormat(pixelFormat);
     }
@@ -296,6 +306,7 @@ public class SDLWindowFragment extends PythonFragment implements
      * @return an InputStream on success or null if no expansion file was used.
      * @throws IOException on errors. Message is set for the SDL error message.
      */
+    @CalledByNative
     public static InputStream openAPKExpansionInputStream(String fileName) throws IOException {
         // Get a ZipResourceFile representing a merger of both the main and patch files
         if (expansionFile == null) {
@@ -365,6 +376,7 @@ public class SDLWindowFragment extends PythonFragment implements
      * @param colors null for default or array of length 5 containing colors.
      * @return button id or -1.
      */
+    @CalledByNative
     public static int showMessageBox(
             final int flags,
             final String title,
@@ -376,7 +388,8 @@ public class SDLWindowFragment extends PythonFragment implements
         return new SDLMessageBox(SDLLibraryHandler.staticActivity, flags, title, message,
                                  buttonFlags, buttonIds, buttonTexts, colors).showAndWait();
     }
-    
+
+    @CalledByNative
     public static Object createWindow() {
         if (SDLLibraryHandler.getWindowManager() == null) {
             return null;
@@ -395,7 +408,8 @@ public class SDLWindowFragment extends PythonFragment implements
             }
         });
     }
-    
+
+    @CalledByNative
     public void setWindowIcon(int[] iconData, int width, int height) {
         Drawable icon = null;
         if (iconData != null) {

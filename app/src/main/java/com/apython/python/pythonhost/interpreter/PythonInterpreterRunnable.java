@@ -7,16 +7,17 @@ import android.content.Context;
  *
  * Created by Sebastian on 22.07.2015.
  */
-class PythonInterpreterRunnable extends PythonInterpreter implements Runnable {
-    PythonInterpreterRunnable(Context context, String pythonVersion, String pseudoTerminalPath) {
+public class PythonInterpreterRunnable extends PythonInterpreter implements Runnable {
+    private String[] args;
+    
+    public PythonInterpreterRunnable(Context context, String pythonVersion,
+                                     String pseudoTerminalPath, String[] args) {
         super(context, pythonVersion, pseudoTerminalPath);
+        this.args = args;
     }
 
     @Override
     public void run() {
-        int result = this.runPythonInterpreter(null);
-        onPythonInterpreterFinished(result);
+        this.runPythonInterpreter(args);
     }
-    
-    protected void onPythonInterpreterFinished(int result) {}
 }
