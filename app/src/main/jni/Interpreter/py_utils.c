@@ -97,11 +97,6 @@ int runPythonInterpreter(int argc, char** argv) {
     return call_Py_Main(argc, argv);
 }
 
-void terminatePython() {
-    LOG_WARN("Killing Python thread");
-//    pthread_kill(pythonThread, SIGTERM);
-}
-
 __sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler) {
     struct sigaction context, oldContext;
     context.sa_handler = signalHandler;

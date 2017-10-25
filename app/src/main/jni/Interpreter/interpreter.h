@@ -33,14 +33,6 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
- * Method:    stopInterpreter
- * Signature: (V)V
- */
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter
-        (JNIEnv *, jobject);
-
-/*
- * Class:     com_apython_python_pythonhost_PythonInterpreter
  * Method:    openPseudoTerminal
  * Signature: (V)Ljava/io/FileDescriptor;
  */

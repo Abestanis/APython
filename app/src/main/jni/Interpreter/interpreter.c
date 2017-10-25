@@ -166,10 +166,6 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 #endif /* defined TIOCSIGNAL */
 }
 
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter(JNIEnv *env, jclass cls) {
-    terminatePython();
-}
-
 JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_openPseudoTerminal(JNIEnv *env, jclass cls) {
     int masterFd;
     static jclass *fileDescriptorClass = NULL;
