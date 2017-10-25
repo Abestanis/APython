@@ -114,11 +114,11 @@ public class PythonInterpreter {
     }
 
     private native String nativeGetPythonVersion(String pythonLibName);
-    private native int    runInterpreter(String pythonLibName, String executable, String libPath,
-                                         String pyHostLibPath, String pythonHome, String pythonTemp,
-                                         String xdcBasePath, String dataPath, String appTag,
-                                         String[] interpreterArgs, String pseudoTerminalPath);
-    public native void   stopInterpreter();
+    private native int runInterpreter(String pythonLibName, String executable, String libPath,
+                                      String pyHostLibPath, String pythonHome, String pythonTemp,
+                                      String xdcBasePath, String dataPath, String appTag,
+                                      String[] interpreterArgs, String pseudoTerminalPath);
+    public native void stopInterpreter();
     public static native void interruptTerminal(FileDescriptor fd);
     public static native FileDescriptor openPseudoTerminal(); // TODO: Close it when done.
     public static native String getPseudoTerminalPath(FileDescriptor fd);

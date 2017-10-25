@@ -86,37 +86,10 @@ void closePseudoTerminal(int masterFd) {
 }
 
 void setAsControllingTerminal(int slaveFd) {
-    static const char* TTY_PATH = "/dev/tty";
-    int fd;
-    if ((fd = open(TTY_PATH, O_RDWR | O_NOCTTY)) >= 0) {
-        (void) ioctl(fd, TIOCNOTTY, NULL);
-        close(fd);
-    }
-    
-    if (setsid() < 0) {
+    if (setsid() < 0 && errno != EPERM) {
         LOG_WARN("setsid failed: %s", strerror(errno));
     }
-    
-    fd = open(TTY_PATH, O_RDWR | O_NOCTTY);
-    if (fd >= 0) {
-        LOG_WARN("Failed to disconnect from controlling tty.");
-        close(fd);
-    }
-    
     ioctl(slaveFd, TIOCSCTTY, 1);
-    
-//    if ((fd = open(terminal->slaveName, O_RDWR)) < 0) {
-//        LOG_WARN("%s: %s", terminal->slaveName, strerror(errno));
-//    } else {
-//        close(terminal->slaveFd);
-//        terminal->slaveFd = fd;
-//    }
-    
-    if ((fd = open(TTY_PATH, O_RDWR | O_NOCTTY)) >= 0) {
-        close(fd);
-    } else {
-        LOG_WARN("Open %s failed - could not set controlling tty: %s", TTY_PATH, strerror(errno));
-    }
 }
 
 void disconnectFromPseudoTerminal(int slaveFd) {
