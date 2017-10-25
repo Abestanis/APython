@@ -81,22 +81,6 @@ public class PythonInterpreter {
         return res;
     }
 
-    public int runPythonFile(File file, String[] args) {
-        return this.runPythonFile(file.getAbsolutePath(), args);
-    }
-
-    public int runPythonFile(String filePath, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {filePath}, args));
-    }
-
-    public int runPythonModule(String module, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-m", module}, args));
-    }
-
-    public int runPythonString(String command, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
-    }
-
     public boolean isRunning() {
         return running;
     }

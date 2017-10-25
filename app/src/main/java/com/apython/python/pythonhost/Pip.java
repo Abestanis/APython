@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterProcessHandle;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -42,8 +43,11 @@ public class Pip {
                 public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
             };
         }
-//        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-        int result = 1;//interpreter.runPythonModule("pip", new String[] {"install", "-r", reqFile.getAbsolutePath()});
+        PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);
+        interpreter.setIOHandler(ioHandler);
+        String[] interpreterArgs = {"-m", "pip", "install", "-r", reqFile.getAbsolutePath()};
+        interpreter.startInterpreter(pythonVersion, interpreterArgs);
+        int result = interpreter.getInterpreterResult(true);
         if (!reqFile.delete()) {
             Log.w(MainActivity.TAG, "Cannot delete temporary file '" + reqFile.getAbsolutePath() + "'!");
         }
@@ -115,8 +119,10 @@ public class Pip {
                 public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
             };
         }
-//        PythonInterpreter interpreter = new PythonInterpreter(context, pythonVersion, ioHandler);
-        int res = 1;//interpreter.runPythonFile(installFile, null);
+        PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);
+        interpreter.setIOHandler(ioHandler);
+        interpreter.startInterpreter(pythonVersion, new String[] {installFile.getAbsolutePath()});
+        int res = interpreter.getInterpreterResult(true);
         if (!installFile.delete()) {
             Log.w(MainActivity.TAG, "Failed to delete '" + installFile.getAbsolutePath() + "'!");
         }
