@@ -52,11 +52,11 @@ public class PythonInterpreterActivity extends Activity {
         interpreter = new PythonInterpreterProcessHandle(this);
         interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
             @Override
-            public void addOutput(final String text) {
+            public void onOutput(final String output) {
                 PythonInterpreterActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        terminalView.addOutput(text);
+                        terminalView.addOutput(output);
                     }
                 });
             }
@@ -156,14 +156,7 @@ public class PythonInterpreterActivity extends Activity {
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
         PythonFragment currentWindow = terminalWindowManager.getCurrentWindow();
-        if (currentWindow instanceof TerminalInterface) {
-            if (!terminalView.isInputEnabled()) {
-                // input via stdin pipe
-//                if (interpreter.dispatchKeyEvent(event)) {
-//                    return true;
-//                }
-            }
-        } else if (currentWindow instanceof SDLWindowInterface) {
+        if (currentWindow instanceof SDLWindowInterface) {
             if (((SDLWindowInterface) currentWindow).dispatchKeyEvent(event)) {
                 return true;
             }

@@ -94,8 +94,6 @@ void setAsControllingTerminal(int slaveFd) {
 
 void disconnectFromPseudoTerminal(int slaveFd) {
     close(slaveFd);
-//    terminal->slaveFd = -1;
-//    
 //    while ((dup2(terminal->slaveStdStreams[STDIN_INDEX],  fileno(stdin))  == -1) && (errno == EINTR)) {}
 //    while ((dup2(terminal->slaveStdStreams[STDOUT_INDEX], fileno(stdout)) == -1) && (errno == EINTR)) {}
 //    while ((dup2(terminal->slaveStdStreams[STDERR_INDEX], fileno(stderr)) == -1) && (errno == EINTR)) {}

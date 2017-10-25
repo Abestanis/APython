@@ -14,10 +14,12 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 /**
+ * An interpreter handle that handles the I/O of the
+ * Python interpreter with a pseudo-terminal.
+ * 
  * Created by Sebastian on 21.10.2017.
  */
-
-public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHandle {
+abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHandle {
     private IOHandler ioHandler;
     private FileDescriptor pythonProcessFd = null;
     private PythonInterpreter.ExitHandler exitHandler = null;
@@ -59,12 +61,34 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
     public void setIOHandler(IOHandler handler) {
         this.ioHandler = handler;
     }
-    
+
+    @Override
+    public void setLogTag(String tag) {
+        logTag = tag;
+    }
+
+    @Override
+    public void setExitHandler(PythonInterpreter.ExitHandler handler) {
+        exitHandler = handler;
+    }
+
+    /**
+     * Get the path to the slave side of the pseudo terminal that can
+     * be used by the Python interpreter to connect to the pseudo-terminal.
+     * 
+     * @return The path to the pseudo-terminal.
+     */
     String getPseudoTerminalPath() {
         if (pythonProcessFd == null) return null;
         return PythonInterpreter.getPseudoTerminalPath(pythonProcessFd);
     }
-    
+
+    /**
+     * Start a thread that listens for the output of the python interpreter
+     * and passes the output to the ioHandler.
+     * 
+     * @return The output listener thread.
+     */
     Thread startOutputListener() {
         Thread outputListenerThread = new Thread(new Runnable() {
             @Override
@@ -82,12 +106,12 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
                             break;
                         }
                         if (ioHandler != null) {
-                            ioHandler.addOutput(text);
+                            ioHandler.onOutput(text);
                         }
                         Log.d(logTag, text);
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.w(logTag, "Reading from Python process failed", e);
                 }
                 if (exitHandler != null) {
                     Integer exitCode = getInterpreterResult(false);
@@ -97,15 +121,5 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
         });
         outputListenerThread.start();
         return outputListenerThread;
-    }
-
-    @Override
-    public void setLogTag(String tag) {
-        logTag = tag;
-    }
-
-    @Override
-    public void setExitHandler(PythonInterpreter.ExitHandler handler) {
-        exitHandler = handler;
     }
 }

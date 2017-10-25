@@ -6,12 +6,15 @@ import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 import com.apython.python.pythonhost.interpreter.PythonInterpreterRunnable;
 
 /**
+ * An interpreter handle that communicates with
+ * the Python interpreter in a separate thread.
+ * 
  * Created by Sebastian on 21.10.2017.
  */
-
 public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHandle {
     private Context context;
     private PythonInterpreterRunnable interpreter = null;
+    private final Object exitLocker = new Object();
     private Integer exitCode = null;
 
     public PythonInterpreterThreadHandle(Context context) {
@@ -27,8 +30,8 @@ public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHa
             @Override
             public void onExit(int code) {
                 exitCode = code;
-                synchronized (PythonInterpreterThreadHandle.this) {
-                    PythonInterpreterThreadHandle.this.notifyAll();
+                synchronized (exitLocker) {
+                    exitLocker.notifyAll();
                 }
             }
         });
@@ -53,9 +56,9 @@ public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHa
     @Override
     public Integer getInterpreterResult(boolean block) {
         if (exitCode == null && block) {
-            synchronized (this) {
+            synchronized (exitLocker) {
                 try {
-                    this.wait();
+                    exitLocker.wait();
                 } catch (InterruptedException e) {
                     return null;
                 }

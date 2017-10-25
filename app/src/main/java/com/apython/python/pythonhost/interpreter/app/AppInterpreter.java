@@ -130,36 +130,19 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
             });
             interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
                 @Override
-                public void addOutput(final String text) {
+                public void onOutput(final String output) {
                     hostingAppActivity.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            terminal.addOutput(text);
+                            terminal.addOutput(output);
                         }
                     });
                 }
-
-//                @Override
-//                public void setupInput(final String prompt) {
-//                    final String enqueuedInput = interpreter.getEnqueueInput();
-//                    hostingAppActivity.runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            terminal.enableInput(prompt, enqueuedInput);
-//                        }
-//                    });
-//                }
             });
         } else if (windowFragment instanceof SDLWindowFragment) {
             SDLLibraryHandler.initLibraries(hostingAppActivity, this);
         }
     }
-
-//    @Override
-//    public void onBackPressed() {
-//        interpreter.interrupt();
-//        terminalView.disableInput();
-//    }
 
     @Override
     public void onLowMemory() {
@@ -169,16 +152,8 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        if (windowFragment != null) {
-            if (windowFragment instanceof TerminalInterface) {
-                if (event.getKeyCode() != KeyEvent.KEYCODE_BACK && !((TerminalInterface) windowFragment).isInputEnabled()) {
-//                    return interpreter.dispatchKeyEvent(event);
-                }
-            } else if (windowFragment instanceof SDLWindowInterface) {
-                return ((SDLWindowInterface) windowFragment).dispatchKeyEvent(event);
-            }
-        }
-        return false;
+        return windowFragment instanceof SDLWindowInterface &&
+                ((SDLWindowInterface) windowFragment).dispatchKeyEvent(event);
     }
 
     @Override

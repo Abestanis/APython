@@ -30,8 +30,7 @@ public class Pip {
             bw.write(requirements);
             bw.close();
         } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to write requirements to a temporary file!");
-            e.printStackTrace();
+            Log.e(MainActivity.TAG, "Failed to write requirements to a temporary file!", e);
             return false;
         }
         PythonInterpreterHandle.IOHandler ioHandler = null;
@@ -40,7 +39,7 @@ public class Pip {
             progressHandler.enable(context.getString(R.string.install_requirements));
             ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
-                public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
+                public void onOutput(String output) { parsePipOutput(context, progressHandler, output); }
             };
         }
         PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);
@@ -89,7 +88,7 @@ public class Pip {
             stream = connection.getInputStream();
             totalDownloadSize = connection.getContentLength();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w(MainActivity.TAG, "Failed to download the pip installer.", e);
             return false;
         }
         if (!(downloadDir.mkdirs() || downloadDir.isDirectory())) {
@@ -116,7 +115,7 @@ public class Pip {
             progressHandler.setText(context.getString(R.string.run_pip_installer));
             ioHandler = new PythonInterpreterHandle.IOHandler() {
                 @Override
-                public void addOutput(String text) { parsePipOutput(context, progressHandler, text); }
+                public void onOutput(String output) { parsePipOutput(context, progressHandler, output); }
             };
         }
         PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);

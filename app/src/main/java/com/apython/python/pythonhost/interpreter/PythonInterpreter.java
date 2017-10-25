@@ -27,8 +27,17 @@ public class PythonInterpreter {
         System.loadLibrary("pyLog");
         System.loadLibrary("pyInterpreter");
     }
-    
+
+    /**
+     * A handler for the exit of the Python interpreter.
+     */
     public interface ExitHandler {
+        /**
+         * Handle the exit of the Python interpreter.
+         * This may not be called on the main thread.
+         * 
+         * @param exitCode The exit code of the interpreter.
+         */
         void onExit(int exitCode);
     }
     
@@ -58,6 +67,10 @@ public class PythonInterpreter {
     
     public void setLogTag(String logTag) {
         this.logTag = logTag;
+    }
+    
+    String getLogTag() {
+        return logTag;
     }
 
     public int runPythonInterpreter(String[] interpreterArgs) {
@@ -102,7 +115,6 @@ public class PythonInterpreter {
                                       String pyHostLibPath, String pythonHome, String pythonTemp,
                                       String xdcBasePath, String dataPath, String appTag,
                                       String[] interpreterArgs, String pseudoTerminalPath);
-    public native void stopInterpreter();
     public static native void interruptTerminal(FileDescriptor fd);
     public static native FileDescriptor openPseudoTerminal();
     public static native void closePseudoTerminal(FileDescriptor fd);
