@@ -2,6 +2,8 @@ package com.apython.python.pythonhost.views.terminal;
 
 import android.app.Activity;
 import android.content.Context;
+import android.text.Editable;
+import android.text.method.TextKeyListener;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -13,7 +15,6 @@ import android.widget.FrameLayout;
 import android.widget.ListView;
 
 import com.apython.python.pythonhost.R;
-import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
@@ -58,6 +59,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             scrollContainer.setAdapter(this.pythonOutput);
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
             scrollContainer.setItemsCanFocus(true);
+            pythonInput.requestFocus();
             this.pythonInput.setOnTouchListener(new View.OnTouchListener() {
                 final GestureDetector detector = new GestureDetector(
                         context, new GestureDetector.SimpleOnGestureListener() {
@@ -83,22 +85,48 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                 }
             });
             this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {
+                TextKeyListener keyInputListener = new TextKeyListener(TextKeyListener.Capitalize.NONE, false);
+                Editable keyInput = Editable.Factory.getInstance().newEditable("");
+                
                 @Override
                 public void onCommit(TerminalInput terminalInput) {
                     String[] inputList = terminalInput.popCurrentInput();
                     String prompt = inputList[0], input = inputList[1];
                     int splitIndex = input.indexOf('\n') + 1;
                     pythonOutput.addOutput(prompt + input.substring(0, splitIndex));
-                    programHandler.notifyInput(input.substring(0, splitIndex));
-                    // Anything after the first newline must be send to stdin
-                    for (KeyEvent event : Util.stringToKeyEvents(input.substring(splitIndex))) {
-                        programHandler.dispatchKeyEvent(event);
-                    }
+                    if (programHandler == null) return;
+                    programHandler.sendInput(input);
                 }
 
                 @Override
                 public void onKeyEventWhileDisabled(KeyEvent event) {
-                    programHandler.dispatchKeyEvent(event);
+                    switch (event.getAction()) {
+                    case KeyEvent.ACTION_DOWN:
+                        keyInputListener.onKeyDown(null, keyInput, event.getKeyCode(), event);
+                        break;
+                    case KeyEvent.ACTION_UP:
+                        keyInputListener.onKeyUp(null, keyInput, event.getKeyCode(), event);
+                        break;
+                    default:
+                        keyInputListener.onKeyOther(null, keyInput, event);
+                    }
+                    if (programHandler != null) {
+                        String input = null;
+                        if (keyInput.length() > 0) {
+                            input = keyInput.toString();
+                            keyInput.clear();
+                        } else if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                            if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
+                                input = "\u007F";
+                            } else if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+                                programHandler.interrupt();
+                                return;
+                            }
+                        }
+                        if (input != null) {
+                            programHandler.sendInput(input);
+                        }
+                    }
                 }
             });
         } else {
@@ -144,6 +172,8 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
 
     @Override
     public void close() {
-        programHandler.terminate();
+        if (programHandler != null) {
+            programHandler.terminate();
+        }
     }
 }

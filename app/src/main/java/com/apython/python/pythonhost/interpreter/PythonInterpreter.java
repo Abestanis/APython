@@ -17,53 +17,64 @@ import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
-public class PythonInterpreter implements TerminalInterface.ProgramHandler {
+public class PythonInterpreter {
     
-    private       String  logTag        = MainActivity.TAG;
-    private       String  inputLine     = null;
-    protected     boolean blockingInput = true;
-    protected final Context context;
-    protected final String  pythonVersion;
-
-    protected IOHandler ioHandler;
-
-    private boolean running   = false;
-    private boolean inStartup = false;
-    public interface IOHandler {
-        void addOutput(String text);
-        void setupInput(String prompt);
-    }
-    public PythonInterpreter(Context context, String pythonVersion) {
-        this(context, pythonVersion, null);
-    }
-
-    public PythonInterpreter(Context context, String pythonVersion, IOHandler ioHandler) {
-        PackageManager.loadDynamicLibrary(context, "pythonPatch");
+    static {
         System.loadLibrary("pyLog");
         System.loadLibrary("pyInterpreter");
+    }
+
+    /**
+     * A handler for the exit of the Python interpreter.
+     */
+    public interface ExitHandler {
+        /**
+         * Handle the exit of the Python interpreter.
+         * This may not be called on the main thread.
+         * 
+         * @param exitCode The exit code of the interpreter.
+         */
+        void onExit(int exitCode);
+    }
+    
+    protected final Context context;
+    protected final String  pythonVersion;
+    private String logTag = MainActivity.TAG;
+    private boolean running   = false;
+    private String pseudoTerminalPath = null;
+    private ExitHandler exitHandler = null;
+    private Integer exitCode = null;
+    
+    public PythonInterpreter(Context context, String pythonVersion, String pseudoTerminalPath) {
+        this(context, pythonVersion);
+        this.pseudoTerminalPath = pseudoTerminalPath;
+    }
+
+    public PythonInterpreter(Context context, String pythonVersion) {
         PackageManager.loadDynamicLibrary(context, "python" + pythonVersion);
         PackageManager.loadAdditionalLibraries(context);
         this.context = context;
         this.pythonVersion = pythonVersion;
-        this.ioHandler = ioHandler;
     }
 
     public String getPythonVersion() {
         return nativeGetPythonVersion(System.mapLibraryName("python" + this.pythonVersion));
     }
-
-    public void setIoHandler(IOHandler ioHandler) {
-        this.ioHandler = ioHandler;
-    }
     
     public void setLogTag(String logTag) {
         this.logTag = logTag;
     }
+    
+    String getLogTag() {
+        return logTag;
+    }
 
     public int runPythonInterpreter(String[] interpreterArgs) {
-        running = inStartup = true;
+        running = true;
         int res = this.runInterpreter(System.mapLibraryName("python" + this.pythonVersion),
                                       PackageManager.getPythonExecutable(this.context).getAbsolutePath(),
                                       PackageManager.getDynamicLibraryPath(this.context).getAbsolutePath(),
@@ -74,127 +85,39 @@ public class PythonInterpreter implements TerminalInterface.ProgramHandler {
                                       PackageManager.getDataPath(this.context).getAbsolutePath(),
                                       logTag,
                                       interpreterArgs,
-                                      this.ioHandler != null);
+                                      this.pseudoTerminalPath);
         running = false;
+        if (exitCode == null) {
+            setExitCode(res);
+        }
+        // TODO: Show result and pause for a few seconds (add as config)
         return res;
-    }
-
-    public int runPythonFile(File file, String[] args) {
-        return this.runPythonFile(file.getAbsolutePath(), args);
-    }
-
-    public int runPythonFile(String filePath, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {filePath}, args));
-    }
-
-    public int runPythonModule(String module, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-m", module}, args));
-    }
-
-    public int runPythonString(String command, String[] args) {
-        return this.runPythonInterpreter(Util.mergeArrays(new String[] {"-c", command}, args));
     }
 
     public boolean isRunning() {
         return running;
     }
-
-    @Override
-    public void terminate() {
-        stopInterpreter();
+    
+    public void setExitHandler(ExitHandler handler) {
+        exitHandler = handler;
     }
-
-    public void interrupt() {
-        if (inStartup) return;
-        interruptInterpreter();
-        // When we are waiting for input, the following will
-        // cause the python interpreter to exit.
-        if (blockingInput) {
-            synchronized (this) {
-                this.inputLine = "";
-                this.notifyAll();
-            }
-        } else {
-            dispatchKey('\0'); // Emulate input availability
-        }
-        
-    }
-
-    public void notifyInput(String input) {
-        if (blockingInput) {
-            synchronized (this) {
-                if (this.inputLine != null) {
-                    Log.w(MainActivity.TAG, "Interpreter still has input queued up!");
-                    input = this.inputLine + input;
-                }
-                this.inputLine = input;
-                this.notifyAll();
-            }
-        } else {
-            sendStringToStdin(input);
-        }
-    }
-
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            int unicodeChar = event.getUnicodeChar();
-            if (unicodeChar == 0) {
-                if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
-                    unicodeChar = '\b';
-                }
-                // TODO: Handle more special keys
-            }
-            if (unicodeChar != 0) {
-                this.dispatchKey(unicodeChar);
-            }
-        }
-        return true;
-    }
-
+    
     @CalledByNative
-    protected void addTextToOutput(byte[] text) {
-        if (ioHandler != null) {
-            try {
-                ioHandler.addOutput(new String(text, "Utf-8"));
-            } catch (UnsupportedEncodingException e) {
-                Log.wtf(MainActivity.TAG, "Utf-8 encoding is not supported?!", e);
-            }
+    protected void setExitCode(int exitCode) {
+        this.exitCode = exitCode;
+        if (exitHandler != null) {
+            exitHandler.onExit(exitCode);
         }
-    }
-
-    @CalledByNative
-    protected String readLine(String prompt, boolean blockingInput) {
-        inStartup = false;
-        this.blockingInput = blockingInput;
-        if (ioHandler != null) {
-            ioHandler.setupInput(prompt);
-        }
-        if (!blockingInput) {
-            return null; // Do not wait for input
-        }
-        // Wait for line
-        synchronized (this) {
-            try {
-                this.wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                return "";
-            }
-        }
-        String line = this.inputLine;
-        this.inputLine = null;
-        if (line == null) {
-            Log.w(MainActivity.TAG, "Did not receive input!");
-            return null;
-        }
-        return line;
     }
 
     private native String nativeGetPythonVersion(String pythonLibName);
-    public  native void   dispatchKey(int character);
-    public  native void   sendStringToStdin(String string);
-    public  native String getEnqueueInput();
-    private native int    runInterpreter(String pythonLibName, String executable, String libPath, String pyHostLibPath, String pythonHome, String pythonTemp, String xdcBasePath, String dataPath, String appTag, String[] interpreterArgs, boolean redirectOutput);
-    private native void   interruptInterpreter();
-    private native void   stopInterpreter();
+    private native int runInterpreter(String pythonLibName, String executable, String libPath,
+                                      String pyHostLibPath, String pythonHome, String pythonTemp,
+                                      String xdcBasePath, String dataPath, String appTag,
+                                      String[] interpreterArgs, String pseudoTerminalPath);
+    public static native void interruptTerminal(FileDescriptor fd);
+    public static native FileDescriptor openPseudoTerminal();
+    public static native void closePseudoTerminal(FileDescriptor fd);
+    public static native String getPseudoTerminalPath(FileDescriptor fd);
+    public static native String getEnqueueInput(FileDescriptor fd);
 }

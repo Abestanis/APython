@@ -18,50 +18,50 @@ JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
 /*
  * Class:     com_apython_python_pythonhost_interpreter_PythonInterpreter
  * Method:    runInterpreter
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Z)I
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_runInterpreter
-  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jboolean);
+  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jobjectArray, jstring);
 
 /*
- * Class:     com_apython_python_pythonhost_interpreter_PythonInterpreter
- * Method:    dispatchKey
- * Signature: (I)V
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    interruptTerminal
+ * Signature: (Ljava/io/FileDescriptor;)V
  */
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_dispatchKey
-  (JNIEnv *, jobject, jint);
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_interruptTerminal
+        (JNIEnv *, jclass, jobject);
 
 /*
- * Class:     com_apython_python_pythonhost_interpreter_PythonInterpreter
- * Method:    sendStringToStdin
- * Signature: (Ljava/lang/String;)V
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    openPseudoTerminal
+ * Signature: (V)Ljava/io/FileDescriptor;
  */
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_sendStringToStdin
-(JNIEnv *, jobject, jstring);
+JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_openPseudoTerminal
+        (JNIEnv *, jclass);
+
+/*
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    closePseudoTerminal
+ * Signature: (Ljava/io/FileDescriptor;)V
+ */
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_closePseudoTerminal
+        (JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    getPseudoTerminalPath
+ * Signature: (Ljava/io/FileDescriptor;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getPseudoTerminalPath
+        (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
  * Method:    getEnqueueInput
- * Signature: (V)Ljava/lang/String;
+ * Signature: (Ljava/io/FileDescriptor;)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInput
-        (JNIEnv *, jobject);
-
-/*
- * Class:     com_apython_python_pythonhost_PythonInterpreter
- * Method:    interruptInterpreter
- * Signature: (V)V
- */
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_interruptInterpreter
-        (JNIEnv *, jobject);
-
-/*
- * Class:     com_apython_python_pythonhost_PythonInterpreter
- * Method:    stopInterpreter
- * Signature: (V)V
- */
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_stopInterpreter
-        (JNIEnv *, jobject);
+        (JNIEnv *, jclass, jobject);
 
 #ifdef __cplusplus
 }

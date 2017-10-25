@@ -79,7 +79,7 @@ public class PackageManager {
         }
         for (File libFile : libPath.listFiles()) {
             String name = libFile.getName();
-            if (!name.startsWith("libpython") || !name.endsWith(".so") || name.contains("pythonPatch")) {
+            if (!name.startsWith("libpython") || !name.endsWith(".so")) {
                 continue;
             }
             String version = name.replace("libpython", "").replace(".so", "");
@@ -198,9 +198,7 @@ public class PackageManager {
         File[] additionalLibraries = getDynamicLibraryPath(context).listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String filename) {
-                return filename.endsWith(".so")
-                        && !filename.matches(".*python\\d+\\.\\d+\\.so")
-                        && !filename.endsWith("pythonPatch.so");
+                return filename.endsWith(".so") && !filename.matches(".*python\\d+\\.\\d+\\.so");
             }
         });
         return additionalLibraries != null ? additionalLibraries : new File[0];

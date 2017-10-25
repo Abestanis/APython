@@ -391,13 +391,7 @@ class DownloadServer {
         }
         if (requirements == null) {
             Log.w(TAG, "Got no requirements from the server index.");
-            if (libraries.containsKey("libraries/pythonPatch")) {
-                AdditionalLibraryItem pythonPatch = libraries.get("libraries/pythonPatch");
-                libraries = new HashMap<>();
-                libraries.put("libraries/pythonPatch", pythonPatch);
-            } else {
-                libraries = new HashMap<>();
-            }
+            libraries = new HashMap<>();
         } else {
             // Determine unsatisfied requirements
             // Data //
@@ -464,15 +458,6 @@ class DownloadServer {
                     }
                 }
             }
-        }
-        if (libraries.containsKey("libraries/pythonPatch")) {
-            AdditionalLibraryItem pythonPatch = libraries.get("libraries/pythonPatch");
-            for (PythonVersionItem version : pythonVersions) {
-                version.addDependency(pythonPatch);
-            }
-        } else {
-            Log.w(TAG, "Got no python patch library from the server index.");
-            // Maybe we don't need it nowadays anymore?
         }
         return new ServerDownloads(pythonVersions, new ArrayList<>(libraries.values()),
                                    new ArrayList<>(dataItems.values()));
