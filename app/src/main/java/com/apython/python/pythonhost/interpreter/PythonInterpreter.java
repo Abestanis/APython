@@ -104,7 +104,8 @@ public class PythonInterpreter {
                                       String[] interpreterArgs, String pseudoTerminalPath);
     public native void stopInterpreter();
     public static native void interruptTerminal(FileDescriptor fd);
-    public static native FileDescriptor openPseudoTerminal(); // TODO: Close it when done.
+    public static native FileDescriptor openPseudoTerminal();
+    public static native void closePseudoTerminal(FileDescriptor fd);
     public static native String getPseudoTerminalPath(FileDescriptor fd);
     public static native String getEnqueueInput(FileDescriptor fd);
 }

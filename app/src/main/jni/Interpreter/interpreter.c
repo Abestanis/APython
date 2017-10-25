@@ -194,6 +194,11 @@ JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
     return fileDescriptor;
 }
 
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_closePseudoTerminal(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+    int masterFd = getFdFromFileDescriptor(env, fileDescriptor);
+    closePseudoTerminal(masterFd);
+}
+
 JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getPseudoTerminalPath(JNIEnv *env, jclass cls, jobject fileDescriptor) {
     char* slavePath;
     int masterFd = getFdFromFileDescriptor(env, fileDescriptor);

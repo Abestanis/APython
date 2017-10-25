@@ -31,7 +31,8 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
     
     @Override
     public boolean stopInterpreter() {
-        // TODO: Close pseudoterminal
+        PythonInterpreter.closePseudoTerminal(pythonProcessFd);
+        pythonProcessFd = null;
         return true;
     }
 

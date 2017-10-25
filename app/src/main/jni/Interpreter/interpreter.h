@@ -49,6 +49,14 @@ JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
 
 /*
  * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    closePseudoTerminal
+ * Signature: (Ljava/io/FileDescriptor;)V
+ */
+JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_closePseudoTerminal
+        (JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
  * Method:    getPseudoTerminalPath
  * Signature: (Ljava/io/FileDescriptor;)Ljava/lang/String;
  */
