@@ -1,9 +1,5 @@
 package com.apython.python.pythonhost.views.terminal;
 
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.text.Spanned;
-
 import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.data.BinaryTreeMap;
 

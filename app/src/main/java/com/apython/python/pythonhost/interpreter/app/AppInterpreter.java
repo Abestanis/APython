@@ -13,7 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.apython.python.pythonhost.CalledByNative;
-import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterThreadHandle;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
