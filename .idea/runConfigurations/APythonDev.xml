@@ -7,7 +7,6 @@
     <option name="CLASS_NAME" value="launcher.APythonDev" />
     <option name="PACKAGE_NAME" value="" />
     <option name="EXTRA_OPTIONS" value="" />
-    <option name="PREFERRED_AVD" value="" />
     <option name="CLEAR_LOGCAT" value="false" />
     <option name="SHOW_LOGCAT_AUTOMATICALLY" value="false" />
     <option name="SKIP_NOOP_APK_INSTALLATIONS" value="true" />
@@ -41,10 +40,11 @@
       <option name="SHOW_OPTIMIZED_WARNING" value="true" />
     </Native>
     <Profilers>
-      <option name="ENABLE_ADVANCED_PROFILING" value="false" />
-      <option name="SUPPORT_LIB_ENABLED" value="true" />
-      <option name="INSTRUMENTATION_ENABLED" value="true" />
+      <option name="ADVANCED_PROFILING_ENABLED" value="false" />
     </Profilers>
-    <method />
+    <method>
+      <option name="Android.Gradle.BeforeRunTask" enabled="true" />
+      <option name="com.android.instantApps.provision.BeforeRunTask" enabled="true" clearCache="false" clearProvisionedDevices="false" myTimestamp="1509038714952" />
+    </method>
   </configuration>
 </component>
