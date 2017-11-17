@@ -33,8 +33,10 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
     
     @Override
     public boolean stopInterpreter() {
-        PythonInterpreter.closePseudoTerminal(pythonProcessFd);
-        pythonProcessFd = null;
+        if (pythonProcessFd != null) {
+            PythonInterpreter.closePseudoTerminal(pythonProcessFd);
+            pythonProcessFd = null;
+        }
         return true;
     }
 

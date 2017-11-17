@@ -59,7 +59,6 @@ public class SDLLibraryHandler {
         return libraryIsLoaded;
     }
 
-    @SuppressLint("UnsafeDynamicallyLoadedCode")
     private static boolean loadLibraries(Context context) {
         try {
             for (String library : getSDLLibraries()) {
