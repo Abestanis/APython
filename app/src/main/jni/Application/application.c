@@ -51,7 +51,7 @@ int appRegisterNativeMethods(JNIEnv *env) {
     return 1;
 }
 
-JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
+JNIEXPORT jint __unused JNI_OnLoad(JavaVM *vm, void __unused *reserved) {
     JNIEnv *env = NULL;
     if((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) {
         return -1;
@@ -101,8 +101,8 @@ jobject getPythonHostContext(JNIEnv *env, jobject hostingAppActivity) {
     return pyHostContext;
 }
 
-JNIEXPORT jboolean JNICALL loadPythonHost(JNIEnv *env, jobject obj, jobject hostingAppActivity,
-                                          jstring pythonVersion) {
+JNIEXPORT jboolean JNICALL loadPythonHost(
+        JNIEnv *env, jobject __unused obj, jobject hostingAppActivity, jstring pythonVersion) {
     jmethodID loadClass;
     jmethodID constructor;
     jclass classLoaderCls;
@@ -157,14 +157,15 @@ JNIEXPORT jboolean JNICALL loadPythonHost(JNIEnv *env, jobject obj, jobject host
     return JNI_TRUE;
 }
 
-JNIEXPORT void JNICALL setLogTag(JNIEnv *env, jobject obj, jstring jTag) {
+JNIEXPORT void JNICALL setLogTag(JNIEnv *env, jobject __unused obj, jstring jTag) {
     const char* tag = (*env)->GetStringUTFChars(env, jTag, 0);
     strncpy(logTag, tag, sizeof(logTag) / sizeof(logTag[0]));
     (*env)->ReleaseStringUTFChars(env, jTag, tag);
     syncLogTagToPyHost(env);
 }
 
-JNIEXPORT jobject JNICALL setWindow(JNIEnv *env, jobject obj, jint windowType, jobject parent) {
+JNIEXPORT jobject JNICALL setWindow(
+        JNIEnv *env, jobject __unused obj, jint windowType, jobject parent) {
     static jmethodID mid = NULL;
     if (mid == NULL) {
         jclass *cls = (*env)->GetObjectClass(env, appInterpreter);
@@ -175,7 +176,7 @@ JNIEXPORT jobject JNICALL setWindow(JNIEnv *env, jobject obj, jint windowType, j
     return (*env)->CallObjectMethod(env, appInterpreter, mid, windowType, parent);
 }
 
-JNIEXPORT jint JNICALL startInterpreter(JNIEnv *env, jobject obj, jobjectArray jArgs) {
+JNIEXPORT jint JNICALL startInterpreter(JNIEnv *env, jobject __unused obj, jobjectArray jArgs) {
     static jmethodID mid = NULL;
     if (mid == NULL) {
         jclass *cls = (*env)->GetObjectClass(env, appInterpreter);
@@ -186,7 +187,7 @@ JNIEXPORT jint JNICALL startInterpreter(JNIEnv *env, jobject obj, jobjectArray j
     return (*env)->CallIntMethod(env, appInterpreter, mid, jArgs);
 }
 
-JNIEXPORT void JNICALL onActivityLifecycleEvent(JNIEnv *env, jobject obj, jint eventId) {
+JNIEXPORT void JNICALL onActivityLifecycleEvent(JNIEnv *env, jobject __unused obj, jint eventId) {
     static jmethodID mid = NULL;
     if (mid == NULL) {
         jclass *cls = (*env)->GetObjectClass(env, appInterpreter);

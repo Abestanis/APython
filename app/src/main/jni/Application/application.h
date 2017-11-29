@@ -16,11 +16,11 @@ char logTag[128] = "PythonApp";
 #define ASSERT(expression, msg, args...) (void)((expression) || (__android_log_assert(#expression, logTag, \
                  "Assertion failed (%s) at %s, line %i: " msg, #expression, __FILE__, __LINE__, ##args), 0))
 
-JNIEXPORT jboolean JNICALL loadPythonHost(JNIEnv*, jobject, jobject, jstring);
-JNIEXPORT void JNICALL setLogTag(JNIEnv*, jobject, jstring);
-JNIEXPORT jobject JNICALL setWindow(JNIEnv*, jobject, jint, jobject);
-JNIEXPORT jint JNICALL startInterpreter(JNIEnv*, jobject, jobjectArray);
-JNIEXPORT void JNICALL onActivityLifecycleEvent(JNIEnv *, jobject, jint);
+JNIEXPORT jboolean JNICALL loadPythonHost(JNIEnv*, jobject __unused ct, jobject, jstring);
+JNIEXPORT void JNICALL setLogTag(JNIEnv*, jobject __unused, jstring);
+JNIEXPORT jobject JNICALL setWindow(JNIEnv*, jobject __unused, jint, jobject);
+JNIEXPORT jint JNICALL startInterpreter(JNIEnv*, jobject __unused, jobjectArray);
+JNIEXPORT void JNICALL onActivityLifecycleEvent(JNIEnv *, jobject __unused, jint);
 
 #ifdef __cplusplus
 }
