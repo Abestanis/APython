@@ -6,12 +6,23 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Scanner;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -308,57 +320,94 @@ public class Util {
      * @return {@code true} if the data was successfully extracted.
      */
     public static boolean extractArchive(File archive, File destDir, ProgressHandler progressHandler) {
-        if (archive.getName().endsWith(".zip")) {
-            try {
-                ZipFile zipFile = new ZipFile(archive);
-                int numEntries = 0;
-                if (progressHandler != null) {
-                    numEntries = zipFile.size();
-                    progressHandler.setProgress(0);
+        ArchiveInputStream archiveInputStream = null;
+        ArchiveEntry entry;
+        int numEntries = 0;
+        int entryCount = 0;
+        byte[] buffer = new byte[8192];
+        try {
+            if (archive.getName().endsWith(".zip")) {
+                if (progressHandler != null) { numEntries = new ZipFile(archive).size(); }
+                archiveInputStream = new ZipArchiveInputStream(new FileInputStream(archive));
+            } else if (archive.getName().endsWith(".tar")
+                    || archive.getName().endsWith(".tar.gz")) {
+                InputStream inputStream = new FileInputStream(archive);
+                if (archive.getName().endsWith(".gz")) {
+                    inputStream = new GZIPInputStream(inputStream);
                 }
-                Enumeration<? extends ZipEntry> zipEntries = zipFile.entries();
-                ZipEntry zipEntry;
-                float entryCount = 1.0f;
-                byte[] buffer = new byte[8192];
-                while (zipEntries.hasMoreElements()) {
-                    zipEntry = zipEntries.nextElement();
-                    File file = new File(destDir, zipEntry.getName());
-                    File dir = zipEntry.isDirectory() ? file : file.getParentFile();
-                    if (!dir.isDirectory() && !dir.mkdirs() && !dir.isDirectory()) {
-                        throw new FileNotFoundException("Failed to ensure directory: " +
-                                                                dir.getAbsolutePath());
-                    }
-                    if (!zipEntry.isDirectory()) {
-                        FileOutputStream outputStream = new FileOutputStream(file);
-                        InputStream inputStream = zipFile.getInputStream(zipEntry);
-                        int count;
-                        try {
-                            while ((count = inputStream.read(buffer)) != -1) {
-                                outputStream.write(buffer, 0, count);
-                            }
-                        } finally {
-                            try {
-                                outputStream.close();
-                                inputStream.close();
-                            } catch (IOException unused) { /* ignore it */ }
-                        }
-                    }
-                    if (progressHandler != null) progressHandler.setProgress(entryCount / numEntries);
-                    entryCount++;
-                }
-                zipFile.close();
-                Util.makeFileAccessible(destDir, true);
-            } catch (IOException e) {
-                Log.e(MainActivity.TAG, "Extracting archive " + archive.getAbsolutePath() + " to "
-                        + destDir.getAbsolutePath() + " failed!", e);
+                archiveInputStream = new TarArchiveInputStream(inputStream);
+            } else {
+                Log.w(MainActivity.TAG, "Could not extract archive from "
+                        + archive.getAbsolutePath() + ": Unknown archive format!");
                 return false;
             }
-        } else {
-            Log.w(MainActivity.TAG, "Could not extract archive from " + archive.getAbsolutePath()
-                    + ": Unknown archive format!");
+            if (progressHandler != null) { progressHandler.setProgress(numEntries == 0 ? -1 : 0); }
+            while ((entry = archiveInputStream.getNextEntry()) != null) {
+                File file = new File(destDir, entry.getName());
+                File dir = entry.isDirectory() ? file : file.getParentFile();
+                if (!dir.isDirectory() && !dir.mkdirs() && !dir.isDirectory()) {
+                    throw new FileNotFoundException(
+                            "Failed to ensure directory: " + dir.getAbsolutePath());
+                }
+                if (entry instanceof TarArchiveEntry &&
+                        ((TarArchiveEntry) entry).isSymbolicLink()) {
+                    File destFile = new File(((TarArchiveEntry) entry).getLinkName());
+                    if (!createSymbolicLink(destFile, file)) {
+                        Log.w(MainActivity.TAG, "Failed to create symlink from "
+                                + file.getAbsolutePath() + " to " + destFile.getAbsolutePath());
+                        // Ignore it
+                    }
+                } else if (!entry.isDirectory()) {
+                    FileOutputStream outputStream = new FileOutputStream(file);
+                    int count;
+                    try {
+                        while ((count = archiveInputStream.read(buffer)) != -1) {
+                            outputStream.write(buffer, 0, count);
+                        }
+                    } finally {
+                        try {
+                            outputStream.close();
+                        } catch (IOException unused) { /* ignore it */ }
+                    }
+                }
+                entryCount++;
+                if (numEntries != 0) {
+                    progressHandler.setProgress((float) entryCount / numEntries);
+                }
+            }
+            Util.makeFileAccessible(destDir, true);
+        } catch (IOException e) {
+            Log.e(MainActivity.TAG, "Extracting archive " + archive.getAbsolutePath() + " to "
+                    + destDir.getAbsolutePath() + " failed!", e);
             return false;
+        } finally {
+            try {
+                if (archiveInputStream != null) {
+                    archiveInputStream.close();
+                }
+            } catch (IOException unused) { /* ignore it */ }
         }
+        if (progressHandler != null) { progressHandler.setProgress(1); }
         return true;
+    }
+
+    /**
+     * Create a symbolic link at the given link File that points to target.
+     * 
+     * @param target The target of the symbolic link.
+     * @param link The symbolic link file.
+     * @return Weather or not the symbolic link was created successfully.
+     */
+    public static boolean createSymbolicLink(File target, File link) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                Os.symlink(target.getAbsolutePath(), link.getAbsolutePath());
+                return true;
+            } catch (Exception e) {
+                Log.w(MainActivity.TAG, "Failed to create symlink", e);
+            }
+        }
+        return nativeCreateSymlink(target.getAbsolutePath(), link.getAbsolutePath());
     }
 
     /**
@@ -677,4 +726,10 @@ public class Util {
             return context.getResources().getDrawable(id);
         }
     }
+    
+    static {
+        System.loadLibrary("pyInterpreter");
+    }
+    
+    native static boolean nativeCreateSymlink(String target, String link);
 }

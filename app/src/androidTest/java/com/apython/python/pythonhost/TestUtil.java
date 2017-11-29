@@ -19,8 +19,9 @@ import java.util.List;
 public class TestUtil {
     public static boolean installLibraryData(Context context) {
         Object[][] data = {
-                {new File(context.getFilesDir(), "data/tcl8.6.4/library"), "tcl_library"},
-                {new File(context.getFilesDir(), "data/tcl8.6.4/library/tk8.6"), "tk_library"},
+                {new File(context.getFilesDir(), "data/tcl8.6.4/library"), "tcl_library.zip"},
+                {new File(context.getFilesDir(), "data/tcl8.6.4/library/tk8.6"), "tk_library.zip"},
+                {new File(context.getFilesDir(), "data/terminfo"), "terminfo.tar"},
         };
         for (Object[] dataItem : data) {
             File dest = (File) dataItem[0];
@@ -30,9 +31,9 @@ public class TestUtil {
                     Log.e(MainActivity.TAG, "Could not create directory " + dest.getAbsolutePath());
                     return false;
                 }
-                File tempArchive = new File(context.getCacheDir(), dest.getName() + ".zip");
+                File tempArchive = new File(context.getCacheDir(), resourcePath);
                 try {
-                    if (!Util.installFromInputStream(tempArchive, context.getAssets().open("DevAssets/" + resourcePath + ".zip"), null)) {
+                    if (!Util.installFromInputStream(tempArchive, context.getAssets().open("DevAssets/" + resourcePath), null)) {
                         throw new IOException();
                     }
                 } catch (IOException error) {
