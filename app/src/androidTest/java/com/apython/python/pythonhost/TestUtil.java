@@ -1,6 +1,8 @@
 package com.apython.python.pythonhost;
 
 import android.content.Context;
+import android.content.res.AssetManager;
+import android.support.test.InstrumentationRegistry;
 import android.util.Log;
 
 import java.io.File;
@@ -32,8 +34,10 @@ public class TestUtil {
                     return false;
                 }
                 File tempArchive = new File(context.getCacheDir(), resourcePath);
+                AssetManager testAssets = InstrumentationRegistry.getContext().getAssets();
                 try {
-                    if (!Util.installFromInputStream(tempArchive, context.getAssets().open("DevAssets/" + resourcePath), null)) {
+                    if (!Util.installFromInputStream(
+                            tempArchive, testAssets.open(resourcePath), null)) {
                         throw new IOException();
                     }
                 } catch (IOException error) {

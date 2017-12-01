@@ -26,7 +26,6 @@ import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
  */
 
 public class TerminalFragment extends PythonFragment implements TerminalInterface {
-    
     private TerminalInput   pythonInput;
     private TerminalAdapter pythonOutput;
     private ProgramHandler  programHandler;
