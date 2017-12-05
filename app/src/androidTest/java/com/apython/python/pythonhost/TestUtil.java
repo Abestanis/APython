@@ -96,9 +96,10 @@ public class TestUtil {
             return true;
         }
         Util.makeFileAccessible(libDest, false);
+        AssetManager testAssets = InstrumentationRegistry.getContext().getAssets();
         InputStream libLocation;
         try {
-            libLocation = context.getAssets().open("DevAssets/lib" + pythonVersion.replace('.', '_') + ".zip");
+            libLocation = testAssets.open("lib" + pythonVersion.replace('.', '_') + ".zip");
         } catch (IOException error) {
             Log.e(MainActivity.TAG, "Did not find the library zip for the python version " +
                     pythonVersion, error);
