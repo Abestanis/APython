@@ -109,14 +109,3 @@ int runPythonInterpreter(int argc, char** argv) {
     LOG_INFO_("Running Python interpreter...");
     return call_Py_Main(argc, argv);
 }
-
-__sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler) {
-    struct sigaction context, oldContext;
-    context.sa_handler = signalHandler;
-    sigemptyset(&context.sa_mask);
-    context.sa_flags = 0;
-    if (sigaction(signal, &context, &oldContext) == -1) {
-        return SIG_ERR;
-    }
-    return oldContext.sa_handler;
-}

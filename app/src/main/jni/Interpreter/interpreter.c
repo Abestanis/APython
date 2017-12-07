@@ -171,26 +171,10 @@ JNIEXPORT void NATIVE_FUNCTION(interpreter_PythonInterpreter_interruptTerminal)(
 JNIEXPORT jobject NATIVE_FUNCTION(interpreter_PythonInterpreter_openPseudoTerminal)(
         JNIEnv *env, jclass __unused cls) {
     int masterFd;
-    static jclass *fileDescriptorClass = NULL;
-    static jmethodID mid = NULL;
-    static jfieldID fdFieldId = NULL;
-    
     if ((masterFd = createPseudoTerminal()) < 0) {
         return NULL;
     }
-    // TODO: Initialize these once.
-    // TODO: https://developer.android.com/training/articles/perf-jni.html#jclass_jmethodID_and_jfieldID
-    if (fileDescriptorClass == NULL) {
-        fileDescriptorClass = (*env)->FindClass(env, "java/io/FileDescriptor");
-        ASSERT(fileDescriptorClass, "Could not find class 'java/io/FileDescriptor'!");
-        mid = (*env)->GetMethodID(env, fileDescriptorClass, "<init>", "()V");
-        ASSERT(mid, "Could not find the constructor of the FileDescriptor class!");
-        fdFieldId = (*env)->GetFieldID(env, fileDescriptorClass, "descriptor", "I");
-        ASSERT(mid, "Could not find the 'descriptor' field of the FileDescriptor class!");
-    }
-    jobject fileDescriptor = (*env)->NewObject(env, fileDescriptorClass, mid);
-    (*env)->SetIntField(env, fileDescriptor, fdFieldId, masterFd);
-    return fileDescriptor;
+    return createFileDescriptor(env, masterFd);
 }
 
 JNIEXPORT void NATIVE_FUNCTION(interpreter_PythonInterpreter_closePseudoTerminal)(

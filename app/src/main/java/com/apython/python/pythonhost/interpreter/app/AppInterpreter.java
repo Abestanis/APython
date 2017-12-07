@@ -127,7 +127,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                     interpreter.interrupt();
                 }
             });
-            interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
+            interpreter.setIOHandler(new PythonInterpreterHandle.LineIOHandler() {
                 @Override
                 public void onOutput(final String output) {
                     hostingAppActivity.runOnUiThread(new Runnable() {
@@ -136,6 +136,16 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                             terminal.addOutput(output);
                         }
                     });
+                }
+
+                @Override
+                public void enableLineMode() {
+                    terminal.enableInput(null, null);
+                }
+
+                @Override
+                public void stopLineMode() {
+                    terminal.disableInput();
                 }
             });
         } else if (windowFragment instanceof SDLWindowFragment) {

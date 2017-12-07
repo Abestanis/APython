@@ -162,6 +162,7 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
     @Override
     public boolean detach() {
         pythonProcessConnection.unbind();
+        stopOutputListener();
         return true;
     }
 

@@ -3,7 +3,6 @@ package com.apython.python.pythonhost.interpreter;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -51,13 +50,35 @@ public class PythonInterpreterActivity extends Activity {
         container.addView(((PythonFragment) terminalWindowManager).createView(container));
         addTerminalWindow();
         interpreter = new PythonInterpreterProcessHandle(this);
-        interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
+        interpreter.setIOHandler(new PythonInterpreterHandle.LineIOHandler() {
             @Override
             public void onOutput(final String output) {
                 PythonInterpreterActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         terminalView.addOutput(output);
+                    }
+                });
+            }
+
+            @Override
+            public void enableLineMode() {
+                Log.e(MainActivity.TAG, "### START LINE MODE ###");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+//                        terminalView.enableInput("", null);
+                    }
+                });
+            }
+
+            @Override
+            public void stopLineMode() {
+                Log.e(MainActivity.TAG, "### STOP LINE MODE ###");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+//                        terminalView.disableInput();
                     }
                 });
             }

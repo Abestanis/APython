@@ -23,11 +23,16 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
     private IOHandler ioHandler;
     private FileDescriptor pythonProcessFd = null;
     private PythonInterpreter.ExitHandler exitHandler = null;
+    private Thread outputListenerThread = null;
+    private Thread readLineThread = null;
     String logTag = MainActivity.TAG;
     
     @Override
     public boolean startInterpreter(String pythonVersion, String[] args) {
         pythonProcessFd = PythonInterpreter.openPseudoTerminal();
+        if (pythonProcessFd != null && ioHandler instanceof LineIOHandler) {
+            
+        }
         return pythonProcessFd != null;
     }
     
@@ -88,18 +93,17 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
     /**
      * Start a thread that listens for the output of the python interpreter
      * and passes the output to the ioHandler.
-     * 
-     * @return The output listener thread.
      */
-    Thread startOutputListener() {
-        Thread outputListenerThread = new Thread(new Runnable() {
+    void startOutputListener() {
+        outputListenerThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 final byte[] buffer = new byte[256];
                 int bytesRead;
                 InputStream pythonOutput = new FileInputStream(pythonProcessFd);
                 try {
-                    while ((bytesRead = pythonOutput.read(buffer)) != -1) {
+                    while (!Thread.currentThread().isInterrupted()
+                            && (bytesRead = pythonOutput.read(buffer)) != -1) {
                         final String text;
                         try {
                             text = new String(buffer, 0, bytesRead, "Utf-8");
@@ -121,7 +125,50 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
                 }
             }
         });
+        outputListenerThread.setDaemon(true);
         outputListenerThread.start();
-        return outputListenerThread;
+        readLineThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (!Thread.currentThread().isInterrupted()) {
+                    FileDescriptor fd = PythonInterpreter.waitForReadLineConnection();
+                    if (fd == null) continue;
+                    if (ioHandler instanceof LineIOHandler) {
+                        ((LineIOHandler) ioHandler).enableLineMode();
+                    }
+                    try {
+                        // Wait for eof
+                        new FileInputStream(fd).read();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if (ioHandler instanceof LineIOHandler) {
+                        ((LineIOHandler) ioHandler).stopLineMode();
+                    }
+                }
+            }
+        });
+        readLineThread.setDaemon(true);
+        readLineThread.start();
+    }
+
+    /**
+     * Stop the thread that listens to the output of the python interpreter.
+     */
+    void stopOutputListener() {
+        if (outputListenerThread != null && outputListenerThread.isAlive()) {
+            outputListenerThread.interrupt();
+            try {
+                outputListenerThread.join(); // TODO: This will lock, need to interrupt the read
+            } catch (InterruptedException ignored) {}
+        }
+        outputListenerThread = null;
+        if (readLineThread != null && readLineThread.isAlive()) {
+            readLineThread.interrupt();
+            try {
+                readLineThread.join(); // TODO: This will lock, need to interrupt the read
+            } catch (InterruptedException ignored) {}
+        }
+        readLineThread = null;
     }
 }

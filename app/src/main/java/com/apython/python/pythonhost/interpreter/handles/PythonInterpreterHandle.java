@@ -21,6 +21,22 @@ public interface PythonInterpreterHandle {
         void onOutput(String output);
     }
 
+
+    /**
+     * A Handler for IO from the interpreter that supports a "read line" mode.
+     */
+    interface LineIOHandler extends IOHandler {
+        /**
+         * Enable the line mode.
+         */
+        void enableLineMode();
+
+        /**
+         * Interrupt reading in a line and go back to normal send character mode. // TODO: How to handle the read input?
+         */
+        void stopLineMode();
+    }
+
     /**
      * Start the Python interpreter.
      * 

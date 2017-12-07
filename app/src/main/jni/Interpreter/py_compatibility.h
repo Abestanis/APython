@@ -1,7 +1,3 @@
-//
-// Created by Sebastian on 05.08.2015.
-//
-
 #ifndef PYTHON_HOST_PY_COMPATIBILITY_H
 #define PYTHON_HOST_PY_COMPATIBILITY_H
 
@@ -18,4 +14,4 @@ int call_setExitHandler(_exitHandler exitHandler);
 void call_Py_SetPythonHome(char* arg);
 void call_Py_SetProgramName(char* arg);
 
-#endif //PYTHON_HOST_PY_COMPATIBILITY_H
+#endif /* PYTHON_HOST_PY_COMPATIBILITY_H */

@@ -113,4 +113,5 @@ public class PythonInterpreter {
     public static native void closePseudoTerminal(FileDescriptor fd);
     public static native String getPseudoTerminalPath(FileDescriptor fd);
     public static native String getEnqueueInput(FileDescriptor fd);
+    public static native FileDescriptor waitForReadLineConnection();
 }

@@ -1,7 +1,8 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef PYTHON_HOST_UTIL_H
+#define PYTHON_HOST_UTIL_H
 
 #include <jni.h>
+#include <signal.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +21,10 @@ extern "C" {
 JNIEXPORT jboolean NATIVE_FUNCTION(Util_nativeCreateSymlink)
     (JNIEnv *, jclass __unused, jstring, jstring);
 
+__sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler);
+jobject createFileDescriptor(JNIEnv* env, int fd);
+
 #ifdef __cplusplus
 }
 #endif
-#endif //UTIL_H
+#endif /* PYTHON_HOST_UTIL_H */
