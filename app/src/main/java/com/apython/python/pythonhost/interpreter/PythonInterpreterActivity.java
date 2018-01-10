@@ -40,6 +40,7 @@ public class PythonInterpreterActivity extends Activity {
     private TerminalInterface       terminalView;
     private WindowManagerInterface  terminalWindowManager;
     private PythonInterpreterHandle interpreter = null;
+    boolean startedInterpreter = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +79,7 @@ public class PythonInterpreterActivity extends Activity {
         if (!PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED.equals(pyVersion)
                 && PackageManager.isPythonVersionInstalled(this, pyVersion)) {
             this.interpreter.startInterpreter(Util.getMainVersionPart(pyVersion), null);
+            startedInterpreter = true;
         } else {
             showPythonVersionDialog();
         }
@@ -86,34 +88,15 @@ public class PythonInterpreterActivity extends Activity {
     @Override
     public void onStart() {
         super.onStart();
-        interpreter.attach();
-        terminalView.setProgramHandler(new TerminalInterface.ProgramHandler() {
-            @Override
-            public void sendInput(String input) {
-                interpreter.sendInput(input);
-            }
-
-            @Override
-            public void terminate() {
-                // TODO: Handle
-            }
-
-            @Override
-            public void interrupt() {
-                interpreter.interrupt();
-            }
-        });
+        if (startedInterpreter) {
+            bindInterpreter();
+        }
     }
     
     @Override
     public void onBackPressed() {
         interpreter.interrupt();
         terminalView.disableInput();
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
     }
 
     @Override
@@ -163,6 +146,27 @@ public class PythonInterpreterActivity extends Activity {
         }
         return super.dispatchKeyEvent(event);
     }
+    
+    private void bindInterpreter() {
+        interpreter.attach();
+        terminalView.setProgramHandler(new TerminalInterface.ProgramHandler() {
+            @Override
+            public void sendInput(String input) {
+                interpreter.sendInput(input);
+            }
+
+            @Override
+            public void terminate() {
+                // TODO: Handle
+            }
+
+            @Override
+            public void interrupt() {
+                interpreter.interrupt();
+            }
+        });
+        interpreter.sendInput("print('\\033[31mTest-Test<<<>>>Ha\\r\\033[mHi')\n");
+    }
 
     private void showPythonVersionDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppDialogTheme);
@@ -170,6 +174,7 @@ public class PythonInterpreterActivity extends Activity {
         if (versions.size() <= 1) {
             if (versions.size() == 1) {
                 interpreter.startInterpreter(versions.get(0), null);
+                startedInterpreter = true;
                 return;
             }
             Log.i(MainActivity.TAG, "No Python version installed. Please download a version to use the interpreter.");
@@ -192,6 +197,7 @@ public class PythonInterpreterActivity extends Activity {
                 dialog.dismiss();
                 ListView listView = ((AlertDialog) dialog).getListView();
                 interpreter.startInterpreter(versions.get(listView.getCheckedItemPosition()), null);
+                bindInterpreter();
             }
         });
         builder.setPositiveButton("Set as default", new DialogInterface.OnClickListener() {
@@ -203,6 +209,7 @@ public class PythonInterpreterActivity extends Activity {
                 PreferenceManager.getDefaultSharedPreferences(PythonInterpreterActivity.this)
                         .edit().putString(PythonSettingsActivity.KEY_PYTHON_VERSION, version).apply();
                 interpreter.startInterpreter(version, null);
+                bindInterpreter();
             }
         });
         builder.setOnCancelListener(new DialogInterface.OnCancelListener() {

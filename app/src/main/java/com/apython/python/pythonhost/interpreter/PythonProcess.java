@@ -10,8 +10,6 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.apython.python.pythonhost.MainActivity;
-
 /**
  * A service that will be started in a different process by the Android OS.
  * This is necessary to run the python interpreter in a separate process than the

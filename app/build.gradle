@@ -1,11 +1,9 @@
-import org.apache.tools.ant.taskdefs.condition.Os
 import org.apache.tools.ant.DirectoryScanner
 
 apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '25.0.0'
     defaultConfig {
         applicationId "com.apython.python.pythonhost"
         minSdkVersion 14
@@ -25,6 +23,7 @@ android {
     }
     buildTypes {
         release {
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -40,22 +39,16 @@ android {
                 task.finalizedBy updatePythonZip34
             }
             if (task.name.startsWith('externalNativeBuild')) {
-                task.dependsOn {
-                    compileExecutable
+                task.finalizedBy {
+                    copyExecutable
                 }
             }
     }
-    task compileExecutable(type: Exec, description: 'Generate the python executable binaries.') {
-        workingDir file('src/main')
-        inputs.dir file('src/main/jni')
-        outputs.dir file('src/main/assets')
-        executable Os.isFamily(Os.FAMILY_WINDOWS) ? 'cmd' : 'sh'
-        args Os.isFamily(Os.FAMILY_WINDOWS) ? '/c' : '-c', new File(
-                getNdkDirectory(), 'ndk-build.cmd').absolutePath +
-                ' NDK_APPLICATION_MK=jni/Application.mk' +
-                ' APP_BUILD_SCRIPT=jni/PythonExecutable/Android.mk' +
-                ' NDK_APP_DST_DIR=assets/$(TARGET_ARCH_ABI)' +
-                ' NDK_OUT=' + getBuildDir().absolutePath + '/intermediates/ndkBuild/obj'
+    task copyExecutable(type: Copy, description: 'Copy the python executable binaries.') {
+        from 'build/intermediates/ndkBuild/debug/obj/local'
+        include '*/python_pie'
+        include '*/python'
+        into 'src/main/assets'
     }
     task createDiffs(type: DiffMaker, description: 'Create the diffs for the python versions') {
         versionsSourceDir = file('src/main/jni/DevLibs')
@@ -85,14 +78,20 @@ android {
     }
 }
 
+allprojects {
+    repositories {
+        google()
+    }
+}
+
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:23.4.0'
-    testCompile 'junit:junit:4.12'
-    androidTestCompile 'com.android.support:support-annotations:23.4.0'
-    androidTestCompile 'com.android.support.test:runner:0.5'
-    androidTestCompile 'com.android.support.test:rules:0.5'
-    androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:appcompat-v7:23.4.0'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:0.5'
+    androidTestImplementation 'com.android.support.test:rules:0.5'
+    androidTestImplementation 'com.android.support:support-annotations:23.4.0'
+    implementation 'org.apache.commons:commons-compress:1.2'
 }
 
 
@@ -218,7 +217,7 @@ class Util {
                 childDir = new File(childDir.getParentFile(), 'TempMovingDir-ApythonProject-Py-Random')
                 GFileUtils.moveDirectory(oldChildDir, childDir)
             }
-            success = copy(project, project.fileTree(childDir), childDir.getParentFile(), filter);
+            success = copy(project, project.fileTree(childDir), childDir.getParentFile(), filter)
             GFileUtils.deleteDirectory(childDir)
         }
         return success
@@ -270,9 +269,9 @@ class Util {
             }
             if (line.startsWith('--- "') || line.startsWith('+++ "')) {
                 line = line.replaceFirst("\"", "")
-                int pos = line.lastIndexOf("\"");
+                int pos = line.lastIndexOf("\"")
                 if (pos > -1) {
-                    line = line.substring(0, pos) + line.substring(pos + 1);
+                    line = line.substring(0, pos) + line.substring(pos + 1)
                 }
             }
             diffString += line + '\n'
@@ -284,13 +283,13 @@ class Util {
 
 class SetupAdditionalLibrarySources extends DefaultTask {
     @InputFile
-    def File libConfigFile
+    File libConfigFile
     
     @TaskAction
     def run() {
         def gitExecPath = Util.getGitExecPath(project)
         def libConfig = Util.parseLibConfigFile(libConfigFile)
-        int execReturn;
+        int execReturn
         if ((execReturn = (gitExecPath + ' stash').execute().waitFor()) != 0) {
             throw new GradleException('git stash failed with exit code ' + execReturn)
         }
@@ -419,20 +418,20 @@ class SetupAdditionalLibrarySources extends DefaultTask {
 
 class DiffMaker extends DefaultTask {
     @InputDirectory
-    def File versionsSourceDir
+    File versionsSourceDir
 
     @InputFile
-    def File libConfigFile
+    File libConfigFile
 
     @Input
-    def String downloadUrl
+    String downloadUrl
     
     @OutputDirectory
-    def File patchOutputDir
+    File patchOutputDir
     
     @TaskAction
     def main() {
-        def String gitExecPath = Util.getGitExecPath(project)
+        String gitExecPath = Util.getGitExecPath(project)
         def libConfig = Util.parseLibConfigFile(libConfigFile)
         // Add the Python versions
         def sourceDirs = versionsSourceDir.listFiles()
@@ -441,9 +440,9 @@ class DiffMaker extends DefaultTask {
         def pyFileTypeFilter = ['*.c', '*.h', '*.py', '*.pyc', '*.inc', '*.txt', '*.gif', '*.png',
                                 '*.def']
         for (File sourceDir : sourceDirs) {
-            if (!sourceDir.name.matches("Python\\d\\.\\d.*")) continue;
+            if (!sourceDir.name.matches("Python\\d\\.\\d.*")) continue
             def version = sourceDir.name.substring(6)
-            HashMap<String, String> data = new HashMap<>();
+            HashMap<String, String> data = new HashMap<>()
             data.put('url', downloadUrl.replaceAll("%VERSION%", version))
             data.put('extraction_filter', pythonIncludes.join(", "))
             data.put('file_type_filter', pyFileTypeFilter.join(", "))
@@ -472,7 +471,7 @@ class DiffMaker extends DefaultTask {
 
             def filter = null
             if (libData.value.containsKey('extraction_filter')) {
-                filter = new PatternSet();
+                filter = new PatternSet()
                 def includes = []
                 def directoryIncludes = []
                 for (String include : libData.value.get('extraction_filter').split(', ')) {

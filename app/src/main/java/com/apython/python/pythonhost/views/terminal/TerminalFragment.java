@@ -26,7 +26,6 @@ import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
  */
 
 public class TerminalFragment extends PythonFragment implements TerminalInterface {
-    
     private TerminalInput   pythonInput;
     private TerminalAdapter pythonOutput;
     private ProgramHandler  programHandler;
@@ -100,12 +99,13 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
 
                 @Override
                 public void onKeyEventWhileDisabled(KeyEvent event) {
+                    int keyCode = event.getKeyCode();
                     switch (event.getAction()) {
                     case KeyEvent.ACTION_DOWN:
-                        keyInputListener.onKeyDown(null, keyInput, event.getKeyCode(), event);
+                        keyInputListener.onKeyDown(null, keyInput, keyCode, event);
                         break;
                     case KeyEvent.ACTION_UP:
-                        keyInputListener.onKeyUp(null, keyInput, event.getKeyCode(), event);
+                        keyInputListener.onKeyUp(null, keyInput, keyCode, event);
                         break;
                     default:
                         keyInputListener.onKeyOther(null, keyInput, event);
@@ -116,11 +116,19 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                             input = keyInput.toString();
                             keyInput.clear();
                         } else if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                            if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
+                            if (keyCode == KeyEvent.KEYCODE_DEL) {
                                 input = "\u007F";
-                            } else if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+                            } else if (keyCode == KeyEvent.KEYCODE_BACK) {
                                 programHandler.interrupt();
                                 return;
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                                input = "\033[A";
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                                input = "\033[B";
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                                input = "\033[D";
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                                input = "\033[C";
                             }
                         }
                         if (input != null) {

@@ -13,7 +13,7 @@ import com.apython.python.pythonhost.downloadcenter.items.AdditionalLibraryItem;
 import com.apython.python.pythonhost.downloadcenter.items.DataItem;
 import com.apython.python.pythonhost.downloadcenter.items.Dependency;
 import com.apython.python.pythonhost.downloadcenter.items.PythonVersionItem;
-import java.io.File;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;

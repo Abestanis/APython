@@ -40,7 +40,7 @@ public interface PythonInterpreterHandle {
     /**
      * Detach from the interpreter.
      * 
-     * @return true, if the detach was successfull.
+     * @return true, if the detach was successful.
      */
     boolean detach();
 

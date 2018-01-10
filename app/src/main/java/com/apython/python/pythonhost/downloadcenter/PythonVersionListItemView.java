@@ -126,7 +126,7 @@ class PythonVersionListItemView {
             dialogBuilder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    installedSubVersion.setAction(Dependency.Action.REMOVE); // TODO: this falsly removes libPythonPatch if another py version is installed
+                    installedSubVersion.setAction(Dependency.Action.REMOVE);
                     ProgressHandler.TwoLevelProgressHandler progressHandler = ProgressHandler.Factory
                             .createTwoLevel(
                                     activity, pyInfoText, mainProgressBar,

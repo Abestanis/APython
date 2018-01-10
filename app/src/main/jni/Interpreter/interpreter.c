@@ -8,7 +8,7 @@
 jobject jPyInterpreter = NULL;
 static JavaVM *Jvm = NULL;
 
-jint JNI_OnLoad(JavaVM *vm, void *reserved) {
+jint __unused JNI_OnLoad(JavaVM *vm, void __unused *reserved) {
     Jvm = vm;
     return JNI_VERSION_1_6;
 }
@@ -55,14 +55,15 @@ void exitHandler(int exitCode) {
 
 /* JNI functions */
 
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_nativeGetPythonVersion(JNIEnv *env, jclass cls, jstring jPythonLibName) {
+JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_nativeGetPythonVersion)(
+        JNIEnv *env, jclass __unused cls, jstring jPythonLibName) {
     const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
     setPythonLibrary(pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
     return (*env)->NewStringUTF(env, getPythonVersion());
 }
 
-JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_runInterpreter(
+JNIEXPORT jint NATIVE_FUNCTION(interpreter_PythonInterpreter_runInterpreter)(
            JNIEnv *env, jobject obj, jstring jPythonLibName, jstring jProgramPath, jstring jLibPath,
            jstring jPyHostLibPath, jstring jPythonHome, jstring jPythonTemp, jstring jXDGBasePath,
            jstring jDataPath, jstring jAppTag, jobjectArray jArgs, jstring jPseudoTerminalPath) {
@@ -155,7 +156,8 @@ JNIEXPORT jint JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
     return result;
 }
 
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_interruptTerminal(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+JNIEXPORT void NATIVE_FUNCTION(interpreter_PythonInterpreter_interruptTerminal)(
+        JNIEnv *env, jclass __unused cls, jobject fileDescriptor) {
     int masterFd = getFdFromFileDescriptor(env, fileDescriptor);
 #ifdef TIOCSIGNAL
     ioctl(masterFd, TIOCSIGNAL, SIGINT);
@@ -166,7 +168,8 @@ JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInte
 #endif /* defined TIOCSIGNAL */
 }
 
-JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_openPseudoTerminal(JNIEnv *env, jclass cls) {
+JNIEXPORT jobject NATIVE_FUNCTION(interpreter_PythonInterpreter_openPseudoTerminal)(
+        JNIEnv *env, jclass __unused cls) {
     int masterFd;
     static jclass *fileDescriptorClass = NULL;
     static jmethodID mid = NULL;
@@ -190,12 +193,14 @@ JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
     return fileDescriptor;
 }
 
-JNIEXPORT void JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_closePseudoTerminal(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+JNIEXPORT void NATIVE_FUNCTION(interpreter_PythonInterpreter_closePseudoTerminal)(
+        JNIEnv *env, jclass __unused cls, jobject fileDescriptor) {
     int masterFd = getFdFromFileDescriptor(env, fileDescriptor);
     closePseudoTerminal(masterFd);
 }
 
-JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getPseudoTerminalPath(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+JNIEXPORT jobject NATIVE_FUNCTION(interpreter_PythonInterpreter_getPseudoTerminalPath)(
+        JNIEnv *env, jclass __unused cls, jobject fileDescriptor) {
     char* slavePath;
     int masterFd = getFdFromFileDescriptor(env, fileDescriptor);
     if ((slavePath = getPseudoTerminalSlavePath(masterFd)) == NULL) {
@@ -204,7 +209,8 @@ JNIEXPORT jobject JNICALL Java_com_apython_python_pythonhost_interpreter_PythonI
     return (*env)->NewStringUTF(env, slavePath);
 }
 
-JNIEXPORT jstring JNICALL Java_com_apython_python_pythonhost_interpreter_PythonInterpreter_getEnqueueInput(JNIEnv *env, jclass cls, jobject fileDescriptor) {
+JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_getEnqueueInput)(
+        JNIEnv *env, jclass __unused cls, jobject fileDescriptor) {
     static const int INPUT_BUFFER_LENGTH = 8192;
     int masterFd;
     char* input = malloc(sizeof(char) * INPUT_BUFFER_LENGTH);

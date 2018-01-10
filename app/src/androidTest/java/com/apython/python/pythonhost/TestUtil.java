@@ -1,6 +1,8 @@
 package com.apython.python.pythonhost;
 
 import android.content.Context;
+import android.content.res.AssetManager;
+import android.support.test.InstrumentationRegistry;
 import android.util.Log;
 
 import java.io.File;
@@ -19,8 +21,9 @@ import java.util.List;
 public class TestUtil {
     public static boolean installLibraryData(Context context) {
         Object[][] data = {
-                {new File(context.getFilesDir(), "data/tcl8.6.4/library"), "tcl_library"},
-                {new File(context.getFilesDir(), "data/tcl8.6.4/library/tk8.6"), "tk_library"},
+                {new File(context.getFilesDir(), "data/tcl8.6.4/library"), "tcl_library.zip"},
+                {new File(context.getFilesDir(), "data/tcl8.6.4/library/tk8.6"), "tk_library.zip"},
+                {new File(context.getFilesDir(), "data/terminfo"), "terminfo.tar"},
         };
         for (Object[] dataItem : data) {
             File dest = (File) dataItem[0];
@@ -30,9 +33,11 @@ public class TestUtil {
                     Log.e(MainActivity.TAG, "Could not create directory " + dest.getAbsolutePath());
                     return false;
                 }
-                File tempArchive = new File(context.getCacheDir(), dest.getName() + ".zip");
+                File tempArchive = new File(context.getCacheDir(), resourcePath);
+                AssetManager testAssets = InstrumentationRegistry.getContext().getAssets();
                 try {
-                    if (!Util.installFromInputStream(tempArchive, context.getAssets().open("DevAssets/" + resourcePath + ".zip"), null)) {
+                    if (!Util.installFromInputStream(
+                            tempArchive, testAssets.open(resourcePath), null)) {
                         throw new IOException();
                     }
                 } catch (IOException error) {
@@ -91,9 +96,10 @@ public class TestUtil {
             return true;
         }
         Util.makeFileAccessible(libDest, false);
+        AssetManager testAssets = InstrumentationRegistry.getContext().getAssets();
         InputStream libLocation;
         try {
-            libLocation = context.getAssets().open("DevAssets/lib" + pythonVersion.replace('.', '_') + ".zip");
+            libLocation = testAssets.open("lib" + pythonVersion.replace('.', '_') + ".zip");
         } catch (IOException error) {
             Log.e(MainActivity.TAG, "Did not find the library zip for the python version " +
                     pythonVersion, error);
