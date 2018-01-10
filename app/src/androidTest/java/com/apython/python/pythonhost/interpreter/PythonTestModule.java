@@ -1,12 +1,14 @@
 package com.apython.python.pythonhost.interpreter;
 
 import android.content.Context;
+import android.os.Looper;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.LargeTest;
 import android.support.test.runner.AndroidJUnit4;
 
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterProcessHandle;
 
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -40,8 +42,12 @@ public class PythonTestModule {
         String pyString = "import sys\n" +
                 "sys.path.insert(0, '" + pyLibDir.getAbsolutePath() + "')\n" +
                 "import test.__main__\n";
-        PythonInterpreter interpreter = new PythonInterpreter(context, "3.4");
+        Looper.prepare();
+        PythonInterpreterProcessHandle handle = new PythonInterpreterProcessHandle(context);
+        handle.startInterpreter("3.4", new String[] {"-c", pyString, "-v"});
+        handle.attach();
         assertEquals("Python test suite returned with non zero exit status",
-                     0, interpreter.runPythonString(pyString, new String[]{"-v"}));
+                     0, (long) handle.getInterpreterResult(true));
+        handle.detach();
     }
 }

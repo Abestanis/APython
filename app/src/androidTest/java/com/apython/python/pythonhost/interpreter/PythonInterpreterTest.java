@@ -10,7 +10,7 @@ import android.util.Log;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.Util;
 
-import org.hamcrest.Matchers;
+//import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -139,17 +139,17 @@ public class PythonInterpreterTest {
                 pyResult[0] = interpreter.runPythonInterpreter(null);
             }
         });
-        interpreter.stopInterpreter();
+//        interpreter.stopInterpreter();
         pythonThread.start();
         synchronized (pyResult) {
             pyResult.wait(1000);
         }
-        interpreter.stopInterpreter();
+//        interpreter.stopInterpreter();
         pythonThread.join(2000);
         assertFalse(pythonThread.isAlive());
         assertEquals("Python interpreter did not return the expected return code when terminated.",
                      pyResult[0], 127);
-        interpreter.stopInterpreter();
+//        interpreter.stopInterpreter();
     }
 
 //    @org.junit.Test
