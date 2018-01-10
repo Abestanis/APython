@@ -140,12 +140,12 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 
                 @Override
                 public void enableLineMode() {
-                    terminal.enableInput(null, null);
+                    terminal.enableLineInput();
                 }
 
                 @Override
                 public void stopLineMode() {
-                    terminal.disableInput();
+                    terminal.disableLineInput();
                 }
             });
         } else if (windowFragment instanceof SDLWindowFragment) {

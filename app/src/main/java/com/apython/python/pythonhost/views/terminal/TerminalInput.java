@@ -1,21 +1,20 @@
 package com.apython.python.pythonhost.views.terminal;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
+import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.Util;
-
-import java.util.LinkedList;
-import java.util.ListIterator;
 
 /**
  * An input view to use within a terminal.
@@ -45,14 +44,12 @@ public class TerminalInput extends EditText {
         void onKeyEventWhileDisabled(KeyEvent event);
     }
 
-    private boolean            inputEnabled        = false;
-    private String             prompt              = "";
-    private int                currentCommandIndex = 0;
+    private boolean lineInputEnabled = false;
+    private String  prompt           = null;
     private TextWatcher        inputWatcher;
     private InputMethodManager inputManager;
     private OnCommitHandler    commitHandler;
-    private final LinkedList<String> commandHistory = new LinkedList<>();
-    private ListIterator<String> commandHistoryAccessor;
+    private TerminalInputConnection inputConnection;
 
     public TerminalInput(Context context) {
         super(context);
@@ -71,14 +68,17 @@ public class TerminalInput extends EditText {
 
     private void init() {
         this.inputManager = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        this.commandHistory.add("");
-        this.commandHistoryAccessor = this.commandHistory.listIterator();
+        this.inputConnection = new TerminalInputConnection(this);
+        setFocusable(true);
+        setFocusableInTouchMode(true);
         inputWatcher = new TextWatcher() {
             int start, count, numCharsAdded;
             private void restorePrompt() {
                 String text = getText().toString();
-                int promptMissingEnd = Math.min(prompt.length(), start + count);
-                text = text.substring(0, start) + prompt.substring(start, promptMissingEnd) + text.substring(start);
+                String promptStr = prompt == null ? "" : prompt;
+                int promptMissingEnd = Math.min(promptStr.length(), start + count);
+                text = text.substring(0, start) + promptStr.substring(start, promptMissingEnd)
+                        + text.substring(start);
                 internalSetText(text);
             }
 
@@ -96,11 +96,12 @@ public class TerminalInput extends EditText {
             @Override
             public void afterTextChanged(Editable s) {
                 String input = s.toString();
-                if (isInputEnabled()) {
-                    if (start < prompt.length()) {
+                if (isLineInputEnabled()) {
+                    String promptStr = prompt == null ? "" : prompt;
+                    if (start < promptStr.length() && !promptStr.equals(input)) {
                         restorePrompt();
                     } else if (input.length() > 0) {
-                        if (input.indexOf('\n', start) >= prompt.length() && commitHandler != null) {
+                        if (input.indexOf('\n', start) >= promptStr.length() && commitHandler != null) {
                             if (numCharsAdded == 1 && input.charAt(start) == '\n') {
                                 internalSetText(input.substring(0, start) + input.substring(start + 1) + '\n');
                             }
@@ -118,13 +119,14 @@ public class TerminalInput extends EditText {
         this.setOnKeyListener(new OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (!isInputEnabled() && commitHandler != null) {
+                if (!isLineInputEnabled() && commitHandler != null) {
                     commitHandler.onKeyEventWhileDisabled(event);
                     return true;
                 }
                 return false;
             }
         });
+        requestKeyboardFocus();
     }
 
     /**
@@ -136,8 +138,15 @@ public class TerminalInput extends EditText {
      */
     @Override
     public void setEnabled(boolean enabled) {
-        this.inputEnabled = enabled;
+        this.lineInputEnabled = enabled;
         setCursorVisible(enabled);
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        if (enabled) {
+            requestKeyboardFocus();
+        } else {
+            this.prompt = null;
+        }
     }
 
     @Override
@@ -146,24 +155,10 @@ public class TerminalInput extends EditText {
     }
 
     /**
-     * @return {@code true} if this input is enabled to receive input events or {@code false} otherwise.
+     * @return {@code true} if this input is in read line mode or {@code false} otherwise.
      */
-    public boolean isInputEnabled() {
-        return inputEnabled;
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                loadLastCommand();
-                return true;
-            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                loadNextCommand();
-                return true;
-            }
-        }
-        return super.onKeyDown(keyCode, event);
+    public boolean isLineInputEnabled() {
+        return lineInputEnabled;
     }
 
     @Override
@@ -177,7 +172,7 @@ public class TerminalInput extends EditText {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (inputEnabled && event.getAction() == MotionEvent.ACTION_DOWN) {
+        if (lineInputEnabled && event.getAction() == MotionEvent.ACTION_DOWN) {
             if (!isInputMethodTarget()) {
                 requestFocus();
                 tryRegainSoftInputFocus();
@@ -188,55 +183,22 @@ public class TerminalInput extends EditText {
     }
 
     /**
-     * Enables the user to type input.
-     *
-     * @param prompt The prompt to display
-     * @param enqueuedInput The enqueued input from the time this input was disabled.
-     */
-    @SuppressLint("SetTextI18n")
-    public void enableInput(String prompt, String enqueuedInput) {
-        this.setEnabled(true);
-        this.prompt = prompt;
-        setCursorVisible(true);
-        setText(prompt + enqueuedInput);
-        setSelection(getText().length());
-        requestFocus();
-        if (!isInputMethodTarget()) {
-            tryRegainSoftInputFocus();
-        }
-        if (enqueuedInput.indexOf('\n') != -1) {
-            this.commitHandler.onCommit(this);
-        }
-    }
-
-    /**
-     * Disable this input and clear the input- and prompt-text.
+     * Disable this input and clear the input text.
      */
     public void disableInput() {
-        this.prompt = "";
-        setCursorVisible(false);
-        internalSetText("");
         this.setEnabled(false);
+        internalSetText("");
     }
 
     /**
      * Pop the current input. After this function returns, the input will be empty and disabled.
-     * Additionally, the input is written to the commandHistory, if appropriate.
      *
-     * @return An array consisting of the current prompt-string and the last input.
+     * @return The last input.
      */
-    public String[] popCurrentInput() {
+    public String popCurrentInput() {
         String text = this.getText().toString();
-        String[] input = {this.prompt, text.substring(this.prompt.length(), text.length())};
-        if (input[1].length() != 0) {
-            int index = input[1].indexOf('\n');
-            String newCommand = input[1].substring(0, index != -1 ? index : input[1].length());
-            if (newCommand.length() != 0) {
-                commandHistory.set(0, newCommand);
-                commandHistory.addFirst("");
-                commandHistoryAccessor = commandHistory.listIterator(0);
-            }
-        }
+        String promptStr = prompt == null ? "" : prompt;
+        String input = text.substring(promptStr.length(), text.length());
         disableInput();
         return input;
     }
@@ -247,42 +209,6 @@ public class TerminalInput extends EditText {
      */
     public void setCommitHandler(OnCommitHandler commitHandler) {
         this.commitHandler = commitHandler;
-    }
-
-    /**
-     * Overwrite the current input with the input that was entered before the current.
-     * (Key "Up" on Pc terminals.)
-     */
-    public void loadLastCommand() {
-        if (commandHistoryAccessor.hasNext()) {
-            if (commandHistoryAccessor.nextIndex() == currentCommandIndex) {
-                commandHistoryAccessor.next();
-                if (!commandHistoryAccessor.hasNext()) {
-                    return;
-                }
-            }
-            currentCommandIndex = commandHistoryAccessor.nextIndex();
-            internalSetText(this.prompt + commandHistoryAccessor.next());
-            setSelection(getText().length());
-        }
-    }
-
-    /**
-     * Overwrite te current input with the input that was entered after the current input.
-     * (Key "Down" on Pc terminals.)
-     */
-    public void loadNextCommand() {
-        if (commandHistoryAccessor.hasPrevious()) {
-            if (commandHistoryAccessor.previousIndex() == currentCommandIndex) {
-                commandHistoryAccessor.previous();
-                if (!commandHistoryAccessor.hasPrevious()) {
-                    return;
-                }
-            }
-            currentCommandIndex = commandHistoryAccessor.previousIndex();
-            internalSetText(this.prompt + commandHistoryAccessor.previous());
-            setSelection(getText().length());
-        }
     }
 
     @Override
@@ -300,7 +226,11 @@ public class TerminalInput extends EditText {
 
     @Override
     public void setText(CharSequence text, BufferType type) {
-        if (prompt == null || text.toString().startsWith(prompt)) super.setText(text, type);
+        if (prompt == null && lineInputEnabled) {
+            Log.e(MainActivity.TAG, "Set prompt: '" + text + "'");
+            prompt = text.toString();
+        }
+        super.setText(text, type);
     }
 
     /**
@@ -330,5 +260,30 @@ public class TerminalInput extends EditText {
                 commitHandler.onKeyEventWhileDisabled(event);
             }
         }
+    }
+
+    /**
+     * Try to get the keyboard focus.
+     */
+    private void requestKeyboardFocus() {
+        if (requestFocus() && inputManager != null) {
+            inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT);
+        }
+    }
+
+    @Override
+    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        super.onCreateInputConnection(outAttrs);
+        return inputConnection;
+    }
+
+    @Override
+    public boolean onCheckIsTextEditor() {
+        return true;
+    }
+
+    @Override
+    public boolean checkInputConnectionProxy(View view) {
+        return true;
     }
 }

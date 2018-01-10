@@ -11,6 +11,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 
@@ -29,9 +30,10 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     private TerminalInput   pythonInput;
     private TerminalAdapter pythonOutput;
     private ProgramHandler  programHandler;
-    private View rootView = null;
-    private FrameLayout rootLayout = null;
-    private String outputBuffer = null;
+    private View        rootView        = null;
+    private FrameLayout rootLayout      = null;
+    private String      outputBuffer    = null;
+    private ListView    scrollContainer = null;
 
     public TerminalFragment(Activity activity, String tag) {
         super(activity, tag);
@@ -46,7 +48,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootView = layoutInflater.inflate(context.getResources().getLayout(R.layout.view_terminal_layout),
                                         container, false);
             rootLayout.addView(rootView);
-            ListView scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
+            scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context);
             if (outputBuffer != null) {
                 pythonOutput.addOutput(outputBuffer);
@@ -54,23 +56,24 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             }
             this.pythonInput = (TerminalInput) layoutInflater.inflate(
                     context.getResources().getLayout(R.layout.terminal_input), scrollContainer, false);
-            scrollContainer.addFooterView(this.pythonInput);
+            this.pythonOutput.setInputView(this.pythonInput);
+            scrollContainer.setFocusable(false);
             scrollContainer.setAdapter(this.pythonOutput);
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
             scrollContainer.setItemsCanFocus(true);
             pythonInput.requestFocus();
-            this.pythonInput.setOnTouchListener(new View.OnTouchListener() {
+            scrollContainer.setOnTouchListener(new View.OnTouchListener() {
                 final GestureDetector detector = new GestureDetector(
                         context, new GestureDetector.SimpleOnGestureListener() {
                     @Override
                     public boolean onFling(MotionEvent firstEvent, MotionEvent lastEvent,
                                            float velocityX, float velocityY) {
-                        if (firstEvent != null && lastEvent != null &&
+                        if (programHandler != null && firstEvent != null && lastEvent != null &&
                                 Math.abs(firstEvent.getX() - lastEvent.getX()) > 30) {
                             if (firstEvent.getX() - lastEvent.getX() > 0) {
-                                pythonInput.loadNextCommand();
+                                programHandler.sendInput("\033[B");
                             } else {
-                                pythonInput.loadLastCommand();
+                                programHandler.sendInput("\033[A");
                             }
                             return true;
                         }
@@ -80,7 +83,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
 
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
-                    return pythonInput.isInputEnabled() && detector.onTouchEvent(event);
+                    return detector.onTouchEvent(event);
                 }
             });
             this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {
@@ -89,12 +92,10 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                 
                 @Override
                 public void onCommit(TerminalInput terminalInput) {
-                    String[] inputList = terminalInput.popCurrentInput();
-                    String prompt = inputList[0], input = inputList[1];
-                    int splitIndex = input.indexOf('\n') + 1;
-                    pythonOutput.addOutput(prompt + input.substring(0, splitIndex));
-                    if (programHandler == null) return;
-                    programHandler.sendInput(input);
+                    String input = terminalInput.popCurrentInput();
+                    if (programHandler != null) {
+                        programHandler.sendInput(input);
+                    }
                 }
 
                 @Override
@@ -151,7 +152,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
 
     @Override
     public boolean isInputEnabled() {
-        return pythonInput.isInputEnabled();
+        return pythonInput.isLineInputEnabled();
     }
 
     @Override
@@ -164,18 +165,25 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     }
 
     @Override
-    public void enableInput(String prompt, String enqueuedInput) {
-        pythonInput.enableInput(prompt, enqueuedInput != null ? enqueuedInput : "");
-    }
-
-    @Override
     public void setProgramHandler(ProgramHandler programHandler) {
         this.programHandler = programHandler;
     }
 
     @Override
-    public void disableInput() {
-        pythonInput.setEnabled(false);
+    public void enableLineInput() {
+        pythonOutput.enableLineInput();
+    }
+
+    @Override
+    public void disableLineInput() {
+        pythonOutput.disableLineInput();
+        if (scrollContainer.requestFocus()) {
+            InputMethodManager inputManager = (InputMethodManager) getActivity()
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (inputManager != null) {
+                inputManager.showSoftInput(scrollContainer, InputMethodManager.SHOW_IMPLICIT);
+            }
+        }
     }
 
     @Override

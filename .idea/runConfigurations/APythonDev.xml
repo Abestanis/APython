@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="APythonDev" type="AndroidTestRunConfigurationType" factoryName="Android Instrumented Tests">
     <module name="app" />
-    <option name="TESTING_TYPE" value="3" />
-    <option name="INSTRUMENTATION_RUNNER_CLASS" value="android.support.test.runner.AndroidJUnitRunner" />
-    <option name="METHOD_NAME" value="run" />
+    <option name="TESTING_TYPE" value="2" />
+    <option name="INSTRUMENTATION_RUNNER_CLASS" value="" />
+    <option name="METHOD_NAME" value="" />
     <option name="CLASS_NAME" value="launcher.APythonDev" />
     <option name="PACKAGE_NAME" value="" />
     <option name="EXTRA_OPTIONS" value="" />
@@ -44,7 +44,7 @@
     </Profilers>
     <method>
       <option name="Android.Gradle.BeforeRunTask" enabled="true" />
-      <option name="com.android.instantApps.provision.BeforeRunTask" enabled="true" clearCache="false" clearProvisionedDevices="false" myTimestamp="1511665860297" />
+      <option name="com.android.instantApps.provision.BeforeRunTask" enabled="true" clearCache="false" clearProvisionedDevices="false" myTimestamp="1515625587200" />
     </method>
   </configuration>
 </component>

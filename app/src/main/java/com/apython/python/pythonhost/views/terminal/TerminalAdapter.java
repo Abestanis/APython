@@ -12,6 +12,8 @@ import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.apython.python.pythonhost.MainActivity;
@@ -28,6 +30,8 @@ class TerminalAdapter extends BaseAdapter {
     private TerminalTextSpan currentTextAttr = null;
     private MultiCharTerminalEscSeq currentEscSeq = null;
     private final ToneGenerator beepGenerator;
+    private EditText inputView        = null;
+    private boolean  lineInputEnabled = false;
     private static final int[] COLORS = { // https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
             Color.rgb(0, 0, 0),
             Color.rgb(205, 0, 0),
@@ -67,7 +71,12 @@ class TerminalAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         CharSequence text = screenData.getLineWithUiData(position);
-        if (convertView != null) {
+        if (inputView != null && lineInputEnabled && screenData.isCursorInLine(position)) {
+            inputView.setEnabled(true);
+            inputView.setText(text);
+            return inputView;
+        }
+        if (convertView instanceof TextView && !(convertView instanceof EditText)) {
             ((TextView) convertView).setText(text);
             return convertView;
         }
@@ -294,5 +303,23 @@ class TerminalAdapter extends BaseAdapter {
             }
         }
         return true;
+    }
+
+    void setInputView(EditText view) {
+        inputView = view;
+    }
+    
+    void enableLineInput() {
+        lineInputEnabled = true;
+        if (inputView != null) {
+            notifyDataSetChanged();
+        }
+    }
+    
+    void disableLineInput() {
+        lineInputEnabled = false;
+        if (inputView != null) {
+            inputView.setEnabled(false);
+        }
     }
 }

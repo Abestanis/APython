@@ -67,7 +67,7 @@ public class PythonInterpreterActivity extends Activity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-//                        terminalView.enableInput("", null);
+                        terminalView.enableLineInput();
                     }
                 });
             }
@@ -78,7 +78,7 @@ public class PythonInterpreterActivity extends Activity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-//                        terminalView.disableInput();
+                        terminalView.disableLineInput();
                     }
                 });
             }
@@ -117,7 +117,7 @@ public class PythonInterpreterActivity extends Activity {
     @Override
     public void onBackPressed() {
         interpreter.interrupt();
-        terminalView.disableInput();
+        terminalView.disableLineInput();
     }
 
     @Override
@@ -186,7 +186,6 @@ public class PythonInterpreterActivity extends Activity {
                 interpreter.interrupt();
             }
         });
-        interpreter.sendInput("print('\\033[31mTest-Test<<<>>>Ha\\r\\033[mHi')\n");
     }
 
     private void showPythonVersionDialog() {
