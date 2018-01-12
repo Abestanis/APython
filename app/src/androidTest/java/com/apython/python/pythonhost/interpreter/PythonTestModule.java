@@ -7,6 +7,7 @@ import android.support.test.filters.LargeTest;
 import android.support.test.runner.AndroidJUnit4;
 
 import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.TestUtil;
 import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterProcessHandle;
 
@@ -17,6 +18,7 @@ import org.junit.runner.RunWith;
 import java.io.File;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by Sebastian on 25.04.2017.
@@ -32,6 +34,10 @@ public class PythonTestModule {
     @org.junit.Before
     public void setUp() throws Exception {
         context = InstrumentationRegistry.getTargetContext();
+        assertTrue(TestUtil.copyNativePythonLibraries(context));
+        assertTrue(TestUtil.installPythonLibraries(context, "3.4"));
+        assertTrue(TestUtil.installLibraryData(context));
+        assertTrue(PackageManager.ensurePythonInstallation(context, "3.4", null));
     }
 
     @org.junit.Test
