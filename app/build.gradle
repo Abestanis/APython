@@ -35,8 +35,7 @@ android {
     tasks.whenTaskAdded {
         task ->
             if (task.name in ['prepareDebugDependencies', 'prepareReleaseDependencies']) {
-                task.finalizedBy updatePythonZip27
-                task.finalizedBy updatePythonZip34
+                task.finalizedBy updatePythonLibZips
             }
             if (task.name.startsWith('externalNativeBuild')) {
                 task.finalizedBy {
@@ -60,19 +59,11 @@ android {
             description: 'Download and extract sources for all additional libraries') {
         libConfigFile file('../../../GitHub/Repositories/APython-Libs/libraries.cfg')
     }
-    task updatePythonZip27(type: Zip, description: 'Update the Python library zip') {
-        from file('src/main/jni/DevLibs/Python2.7.2/source/Lib')
+    task updatePythonLibZips(type: UpdatePythonLibZips,
+            description: 'Create a zip of the Python libraries and place it in the ' +
+                    'assets folder so it can be used for testing.') {
+        pythonSourceParentDir file('src/main/jni/DevLibs')
         destinationDir file('src/main/assets/DevAssets/')
-        baseName 'lib2_7'
-        version null
-        extension 'zip'
-    }
-    task updatePythonZip34(type: Zip, description: 'Update the Python library zip') {
-        from file('src/main/jni/DevLibs/Python3.4.3/source/Lib')
-        destinationDir file('src/main/assets/DevAssets/')
-        baseName 'lib3_4'
-        version null
-        extension 'zip'
     }
     productFlavors {
     }
@@ -277,6 +268,49 @@ class Util {
             diffString += line + '\n'
         }
         return diffString
+    }
+}
+
+
+class UpdatePythonLibZips extends DefaultTask {
+    @InputDirectory
+    File pythonSourceParentDir
+    @OutputDirectory
+    File destinationDir
+
+    @TaskAction
+    protected void main() {
+        def pythonSourceDirs = pythonSourceParentDir.listFiles(new FileFilter() {
+            @Override
+            boolean accept(File pathname) {
+                return pathname.isDirectory()\
+                    && pathname.getName().matches("Python\\d\\.\\d\\.\\d\$")
+            }
+        })
+        for (File pythonSource: pythonSourceDirs) {
+            def version = pythonSource.getName().substring(6)
+            def libDir = new File(pythonSource, 'source/Lib')
+            if (!libDir.isDirectory()) {
+                getLogger().log(LogLevel.WARN,
+                        'Could not find the Python std modules at ' + libDir.absolutePath)
+                continue
+            }
+            println("Creating std module zip for Python $version...")
+            def versionParts = version.split('\\.')
+            def libName = 'lib' + versionParts[0] + '_' + versionParts[1]
+            def zipTask = project.tasks.create(name: "updatePython$libName", type: Zip) {
+                from libDir
+                destinationDir project.file('src/main/assets/DevAssets/')
+                baseName libName
+                extension 'zip'
+            }
+            zipTask.copy()
+            if (!zipTask.didWork) {
+                setDidWork(false)
+                getLogger().log(LogLevel.ERROR, "Failed to create Zip for python version $version.")
+                return
+            }
+        }
     }
 }
 
