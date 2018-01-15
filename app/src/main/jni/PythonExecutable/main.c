@@ -1,4 +1,6 @@
 #include "main.h"
+#include <string.h>
+#include <errno.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +122,8 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
                               pyVersionArg);
                 }
             } else {
-                LOG_ERROR("Failed to open the Python library directory (%s): %s", pythonLibDir, strerror(errno));
+                LOG_ERROR("Failed to open the Python library directory (%s): %s",
+                          pythonLibDir, strerror(errno));
             }
         }
         return libName;
@@ -159,7 +162,8 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
         }
         closedir(pyLibDir);
     } else {
-        LOG_ERROR("Failed to open the Python library directory (%s): %s", pythonLibDir, strerror(errno));
+        LOG_ERROR("Failed to open the Python library directory (%s): %s",
+                  pythonLibDir, strerror(errno));
         return NULL;
     }
     if (libName == NULL) {
@@ -174,7 +178,9 @@ void addPathToEnvVariable(const char* variableName, const char* path) {
     if (strstr(value, path) == NULL) { // Check if our path is already in LD_LIBRARY_PATH
         size_t valueLen = strlen(path) + strlen(value) + 2;
         const char* newValue = malloc(sizeof(char) * (valueLen));
-        if (newValue == NULL) {LOG_ERROR("Not enough memory to change '%s'!", variableName); return; }
+        if (newValue == NULL) {
+            LOG_ERROR("Not enough memory to change '%s'!", variableName); return;
+        }
         snprintf((char*) newValue, valueLen, "%s:%s", path, value);
         setenv(variableName, newValue, 1);
         free((char*) newValue);

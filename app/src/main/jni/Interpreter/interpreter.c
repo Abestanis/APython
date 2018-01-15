@@ -1,5 +1,6 @@
 #include "interpreter.h"
 #include <errno.h>
+#include <string.h>
 #include "log.h"
 #include "py_utils.h"
 #include "py_compatibility.h"
