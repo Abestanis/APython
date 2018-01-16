@@ -11,3 +11,4 @@ Thumbs.db
 /app/src/main/assets/*
 /app/src/androidTest/assets/*
 app/src/main/jni/DevLibs/*
+app/src/main/jni/DevLibs/

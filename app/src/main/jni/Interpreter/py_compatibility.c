@@ -51,7 +51,7 @@ const char* getPythonVersion() {
 
 int call_setExitHandler(_exitHandler exitHandler) {
     static const char* name = "setExitHandler";
-    void (*setExitHandler)(_exitHandler handler) = dlsym(pythonLib, name);
+    void (*setExitHandler)(_exitHandler) = dlsym(pythonLib, name);
     if (setExitHandler != NULL) {
         setExitHandler(exitHandler);
         return 1;
