@@ -34,7 +34,7 @@ android {
     }
     tasks.whenTaskAdded {
         task ->
-            if (task.name in ['prepareDebugDependencies', 'prepareReleaseDependencies']) {
+            if (task.name in ['generateDebugResources', 'generateReleaseResources']) {
                 task.finalizedBy updatePythonLibZips
             }
             if (task.name.startsWith('externalNativeBuild')) {
