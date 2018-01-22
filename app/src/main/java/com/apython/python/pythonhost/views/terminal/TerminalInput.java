@@ -69,7 +69,7 @@ public class TerminalInput extends EditText {
 
     private void init() {
         this.inputManager = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        this.inputConnection = new TerminalInputConnection(this);
+        this.inputConnection = new TerminalInputConnection(null);
         setFocusable(true);
         setFocusableInTouchMode(true);
         inputWatcher = new TextWatcher() {
@@ -269,7 +269,7 @@ public class TerminalInput extends EditText {
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
-        super.onCreateInputConnection(outAttrs);
+        inputConnection.setTarget(super.onCreateInputConnection(outAttrs));
         return inputConnection;
     }
 
