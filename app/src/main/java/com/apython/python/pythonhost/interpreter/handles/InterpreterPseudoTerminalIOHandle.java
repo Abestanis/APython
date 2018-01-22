@@ -170,16 +170,16 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
     void stopOutputListener() {
         if (outputListenerThread != null && outputListenerThread.isAlive()) {
             outputListenerThread.interrupt();
-            try {
-                outputListenerThread.join(); // TODO: This will lock, need to interrupt the read
-            } catch (InterruptedException ignored) {}
+//            try {
+//                outputListenerThread.join(); // TODO: This will lock, need to interrupt the read
+//            } catch (InterruptedException ignored) {}
         }
         outputListenerThread = null;
         if (readLineThread != null && readLineThread.isAlive()) {
             readLineThread.interrupt();
-            try {
-                readLineThread.join(); // TODO: This will lock, need to interrupt the read
-            } catch (InterruptedException ignored) {}
+//            try {
+//                readLineThread.join(); // TODO: This will lock, need to interrupt the read
+//            } catch (InterruptedException ignored) {}
         }
         readLineThread = null;
     }
