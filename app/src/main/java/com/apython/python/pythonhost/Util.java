@@ -684,7 +684,7 @@ public class Util {
         if (parts.length > 2) {
             for (String secondaryExtension : SECONDARY_EXTENSIONS) {
                 if (secondaryExtension.equals(parts[1])) {
-                    extension = parts[1] + parts[2];
+                    extension = parts[1] + "." + parts[2];
                     break;
                 }
             }

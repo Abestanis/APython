@@ -69,6 +69,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                     public boolean onFling(MotionEvent firstEvent, MotionEvent lastEvent,
                                            float velocityX, float velocityY) {
                         if (programHandler != null && firstEvent != null && lastEvent != null &&
+                                Math.abs(firstEvent.getY() - lastEvent.getY()) < 50 &&
                                 Math.abs(firstEvent.getX() - lastEvent.getX()) > 30) {
                             if (firstEvent.getX() - lastEvent.getX() > 0) {
                                 programHandler.sendInput("\033[B");
