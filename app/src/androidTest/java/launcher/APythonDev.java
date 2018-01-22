@@ -2,6 +2,7 @@ package launcher;
 
 import android.content.Context;
 import android.content.Intent;
+import android.preference.PreferenceManager;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.LargeTest;
 import android.support.test.rule.ActivityTestRule;
@@ -10,6 +11,7 @@ import android.util.Log;
 
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.TestUtil;
 import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.interpreter.PythonInterpreterActivity;
@@ -76,6 +78,9 @@ public class APythonDev {
         assertTrue(TestUtil.installPythonLibraries(context, PYTHON_VERSION));
         assertTrue(TestUtil.installLibraryData(context));
         assertTrue(PackageManager.ensurePythonInstallation(context, PYTHON_VERSION, null));
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putString(
+                PythonSettingsActivity.KEY_PYTHON_DOWNLOAD_URL, "http://10.0.2.2:8000"
+        ).apply();
     }
 
     /**
