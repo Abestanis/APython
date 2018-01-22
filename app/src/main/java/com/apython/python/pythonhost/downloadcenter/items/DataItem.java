@@ -23,6 +23,11 @@ public class DataItem extends Dependency {
     private String dataName = null;
     private boolean shouldExtract = false;
 
+    public DataItem(Context context, String name) {
+        this(context);
+        dataName = name;
+    }
+    
     public DataItem(Context context) {
         super(context);
     }
@@ -35,6 +40,7 @@ public class DataItem extends Dependency {
     }
 
     private void checkIfShouldExtract() {
+        if (url == null || installLocation == null) { return; }
         String destExt = Util.getFileExt(installLocation);
         shouldExtract = destExt == null || !destExt.equals(Util.getFileExt(new File(url)));
     }

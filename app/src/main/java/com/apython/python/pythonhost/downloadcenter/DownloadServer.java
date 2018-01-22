@@ -252,8 +252,8 @@ class DownloadServer {
                         dataName + ": Missing url, checksum or destination");
                 continue;
             }
-            DataItem dataItem = new DataItem(context);
-            dataItem.setUrl(url).setMd5Checksum(checksum).setInstallLocation(destination);
+            DataItem dataItem = new DataItem(context, dataName);
+            dataItem.setInstallLocation(destination).setUrl(url).setMd5Checksum(checksum);
             dataItems.put(dataItem.getId(), dataItem);
         }
         dataReader.endObject();

@@ -32,7 +32,6 @@ class SDLInputConnection extends BaseInputConnection {
             sdlWindow.onNativeKeyDown(keyCode);
             return true;
         } else if (event.getAction() == KeyEvent.ACTION_UP) {
-
             sdlWindow.onNativeKeyUp(keyCode);
             return true;
         }
