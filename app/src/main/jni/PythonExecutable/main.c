@@ -14,7 +14,7 @@ void printUsage(const char* programName) {
     printf(
         "Python Launcher for Android\n"
         "\n"
-        "usage: %s [ launcher-arguments ] [ python-arguments ]\n"
+        "usage: %s [launcher-arguments] [python-arguments]\n"
         "\n"
         "Launcher arguments:\n"
         "\n"
