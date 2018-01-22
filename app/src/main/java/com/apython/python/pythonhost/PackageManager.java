@@ -14,8 +14,10 @@ import android.util.Log;
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -180,7 +182,8 @@ public class PackageManager {
      * @param context The current context.
      * @param libraryName The name of the library to load.
      *
-     * @throws LinkageError if the library was not downloaded or it is not in the usual directory.
+     * @throws UnsatisfiedLinkError if the library was not downloaded
+     *                              or it is not in the usual directory.
      */
     @SuppressLint("UnsafeDynamicallyLoadedCode")
     public static void loadDynamicLibrary(Context context, String libraryName) {
@@ -291,12 +294,18 @@ public class PackageManager {
         String pyExecutableName = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ?
                 "python_pie" : "python";
         try {
-            return Util.installFromInputStream(executable, context.getAssets().open(
-                    getSupportedCPUABIS()[0] + "/" + pyExecutableName), progressHandler);
+            for (String cpuAbi : getSupportedCPUABIS()) {
+                InputStream inputStream;
+                try {
+                    inputStream = context.getAssets().open(cpuAbi + "/" + pyExecutableName);
+                } catch (FileNotFoundException ignored) { continue; }
+                return Util.installFromInputStream(executable, inputStream, progressHandler);
+            }
+            Log.e(MainActivity.TAG, "Failed to install the python executable!");
         } catch (IOException e) {
             Log.e(MainActivity.TAG, "Failed to install the python executable!", e);
-            return false;
         }
+        return false;
     }
 
     public static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
