@@ -170,8 +170,8 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     }
 
     @Override
-    public void enableLineInput() {
-        pythonOutput.enableLineInput();
+    public void enableLineInput(String prompt) {
+        pythonOutput.enableLineInput(prompt);
     }
 
     @Override

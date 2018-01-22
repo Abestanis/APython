@@ -13,7 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import com.apython.python.pythonhost.MainActivity;
@@ -309,9 +308,12 @@ class TerminalAdapter extends BaseAdapter {
         inputView = view;
     }
     
-    void enableLineInput() {
+    void enableLineInput(String prompt) {
         lineInputEnabled = true;
         if (inputView != null) {
+            if (inputView instanceof TerminalInput) {
+                ((TerminalInput) inputView).setPrompt(prompt);
+            }
             notifyDataSetChanged();
         }
     }

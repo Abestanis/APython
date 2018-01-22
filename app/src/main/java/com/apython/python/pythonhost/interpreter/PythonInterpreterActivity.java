@@ -62,12 +62,12 @@ public class PythonInterpreterActivity extends Activity {
             }
 
             @Override
-            public void enableLineMode() {
+            public void enableLineMode(final String prompt) {
                 Log.e(MainActivity.TAG, "### START LINE MODE ###");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        terminalView.enableLineInput();
+                        terminalView.enableLineInput(prompt);
                     }
                 });
             }

@@ -12,6 +12,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.Util;
@@ -215,24 +216,19 @@ public class TerminalInput extends EditText {
     protected void onSelectionChanged(int selStart, int selEnd) {
         super.onSelectionChanged(selStart, selEnd);
         if (prompt == null || prompt.equals("")) return;
-        int newSelStart = -1, newSelEnd = -1;
+        int newSelStart = selStart, newSelEnd = selEnd;
         int min = prompt.length();
         if (selStart < min) newSelStart = min;
         if (selEnd < min) newSelEnd = min;
-        if (newSelEnd != -1 || newSelStart != -1) {
+        if (newSelEnd != selStart || newSelStart != selEnd) {
             setSelection(newSelStart, newSelEnd);
         }
     }
-
-    @Override
-    public void setText(CharSequence text, BufferType type) {
-        if (prompt == null && lineInputEnabled) {
-            Log.e(MainActivity.TAG, "Set prompt: '" + text + "'");
-            prompt = text.toString();
-        }
-        super.setText(text, type);
+    
+    void setPrompt(String prompt) {
+        this.prompt = prompt;
     }
-
+    
     /**
      * Tries to regain the focus of the soft input method.
      */

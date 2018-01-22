@@ -28,8 +28,10 @@ public interface PythonInterpreterHandle {
     interface LineIOHandler extends IOHandler {
         /**
          * Enable the line mode.
+         * 
+         * @param prompt An optional prompt.
          */
-        void enableLineMode();
+        void enableLineMode(String prompt);
 
         /**
          * Interrupt reading in a line and go back to normal send character mode. // TODO: How to handle the read input?

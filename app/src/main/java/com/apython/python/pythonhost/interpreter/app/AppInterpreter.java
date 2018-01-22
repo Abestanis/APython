@@ -139,8 +139,8 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                 }
 
                 @Override
-                public void enableLineMode() {
-                    terminal.enableLineInput();
+                public void enableLineMode(String prompt) {
+                    terminal.enableLineInput(prompt);
                 }
 
                 @Override

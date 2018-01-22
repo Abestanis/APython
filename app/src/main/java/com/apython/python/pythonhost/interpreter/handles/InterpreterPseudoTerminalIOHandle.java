@@ -133,12 +133,24 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
                 while (!Thread.currentThread().isInterrupted()) {
                     FileDescriptor fd = PythonInterpreter.waitForReadLineConnection();
                     if (fd == null) continue;
-                    if (ioHandler instanceof LineIOHandler) {
-                        ((LineIOHandler) ioHandler).enableLineMode();
-                    }
                     try {
-                        // Wait for eof
-                        new FileInputStream(fd).read();
+                        int bytesRead;
+                        byte buffer[] = new byte[64];
+                        StringBuilder prompt = new StringBuilder();
+                        do {
+                            bytesRead = new FileInputStream(fd).read(buffer);
+                            if (bytesRead == 0) { continue; }
+                            if (bytesRead == -1) { break; } // eof
+                            if (buffer[bytesRead - 1] == '\0') {
+                                prompt.append(new String(buffer, 0, bytesRead - 1, "UTF-8"));
+                                if (ioHandler instanceof LineIOHandler) {
+                                    ((LineIOHandler) ioHandler).enableLineMode(prompt.toString());
+                                }
+                                prompt.setLength(0);
+                            } else {
+                                prompt.append(new String(buffer, 0, bytesRead, "UTF-8"));
+                            }
+                        } while (true);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

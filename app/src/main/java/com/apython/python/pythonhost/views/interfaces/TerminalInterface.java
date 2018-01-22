@@ -13,7 +13,7 @@ public interface TerminalInterface extends WindowManagerInterface.Window {
         void terminate();
     }
     void addOutput(String output);
-    void enableLineInput();
+    void enableLineInput(String prompt);
     void disableLineInput();
     void setProgramHandler(ProgramHandler programHandler);
     boolean isInputEnabled();
