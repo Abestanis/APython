@@ -230,7 +230,7 @@ class DownloadServer {
                     url = this.address + "/" + pathList.get(0);
                     checksum = pathList.get(1);
                     break;
-                case "dest":
+                case "dst":
                     if (dataReader.peek() != JsonToken.STRING) {
                         Log.w(TAG, "(Version " + protocolVersion + ") Failed to parse the " +
                                 "destination of a data item: Expected string");
