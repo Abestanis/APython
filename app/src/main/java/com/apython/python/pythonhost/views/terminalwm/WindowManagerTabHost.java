@@ -118,9 +118,11 @@ public class WindowManagerTabHost extends LinearLayout {
         setBackgroundColor(Color.BLACK);
         tabIndicatorContainer = new LinearLayout(context);
         tabIndicatorContainer.setOrientation(HORIZONTAL);
+        tabIndicatorContainer.setFocusable(false);
         tabContentContainer = new FrameLayout(context);
         tabIndicatorScrollContainer = new HorizontalScrollView(context);
         tabIndicatorScrollContainer.setBackgroundColor(Color.WHITE);
+        tabIndicatorScrollContainer.setFocusable(false);
 
         tabContentContainer.setFocusable(false);
         tabContentContainer.setFocusableInTouchMode(false);

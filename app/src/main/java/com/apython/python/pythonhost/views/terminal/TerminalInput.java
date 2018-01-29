@@ -41,8 +41,9 @@ public class TerminalInput extends EditText {
         /**
          * This method gets called when this input receives a key event while it is disabled.
          * @param event The event this input received.
+         * @return Whether the event was consumed.
          */
-        void onKeyEventWhileDisabled(KeyEvent event);
+        boolean onKeyEventWhileDisabled(KeyEvent event);
     }
 
     private boolean lineInputEnabled = false;
@@ -120,11 +121,8 @@ public class TerminalInput extends EditText {
         this.setOnKeyListener(new OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (!isLineInputEnabled() && commitHandler != null) {
-                    commitHandler.onKeyEventWhileDisabled(event);
-                    return true;
-                }
-                return false;
+                return !isLineInputEnabled() && commitHandler != null
+                        && commitHandler.onKeyEventWhileDisabled(event);
             }
         });
         requestKeyboardFocus();
@@ -210,6 +208,13 @@ public class TerminalInput extends EditText {
      */
     public void setCommitHandler(OnCommitHandler commitHandler) {
         this.commitHandler = commitHandler;
+    }
+
+    /**
+     * @return The current commit handler.
+     */
+    public OnCommitHandler getCommitHandler() {
+        return commitHandler;
     }
 
     @Override

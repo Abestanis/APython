@@ -48,6 +48,15 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootView = layoutInflater.inflate(context.getResources().getLayout(R.layout.view_terminal_layout),
                                         container, false);
             rootLayout.addView(rootView);
+            rootLayout.setFocusable(true);
+            rootLayout.setFocusableInTouchMode(true);
+            rootLayout.setOnKeyListener(new View.OnKeyListener() {
+                @Override
+                public boolean onKey(View v, int keyCode, KeyEvent event) {
+                    return TerminalFragment.this.pythonInput.getCommitHandler()
+                            .onKeyEventWhileDisabled(event);
+                }
+            });
             scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context);
             if (outputBuffer != null) {
@@ -100,17 +109,18 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                 }
 
                 @Override
-                public void onKeyEventWhileDisabled(KeyEvent event) {
+                public boolean onKeyEventWhileDisabled(KeyEvent event) {
                     int keyCode = event.getKeyCode();
+                    boolean result;
                     switch (event.getAction()) {
                     case KeyEvent.ACTION_DOWN:
-                        keyInputListener.onKeyDown(null, keyInput, keyCode, event);
+                        result = keyInputListener.onKeyDown(null, keyInput, keyCode, event);
                         break;
                     case KeyEvent.ACTION_UP:
-                        keyInputListener.onKeyUp(null, keyInput, keyCode, event);
+                        result = keyInputListener.onKeyUp(null, keyInput, keyCode, event);
                         break;
                     default:
-                        keyInputListener.onKeyOther(null, keyInput, event);
+                        result = keyInputListener.onKeyOther(null, keyInput, event);
                     }
                     if (programHandler != null) {
                         String input = null;
@@ -122,7 +132,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                                 input = "\u007F";
                             } else if (keyCode == KeyEvent.KEYCODE_BACK) {
                                 programHandler.interrupt();
-                                return;
+                                return result;
                             } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                                 input = "\033[A";
                             } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
@@ -137,6 +147,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                             programHandler.sendInput(input);
                         }
                     }
+                    return result;
                 }
             });
         } else {
@@ -146,8 +157,9 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
         }
 
         // Make the keyboard always visible
-        this.getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
-                                                      | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        this.getActivity().getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE |
+                        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         return rootLayout;
     }
 
