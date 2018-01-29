@@ -30,9 +30,6 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
     @Override
     public boolean startInterpreter(String pythonVersion, String[] args) {
         pythonProcessFd = PythonInterpreter.openPseudoTerminal();
-        if (pythonProcessFd != null && ioHandler instanceof LineIOHandler) {
-            
-        }
         return pythonProcessFd != null;
     }
     
@@ -95,6 +92,7 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
      * and passes the output to the ioHandler.
      */
     void startOutputListener() {
+        if (pythonProcessFd == null) { return; }
         outputListenerThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -127,6 +125,7 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
         });
         outputListenerThread.setDaemon(true);
         outputListenerThread.start();
+        if (!(ioHandler instanceof LineIOHandler)) { return; }
         readLineThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -169,14 +168,14 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
      */
     void stopOutputListener() {
         if (outputListenerThread != null && outputListenerThread.isAlive()) {
-            outputListenerThread.interrupt();
+//            outputListenerThread.interrupt();
 //            try {
 //                outputListenerThread.join(); // TODO: This will lock, need to interrupt the read
 //            } catch (InterruptedException ignored) {}
         }
         outputListenerThread = null;
         if (readLineThread != null && readLineThread.isAlive()) {
-            readLineThread.interrupt();
+//            readLineThread.interrupt();
 //            try {
 //                readLineThread.join(); // TODO: This will lock, need to interrupt the read
 //            } catch (InterruptedException ignored) {}
