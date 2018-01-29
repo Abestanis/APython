@@ -61,9 +61,9 @@ android {
     }
     task updatePythonLibZips(type: UpdatePythonLibZips,
             description: 'Create a zip of the Python libraries and place it in the ' +
-                    'assets folder so it can be used for testing.') {
+                    'test assets folder so it can be used during testing.') {
         pythonSourceParentDir file('src/main/jni/DevLibs')
-        destinationDir file('src/main/assets/DevAssets/')
+        destinationDir file('src/androidTest/assets/')
     }
     productFlavors {
     }
@@ -300,7 +300,7 @@ class UpdatePythonLibZips extends DefaultTask {
             def libName = 'lib' + versionParts[0] + '_' + versionParts[1]
             def zipTask = project.tasks.create(name: "updatePython$libName", type: Zip) {
                 from libDir
-                destinationDir project.file('src/main/assets/DevAssets/')
+                destinationDir this.destinationDir
                 baseName libName
                 extension 'zip'
             }
