@@ -218,7 +218,7 @@ public class TerminalInput extends EditText {
         super.onSelectionChanged(selStart, selEnd);
         if (prompt == null || prompt.equals("")) return;
         int newSelStart = selStart, newSelEnd = selEnd;
-        int min = prompt.length();
+        int min = Math.min(prompt.length(), getText().length());
         if (selStart < min) newSelStart = min;
         if (selEnd < min) newSelEnd = min;
         if (newSelEnd != selStart || newSelStart != selEnd) {
