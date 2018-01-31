@@ -96,7 +96,7 @@ public class TerminalInput extends EditText {
                 String input = s.toString();
                 if (isLineInputEnabled()) {
                     String promptStr = prompt == null ? "" : prompt;
-                    if (start < promptStr.length() && !promptStr.equals(input)) {
+                    if (start < promptStr.length() && !input.startsWith(promptStr)) {
                         restorePrompt();
                     } else if (input.length() > 0) {
                         if (input.indexOf('\n', start) >= promptStr.length() && commitHandler != null) {
