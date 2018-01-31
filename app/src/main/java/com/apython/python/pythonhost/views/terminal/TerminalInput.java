@@ -9,10 +9,8 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.Util;
@@ -51,7 +49,6 @@ public class TerminalInput extends EditText {
     private TextWatcher        inputWatcher;
     private InputMethodManager inputManager;
     private OnCommitHandler    commitHandler;
-    private TerminalInputConnection inputConnection;
 
     public TerminalInput(Context context) {
         super(context);
@@ -70,7 +67,6 @@ public class TerminalInput extends EditText {
 
     private void init() {
         this.inputManager = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        this.inputConnection = new TerminalInputConnection(null);
         setFocusable(true);
         setFocusableInTouchMode(true);
         inputWatcher = new TextWatcher() {
@@ -270,12 +266,6 @@ public class TerminalInput extends EditText {
         if (requestFocus() && inputManager != null) {
             inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT);
         }
-    }
-
-    @Override
-    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
-        inputConnection.setTarget(super.onCreateInputConnection(outAttrs));
-        return inputConnection;
     }
 
     @Override
