@@ -48,15 +48,6 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootView = layoutInflater.inflate(context.getResources().getLayout(R.layout.view_terminal_layout),
                                         container, false);
             rootLayout.addView(rootView);
-            rootLayout.setFocusable(true);
-            rootLayout.setFocusableInTouchMode(true);
-            rootLayout.setOnKeyListener(new View.OnKeyListener() {
-                @Override
-                public boolean onKey(View v, int keyCode, KeyEvent event) {
-                    return TerminalFragment.this.pythonInput.getCommitHandler()
-                            .onKeyEventWhileDisabled(event);
-                }
-            });
             scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context);
             if (outputBuffer != null) {
@@ -71,7 +62,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
             scrollContainer.setItemsCanFocus(true);
             pythonInput.requestFocus();
-            scrollContainer.setOnTouchListener(new View.OnTouchListener() {
+            rootView.setOnTouchListener(new View.OnTouchListener() {
                 final GestureDetector detector = new GestureDetector(
                         context, new GestureDetector.SimpleOnGestureListener() {
                     @Override
@@ -155,6 +146,14 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootLayout = new FrameLayout(getActivity().getApplicationContext());
             rootLayout.addView(rootView);
         }
+        rootLayout.setFocusable(true);
+        rootLayout.setFocusableInTouchMode(true);
+        rootLayout.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                return pythonInput.getCommitHandler().onKeyEventWhileDisabled(event);
+            }
+        });
 
         // Make the keyboard always visible
         this.getActivity().getWindow().setSoftInputMode(
@@ -190,11 +189,11 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     @Override
     public void disableLineInput() {
         pythonOutput.disableLineInput();
-        if (scrollContainer.requestFocus()) {
+        if (rootLayout.requestFocus()) {
             InputMethodManager inputManager = (InputMethodManager) getActivity()
                     .getSystemService(Context.INPUT_METHOD_SERVICE);
             if (inputManager != null) {
-                inputManager.showSoftInput(scrollContainer, InputMethodManager.SHOW_IMPLICIT);
+                inputManager.showSoftInput(rootLayout, InputMethodManager.SHOW_IMPLICIT);
             }
         }
     }
