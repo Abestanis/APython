@@ -49,9 +49,10 @@ int waitForClient(ipcConnection* connection) {
     return accept(connection->fd, NULL, NULL);
 }
 
-int openConnection(const char* address) {
+int openConnection(const char* address, u_int8_t blocking) {
     struct sockaddr_un sockAddress;
     socklen_t sockLen;
+    int socketSetting = 0;
     int fd;
     if (makeAddress(address, &sockAddress, &sockLen) < 0) {
         return NULL;
@@ -59,10 +60,17 @@ int openConnection(const char* address) {
     if ((fd = socket(AF_LOCAL, SOCK_STREAM, PF_UNIX)) < 0) {
         return -1;
     }
+    if (!blocking) {
+        socketSetting = fcntl(fd, F_GETFL);
+        fcntl(fd, F_SETFL, socketSetting | O_NONBLOCK);
+    }
     if (connect(fd, (const struct sockaddr*) &sockAddress, sockLen) < 0) {
         close(fd);
         return -1;
         
+    }
+    if (!blocking) {
+        fcntl(fd, F_SETFL, socketSetting & ~O_NONBLOCK);
     }
     return fd;
 }

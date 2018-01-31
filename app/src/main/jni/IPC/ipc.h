@@ -8,7 +8,7 @@ typedef struct _ipcConnection ipcConnection;
 
 ipcConnection* createConnection(const char* address);
 int waitForClient(ipcConnection* connection);
-int openConnection(const char* address);
+int openConnection(const char* address, u_int8_t blocking);
 void closeConnection(ipcConnection* connection);
 
 #ifdef __cplusplus
