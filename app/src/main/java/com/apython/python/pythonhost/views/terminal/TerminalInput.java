@@ -1,10 +1,11 @@
 package com.apython.python.pythonhost.views.terminal;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -12,7 +13,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
-import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.Util;
 
 /**
@@ -49,6 +50,7 @@ public class TerminalInput extends EditText {
     private TextWatcher        inputWatcher;
     private InputMethodManager inputManager;
     private OnCommitHandler    commitHandler;
+    private SharedPreferences  preferences;
 
     public TerminalInput(Context context) {
         super(context);
@@ -67,6 +69,7 @@ public class TerminalInput extends EditText {
 
     private void init() {
         this.inputManager = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        this.preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         setFocusable(true);
         setFocusableInTouchMode(true);
         inputWatcher = new TextWatcher() {
@@ -117,8 +120,25 @@ public class TerminalInput extends EditText {
         this.setOnKeyListener(new OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                return !isLineInputEnabled() && commitHandler != null
-                        && commitHandler.onKeyEventWhileDisabled(event);
+                if (!isLineInputEnabled() || keyCode == KeyEvent.KEYCODE_DPAD_UP
+                        || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    return commitHandler != null && commitHandler.onKeyEventWhileDisabled(event);
+                }
+                if (keyCode == KeyEvent.KEYCODE_TAB) {
+                    if (event.getAction() == KeyEvent.ACTION_UP) {
+                        int start = Math.max(getSelectionStart(), 0);
+                        int end = Math.max(getSelectionEnd(), 0);
+                        String tab = preferences.getBoolean(PythonSettingsActivity.KEY_REPLACE_TABS,
+                                                            false) ? "    " : "\t"; 
+                        if (start != end) {
+                            getText().insert(prompt == null ? 0 : prompt.length(), tab);
+                        } else {
+                            getText().replace(start, end, tab, 0, tab.length());
+                        }
+                    }
+                    return true;
+                }
+                return false;
             }
         });
         requestKeyboardFocus();

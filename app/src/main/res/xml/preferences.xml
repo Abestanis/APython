@@ -17,4 +17,12 @@
             android:defaultValue="@string/pref_default_python_download_url"
             android:inputType="textUri"/>
     </PreferenceCategory>
+    <PreferenceCategory
+        android:title="Terminal"
+        android:key="pref_key_terminal_settings">
+        <CheckBoxPreference
+            android:title="Replace tab characters in the line input with four spaces"
+            android:key="pref_key_replace_tabs_with_spaces"
+            android:defaultValue="false"/>
+    </PreferenceCategory>
 </PreferenceScreen>

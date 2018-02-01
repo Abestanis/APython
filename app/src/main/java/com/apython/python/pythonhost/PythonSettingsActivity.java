@@ -26,6 +26,7 @@ public class PythonSettingsActivity extends PreferenceActivity
     public static final String KEY_PYTHON_VERSION      = "pref_key_default_python_version";
     public static final String KEY_SKIP_SPLASH_SCREEN  = "pref_key_skip_splash_screen";
     public static final String KEY_PYTHON_DOWNLOAD_URL = "pref_key_python_download_url";
+    public static final String KEY_REPLACE_TABS = "pref_key_replace_tabs_with_spaces";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -132,6 +132,8 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                                 input = "\033[D";
                             } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                                 input = "\033[C";
+                            } else if (keyCode == KeyEvent.KEYCODE_TAB) {
+                                input = "\t";
                             }
                         }
                         if (input != null) {
