@@ -70,9 +70,12 @@ class TerminalAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         CharSequence text = screenData.getLineWithUiData(position);
-        if (inputView != null && lineInputEnabled && screenData.isCursorInLine(position)) {
+        int cursorPos;
+        if (inputView != null && lineInputEnabled &&
+                (cursorPos = screenData.getCursorPosInLine(position)) != -1) {
             inputView.setEnabled(true);
             inputView.setText(text);
+            inputView.setSelection(cursorPos);
             return inputView;
         }
         if (convertView instanceof TextView && !(convertView instanceof EditText)) {

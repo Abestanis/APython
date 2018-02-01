@@ -97,29 +97,23 @@ public class OutputData {
         }
         int positionOffset = lineNumber - lastIndex;
         if (positionOffset < 0) {
-            int newStart, lastEnd = lastStringStartIndex;
-            int i = 0;
-            while (true) {
-                newStart = outputData.lastIndexOf("\n", lastEnd - 1);
-                if (--i == positionOffset) {
-                    lastStringEndIndex = lastEnd;
-                    lastStringStartIndex = newStart;
-                    break;
-                }
+            int lastEnd, newStart;
+            lastEnd = newStart = lastStringStartIndex;
+            for (int i = 0; i != positionOffset; i--) {
                 lastEnd = newStart;
+                newStart = outputData.lastIndexOf("\n", lastEnd - 1);
             }
+            lastStringEndIndex = lastEnd;
+            lastStringStartIndex = newStart;
         } else if (positionOffset > 0) {
-            int newEnd, lastStart = lastStringEndIndex;
-            int i = 0;
-            while (true) {
-                newEnd = outputData.indexOf("\n", lastStart + 1);
-                if (++i == positionOffset) {
-                    lastStringEndIndex = newEnd;
-                    lastStringStartIndex = lastStart;
-                    break;
-                }
+            int newEnd, lastStart;
+            newEnd = lastStart = lastStringEndIndex;
+            for (int i = 0; i != positionOffset; i++) {
                 lastStart = newEnd;
+                newEnd = outputData.indexOf("\n", lastStart + 1);
             }
+            lastStringEndIndex = newEnd;
+            lastStringStartIndex = lastStart;
         }
         if (lastStringEndIndex == -1) {
             lastStringEndIndex = outputData.length();
@@ -210,9 +204,19 @@ public class OutputData {
         }
     }
 
-    public boolean isCursorInLine(int lineNumber) {
+    /**
+     * Get the cursor position relative in the specific line or -1,
+     * if the cursor is not in the line.  
+     * 
+     * @param lineNumber The line of the output data.
+     * @return The relative cursor position to the start of the line.
+     */
+    public int getCursorPosInLine(int lineNumber) {
         findLine(lineNumber);
         int cursorPos = getCursorPosition();
-        return lastStringStartIndex < cursorPos && lastStringEndIndex >= cursorPos;
+        if (lastStringStartIndex < cursorPos && lastStringEndIndex >= cursorPos) {
+            return cursorPos - Math.max(lastStringStartIndex, 0) - 1;
+        }
+        return -1;
     }
 }

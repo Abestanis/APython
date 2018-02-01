@@ -34,7 +34,7 @@ public interface PythonInterpreterHandle {
         void enableLineMode(String prompt);
 
         /**
-         * Interrupt reading in a line and go back to normal send character mode. // TODO: How to handle the read input?
+         * Interrupt reading in a line and go back to normal send character mode.
          */
         void stopLineMode();
     }

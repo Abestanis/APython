@@ -63,7 +63,6 @@ public class PythonInterpreterActivity extends Activity {
 
             @Override
             public void enableLineMode(final String prompt) {
-                Log.e(MainActivity.TAG, "### START LINE MODE ###");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -74,7 +73,6 @@ public class PythonInterpreterActivity extends Activity {
 
             @Override
             public void stopLineMode() {
-                Log.e(MainActivity.TAG, "### STOP LINE MODE ###");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
