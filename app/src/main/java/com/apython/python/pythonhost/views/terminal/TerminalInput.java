@@ -73,18 +73,22 @@ public class TerminalInput extends EditText {
         setFocusable(true);
         setFocusableInTouchMode(true);
         inputWatcher = new TextWatcher() {
-            int start, count, numCharsAdded;
-            private void restorePrompt() {
-                String text = getText().toString();
-                String promptStr = prompt == null ? "" : prompt;
-                int promptMissingEnd = Math.min(promptStr.length(), start + count);
-                text = text.substring(0, start) + promptStr.substring(start, promptMissingEnd)
-                        + text.substring(start);
+            int start, count, numCharsAdded, cursorPosBefore;
+            
+            private String restorePrompt(String newText) {
+                String text = prompt == null ? "" : prompt;
+                if (start == 0 && newText.startsWith(text)) {
+                    return newText;
+                }
+                text += newText.substring(start);
                 internalSetText(text);
+                // TODO: Ring bell
+                return text;
             }
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                cursorPosBefore = getSelectionEnd();
             }
 
             @Override
@@ -99,9 +103,10 @@ public class TerminalInput extends EditText {
                 String input = s.toString();
                 if (isLineInputEnabled()) {
                     String promptStr = prompt == null ? "" : prompt;
-                    if (start < promptStr.length() && !input.startsWith(promptStr)) {
-                        restorePrompt();
-                    } else if (input.length() > 0) {
+                    if (start < promptStr.length()) {
+                        input = restorePrompt(input);
+                    }
+                    if (input.length() > 0) {
                         if (input.indexOf('\n', start) >= promptStr.length() && commitHandler != null) {
                             if (numCharsAdded == 1 && input.charAt(start) == '\n') {
                                 internalSetText(input.substring(0, start) + input.substring(start + 1) + '\n');
@@ -189,8 +194,7 @@ public class TerminalInput extends EditText {
     public boolean onTouchEvent(MotionEvent event) {
         if (lineInputEnabled && event.getAction() == MotionEvent.ACTION_DOWN) {
             if (!isInputMethodTarget()) {
-                requestFocus();
-                tryRegainSoftInputFocus();
+                requestKeyboardFocus();
             }
             setCursorVisible(true);
         }
@@ -248,13 +252,6 @@ public class TerminalInput extends EditText {
     
     void setPrompt(String prompt) {
         this.prompt = prompt;
-    }
-    
-    /**
-     * Tries to regain the focus of the soft input method.
-     */
-    private void tryRegainSoftInputFocus() {
-        this.inputManager.restartInput(this);
     }
 
     /**
