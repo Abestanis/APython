@@ -1,4 +1,5 @@
 #include "py_utils.h"
+#include <string.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <libgen.h>
@@ -41,18 +42,18 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     setenv("XDG_CACHE_HOME", pythonTemp, 1);
     
     size_t dataHomeLen = strlen(xdgBasePath) + strlen("/.local/share") + 1;
-    const char* dataHome = malloc(sizeof(char) * dataHomeLen);
+    char* dataHome = malloc(sizeof(char) * dataHomeLen);
     ASSERT(dataHome != NULL, "Not enough memory to construct 'XDG_DATA_HOME'!");
-    snprintf((char*) dataHome, dataHomeLen, "%s/.local/share", xdgBasePath);
+    snprintf(dataHome, dataHomeLen, "%s/.local/share", xdgBasePath);
     setenv("XDG_DATA_HOME", dataHome, 1);
-    free((char*) dataHome);
+    free(dataHome);
     
     size_t configHomeLen = strlen(xdgBasePath) + strlen("/.config") + 1;
-    const char* configHome = malloc(sizeof(char) * configHomeLen);
+    char* configHome = malloc(sizeof(char) * configHomeLen);
     ASSERT(configHome != NULL, "Not enough memory to construct 'XDG_CONFIG_HOME'!");
-    snprintf((char*) configHome, configHomeLen, "%s/.config", xdgBasePath);
+    snprintf(configHome, configHomeLen, "%s/.config", xdgBasePath);
     setenv("XDG_CONFIG_HOME", configHome, 1);
-    free((char*) configHome);
+    free(configHome);
 
     // Search dataDir for best 'tcl' dir
     char* tclDirName = NULL;
@@ -84,26 +85,28 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     }
     if (tclDirName != NULL) {
         size_t tclDirPathLen = strlen(dataDir) + 1 + strlen(tclDirName) + strlen("/library") + 1;
-        const char* tclLibDir = malloc(sizeof(char) * tclDirPathLen);
+        char* tclLibDir = malloc(sizeof(char) * tclDirPathLen);
         ASSERT(tclLibDir != NULL, "Not enough memory to construct 'TCL_LIBRARY'!");
-        snprintf((char*) tclLibDir, tclDirPathLen, "%s/%s/library", dataDir, tclDirName);
+        snprintf(tclLibDir, tclDirPathLen, "%s/%s/library", dataDir, tclDirName);
         setenv("TCL_LIBRARY", tclLibDir, 1);
-        free((char*) tclLibDir);
+        free(tclLibDir);
     }
+    
+    DIR* termInfoDir;
+    size_t termInfoPathLen = strlen(dataDir) + strlen("/terminfo") + 1;
+    char* termInfoDirPath = malloc(sizeof(char) * termInfoPathLen);
+    ASSERT(termInfoDirPath != NULL, "Not enough memory to construct 'TERMINFO'!");
+    snprintf(termInfoDirPath, termInfoPathLen, "%s/terminfo", dataDir);
+    if ((termInfoDir = opendir(termInfoDirPath))) {
+        closedir(termInfoDir);
+        setenv("TERMINFO", termInfoDirPath, 0);
+    }
+    free(termInfoDirPath);
+    
+    setenv("TERM", "xterm-256color", 0);
 }
 
 int runPythonInterpreter(int argc, char** argv) {
     LOG_INFO_("Running Python interpreter...");
     return call_Py_Main(argc, argv);
-}
-
-__sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler) {
-    struct sigaction context, oldContext;
-    context.sa_handler = signalHandler;
-    sigemptyset(&context.sa_mask);
-    context.sa_flags = 0;
-    if (sigaction(signal, &context, &oldContext) == -1) {
-        return SIG_ERR;
-    }
-    return oldContext.sa_handler;
 }

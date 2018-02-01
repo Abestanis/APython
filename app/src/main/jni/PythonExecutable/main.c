@@ -1,4 +1,6 @@
 #include "main.h"
+#include <string.h>
+#include <errno.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +14,7 @@ void printUsage(const char* programName) {
     printf(
         "Python Launcher for Android\n"
         "\n"
-        "usage: %s [ launcher-arguments ] [ python-arguments ]\n"
+        "usage: %s [launcher-arguments] [python-arguments]\n"
         "\n"
         "Launcher arguments:\n"
         "\n"
@@ -120,7 +122,8 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
                               pyVersionArg);
                 }
             } else {
-                LOG_ERROR("Failed to open the Python library directory (%s): %s", pythonLibDir, strerror(errno));
+                LOG_ERROR("Failed to open the Python library directory (%s): %s",
+                          pythonLibDir, strerror(errno));
             }
         }
         return libName;
@@ -159,7 +162,8 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
         }
         closedir(pyLibDir);
     } else {
-        LOG_ERROR("Failed to open the Python library directory (%s): %s", pythonLibDir, strerror(errno));
+        LOG_ERROR("Failed to open the Python library directory (%s): %s",
+                  pythonLibDir, strerror(errno));
         return NULL;
     }
     if (libName == NULL) {
@@ -174,7 +178,9 @@ void addPathToEnvVariable(const char* variableName, const char* path) {
     if (strstr(value, path) == NULL) { // Check if our path is already in LD_LIBRARY_PATH
         size_t valueLen = strlen(path) + strlen(value) + 2;
         const char* newValue = malloc(sizeof(char) * (valueLen));
-        if (newValue == NULL) {LOG_ERROR("Not enough memory to change '%s'!", variableName); return; }
+        if (newValue == NULL) {
+            LOG_ERROR("Not enough memory to change '%s'!", variableName); return;
+        }
         snprintf((char*) newValue, valueLen, "%s:%s", path, value);
         setenv(variableName, newValue, 1);
         free((char*) newValue);
@@ -222,61 +228,87 @@ void closePythonLibrary(void* handle) {
     dlclose(handle);
 }
 
-int main(int argc, char** argv) {
-    static const char* DEFAULT_PROGRAM_PATH = "./python";
-    #define ASSERT(expr, message, args...) if (!(expr)) {LOG_ERROR(message, ##args); return 1; }
-    const char* defaultPath  = "/data/data/com.apython.python.pythonhost/"; // This is an fallback if argv[0] is not set right; // TODO: consider better solution
-    const char* libAppendix  = "lib";
-    const char* pyLibAppendix  = "dynLibs";
-    const char* homeAppendix = "files";
-    const char* dataAppendix = "data";
-    const char* tempAppendix = "cache";
-    const char* xdgAppendix  = "pythonApps";
-    const char* basePath     = NULL;
-    const char *programPath  = NULL;
-    void* handle;
-    const char* indexPointer = NULL; 
-    if (argc > 0 && access(argv[0], F_OK) != -1) {
-        programPath = argv[0];
-        indexPointer = strrchr(programPath, '/');
-    } else {
-        programPath = DEFAULT_PROGRAM_PATH;
-        indexPointer = &DEFAULT_PROGRAM_PATH[1];
-    }
-    if (indexPointer != NULL) {
-        size_t baseDirLen = (((indexPointer - programPath) / sizeof(char)) + 1);
-        if (programPath[0] == '.') {
-            size_t cwdLen = 0;
-            char cwdBuff[PATH_MAX];
-            ASSERT(getcwd(cwdBuff, sizeof(cwdBuff) / sizeof(cwdBuff[0])) != NULL, "getcwd failed!");
-            cwdLen = strlen(cwdBuff);
-            const char* tmpPath = malloc(sizeof(char) * (cwdLen + strlen(programPath)));
-            strncpy((char*) tmpPath, cwdBuff, cwdLen + 1);
-            strcpy((char*) &tmpPath[cwdLen], ++programPath);
-            programPath = tmpPath;
-            baseDirLen = cwdLen + baseDirLen - 1;
+char* getAbsoluteProgramPath(int argc, char** argv, size_t* pathLength) {
+    static const char* defaultPath  = "/data/data/com.apython.python.pythonhost/python";
+    char pathBuff[PATH_MAX];
+    ssize_t length = readlink("/proc/self/exe", pathBuff,
+                              sizeof(pathBuff) / sizeof(pathBuff[0]) - 1);
+    if (length != -1) {
+        *pathLength = (size_t) length;
+        char* path = malloc(sizeof(char) * (length + 1));
+        if (path == NULL) {
+            fprintf(stderr,
+                    "Warning: Failed to allocate %d bytes for the program path!\n", length + 1);
+        } else {
+            strncpy(path, pathBuff, (size_t) length);
+            path[length] = '\0';
+            return path;
         }
-        basePath = malloc(sizeof(char) * (baseDirLen + 1));
-        strncpy((char*) basePath, programPath, baseDirLen);
-        *(((char*) basePath) + baseDirLen) = '\0';
-    } else {
-        basePath = malloc(sizeof(char) * (strlen(defaultPath) + 1));
-        strcpy((char*) basePath, defaultPath);
     }
+    if (argc > 0) {
+        if (argv[0][0] == '/') {
+            if (access(argv[0], F_OK) != -1) {
+                *pathLength = strlen(argv[0]);
+                char* path = strdup(argv[0]);
+                if (path != NULL) {
+                    return path;
+                }
+                fprintf(stderr, "Warning: Failed to allocate %d bytes for the program path!\n",
+                        *pathLength);
+            }
+        } else { // Relative path?
+            if (getcwd(pathBuff, sizeof(pathBuff) / sizeof(pathBuff[0])) != NULL
+                && pathBuff[0] != '(') {
+                *pathLength = strlen(argv[0]) + 1 + strlen(pathBuff);
+                char* path = malloc(sizeof(char) * (*pathLength));
+                if (path != NULL) {
+                    snprintf(path, *pathLength, "%s/%s", pathBuff, argv[0]);
+                    if (access(argv[0], F_OK) != -1) {
+                        return path;
+                    }
+                    free(path);
+                }
+                fprintf(stderr, "Warning: Failed to allocate %d bytes for the program path!\n",
+                        *pathLength);
+            }
+        }
+    }
+    *pathLength = sizeof(defaultPath) / sizeof(defaultPath[0]);
+    return strdup(defaultPath);
+}
+
+int main(int argc, char** argv) {
+    #define ASSERT(expr, message, args...) if (!(expr)) {LOG_ERROR(message, ##args); return 1; }
+    void* handle;
+    const char* libAppendix   = "lib";
+    const char* pyLibAppendix = "dynLibs";
+    const char* homeAppendix  = "files";
+    const char* dataAppendix  = "data";
+    const char* tempAppendix  = "cache";
+    const char* xdgAppendix   = "pythonApps";
+    size_t programPathLength  = 0;
+    
+    char* programPath = getAbsoluteProgramPath(argc, argv, &programPathLength);
+    ASSERT(programPath != NULL, "Failed to get the program path!")
+    size_t basePathLen = (((strrchr(programPath, '/') - programPath) / sizeof(char)) + 1);
+    char* basePath = malloc(sizeof(char) * (basePathLen + 1));
+    ASSERT(basePath != NULL, "Not enough memory to construct the python base path!");
+    strncpy(basePath, programPath, basePathLen);
+    basePath[basePathLen] = '\0';
     // Setup the path to the other Python host libs
-    const char* hostLibPath = malloc(sizeof(char) * (strlen(basePath) + strlen(libAppendix) + 1));
+    char* hostLibPath = malloc(sizeof(char) * (basePathLen + strlen(libAppendix) + 1));
     ASSERT(hostLibPath != NULL, "Not enough memory to construct the path to the Python host libraries!");
-    strcpy((char*) hostLibPath, basePath);
-    strcat((char*) hostLibPath, libAppendix);
+    strncpy(hostLibPath, basePath, basePathLen);
+    strcpy(hostLibPath + basePathLen, libAppendix);
     // home
-    const char *pythonHome = malloc(sizeof(char) * (strlen(basePath) + strlen(homeAppendix) + 1));
+    char *pythonHome = malloc(sizeof(char) * (basePathLen + strlen(homeAppendix) + 1));
     ASSERT(pythonHome != NULL, "Not enough memory to construct the path to the Python home directory!");
-    strcpy((char*) pythonHome, basePath);
-    strcat((char*) pythonHome, homeAppendix);
+    strncpy(pythonHome, basePath, basePathLen);
+    strcpy(pythonHome + basePathLen, homeAppendix);
     // Construct the path to the Python libs
-    const char* pythonLibs = malloc(sizeof(char) * (strlen(pythonHome) + strlen(pyLibAppendix) + 2));
+    char* pythonLibs = malloc(sizeof(char) * (strlen(pythonHome) + strlen(pyLibAppendix) + 2));
     ASSERT(pythonLibs != NULL, "Not enough memory to construct the path to the Python libraries!");
-    snprintf((char*) pythonLibs, strlen(pythonHome) + strlen(pyLibAppendix) + 2, "%s/%s", pythonHome, pyLibAppendix);
+    snprintf(pythonLibs, strlen(pythonHome) + strlen(pyLibAppendix) + 2, "%s/%s", pythonHome, pyLibAppendix);
     // Parse cmd args
     char* pyVersionArg = parseLauncherArgs(programPath, &argc, argv);
     // load pythonLib
@@ -285,30 +317,31 @@ int main(int argc, char** argv) {
     if ((handle = openInterpreterHandle(pythonLibName, hostLibPath)) == NULL) return 1;
     free(pythonLibName);
     // temp
-    const char *pythonTemp = malloc(sizeof(char) * (strlen(basePath) + strlen(tempAppendix) + 1));
+    char *pythonTemp = malloc(sizeof(char) * (basePathLen + strlen(tempAppendix) + 1));
     ASSERT(pythonTemp != NULL, "Not enough memory to construct the path to the Python temp directory!");
-    strcpy((char*) pythonTemp, basePath);
-    strcat((char*) pythonTemp, tempAppendix);
+    strncpy(pythonTemp, basePath, basePathLen);
+    strcpy(pythonTemp + basePathLen, tempAppendix);
     // xdg
-    const char *xdgBasePath = malloc(sizeof(char) * (strlen(basePath) + strlen(xdgAppendix) + 1));
+    char *xdgBasePath = malloc(sizeof(char) * (basePathLen + strlen(xdgAppendix) + 1));
     ASSERT(xdgBasePath != NULL, "Not enough memory to construct the xdg base path!");
-    strcpy((char*) xdgBasePath, basePath);
-    strcat((char*) xdgBasePath, xdgAppendix);
+    strncpy(xdgBasePath, basePath, basePathLen);
+    strcpy(xdgBasePath + basePathLen, xdgAppendix);
     // dataDir
-    const char *dataDir = malloc(sizeof(char) * (strlen(pythonHome) + strlen(dataAppendix) + 2));
+    char *dataDir = malloc(sizeof(char) * (strlen(pythonHome) + strlen(dataAppendix) + 2));
     ASSERT(dataDir != NULL, "Not enough memory to construct the data dir path!");
-    sprintf((char *) dataDir, "%s/%s", pythonHome, dataAppendix);
+    sprintf(dataDir, "%s/%s", pythonHome, dataAppendix);
     void (*setupPython)(const char*, const char*, const char*, const char*, const char*, const char*, const char*);
     // Setup and start the python interpreter
     setupPython = dlsym(handle, "setupPython");
     ASSERT(setupPython != NULL, "Could not find the method 'setupPython' in the interpreter library!");
     setupPython(programPath, pythonLibs, "", pythonHome, pythonTemp, xdgBasePath, dataDir);
-    free((char*) basePath);
-    free((char*) pythonLibs);
-    free((char*) pythonHome);
-    free((char*) pythonTemp);
-    free((char*) xdgBasePath);
-    free((char*) dataDir);
+    free(programPath);
+    free(basePath);
+    free(pythonLibs);
+    free(pythonHome);
+    free(pythonTemp);
+    free(xdgBasePath);
+    free(dataDir);
     int (*pyMain)(int, char**) = dlsym(handle, "call_Py_Main");
     ASSERT(pyMain != NULL, "Could not find the method 'call_Py_Main' in the interpreter library!");
     int result = pyMain(argc, argv);

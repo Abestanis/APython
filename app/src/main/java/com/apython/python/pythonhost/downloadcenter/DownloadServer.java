@@ -230,7 +230,7 @@ class DownloadServer {
                     url = this.address + "/" + pathList.get(0);
                     checksum = pathList.get(1);
                     break;
-                case "dest":
+                case "dst":
                     if (dataReader.peek() != JsonToken.STRING) {
                         Log.w(TAG, "(Version " + protocolVersion + ") Failed to parse the " +
                                 "destination of a data item: Expected string");
@@ -252,8 +252,8 @@ class DownloadServer {
                         dataName + ": Missing url, checksum or destination");
                 continue;
             }
-            DataItem dataItem = new DataItem(context);
-            dataItem.setUrl(url).setMd5Checksum(checksum).setInstallLocation(destination);
+            DataItem dataItem = new DataItem(context, dataName);
+            dataItem.setInstallLocation(destination).setUrl(url).setMd5Checksum(checksum);
             dataItems.put(dataItem.getId(), dataItem);
         }
         dataReader.endObject();

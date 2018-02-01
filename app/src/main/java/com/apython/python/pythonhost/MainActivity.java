@@ -20,13 +20,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // This is just for debugging on localhost
-//        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(
-//                PythonSettingsActivity.KEY_PYTHON_DOWNLOAD_URL,
-//                "http://10.0.2.2:8000"
-//        ).apply();
-
         boolean skipSplashScreen = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
                 PythonSettingsActivity.KEY_SKIP_SPLASH_SCREEN,
                 getResources().getBoolean(R.bool.pref_default_skip_splash_screen)

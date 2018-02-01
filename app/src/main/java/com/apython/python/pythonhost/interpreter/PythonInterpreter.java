@@ -7,19 +7,12 @@ package com.apython.python.pythonhost.interpreter;
  */
 
 import android.content.Context;
-import android.util.Log;
-import android.view.KeyEvent;
 
 import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
-import com.apython.python.pythonhost.Util;
-import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 
-import java.io.File;
 import java.io.FileDescriptor;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 
 public class PythonInterpreter {
     
@@ -43,11 +36,11 @@ public class PythonInterpreter {
     
     protected final Context context;
     protected final String  pythonVersion;
-    private String logTag = MainActivity.TAG;
-    private boolean running   = false;
+    private String logTag             = MainActivity.TAG;
+    private boolean running           = false;
     private String pseudoTerminalPath = null;
-    private ExitHandler exitHandler = null;
-    private Integer exitCode = null;
+    private ExitHandler exitHandler   = null;
+    private Integer exitCode          = null;
     
     public PythonInterpreter(Context context, String pythonVersion, String pseudoTerminalPath) {
         this(context, pythonVersion);
@@ -120,4 +113,5 @@ public class PythonInterpreter {
     public static native void closePseudoTerminal(FileDescriptor fd);
     public static native String getPseudoTerminalPath(FileDescriptor fd);
     public static native String getEnqueueInput(FileDescriptor fd);
+    public static native FileDescriptor waitForReadLineConnection();
 }

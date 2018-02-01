@@ -1,6 +1,5 @@
 package com.apython.python.pythonhost.views.terminal;
 
-import android.graphics.Typeface;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;

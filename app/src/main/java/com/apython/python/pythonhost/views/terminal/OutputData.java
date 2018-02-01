@@ -1,9 +1,5 @@
 package com.apython.python.pythonhost.views.terminal;
 
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.text.Spanned;
-
 import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.data.BinaryTreeMap;
 
@@ -93,6 +89,38 @@ public class OutputData {
         return this.outputData.charAt(index);
     }
     
+    private void findLine(int lineNumber) {
+        if (lineNumber >= lines) {
+            throw new IndexOutOfBoundsException(
+                    "Tried to access line " + lineNumber + " of the terminal output, " +
+                            "but only had " + lines + " lines.");
+        }
+        int positionOffset = lineNumber - lastIndex;
+        if (positionOffset < 0) {
+            int lastEnd, newStart;
+            lastEnd = newStart = lastStringStartIndex;
+            for (int i = 0; i != positionOffset; i--) {
+                lastEnd = newStart;
+                newStart = outputData.lastIndexOf("\n", lastEnd - 1);
+            }
+            lastStringEndIndex = lastEnd;
+            lastStringStartIndex = newStart;
+        } else if (positionOffset > 0) {
+            int newEnd, lastStart;
+            newEnd = lastStart = lastStringEndIndex;
+            for (int i = 0; i != positionOffset; i++) {
+                lastStart = newEnd;
+                newEnd = outputData.indexOf("\n", lastStart + 1);
+            }
+            lastStringEndIndex = newEnd;
+            lastStringStartIndex = lastStart;
+        }
+        if (lastStringEndIndex == -1) {
+            lastStringEndIndex = outputData.length();
+        }
+        lastIndex = lineNumber;
+    }
+    
     /**
      * Access a specific line from the screen data.
      *
@@ -100,49 +128,27 @@ public class OutputData {
      * @return The content of the line given by linenumber.
      */
     public String accessLine(int lineNumber) {
-        if (lineNumber >= lines) {
-            throw new IndexOutOfBoundsException("Tried to access line " + lineNumber +
-                                                        " of the terminal output, but only had " + lines + " lines.");
-        }
-        int positionOffset = lineNumber - lastIndex;
-        if (positionOffset < 0) {
-            int lastEnd = lastStringStartIndex;
-            int newStart;
-            for (int i = 0;;) {
-                newStart = outputData.lastIndexOf("\n", lastEnd - 1);
-                i--;
-                if (i == positionOffset) {
-                    lastStringEndIndex = lastEnd;
-                    lastStringStartIndex = newStart;
-                    break;
-                }
-                lastEnd = newStart;
-            }
-        } else if (positionOffset > 0) {
-            int lastStart = lastStringEndIndex;
-            int newEnd;
-            for (int i = 0;;) {
-                newEnd = outputData.indexOf("\n", lastStart + 1);
-                i++;
-                if (i == positionOffset) {
-                    lastStringEndIndex = newEnd;
-                    lastStringStartIndex = lastStart;
-                    break;
-                }
-                lastStart = newEnd;
-            }
-        }
-        if (lastStringEndIndex == -1) {
-            lastStringEndIndex = outputData.length();
-        }
+        findLine(lineNumber);
         int endIndex = lastStringEndIndex;
         if (endIndex == -1) { endIndex = 0; }
-        lastIndex = lineNumber;
         return outputData.substring(lastStringStartIndex + 1, endIndex);
     }
     
     public void remove(int start, int end) {
-
+        int lineCount = Util.countCharacterOccurrence(outputData.substring(start, end), '\n');
+        lines -= lineCount;
+        outputData.replace(start, end, "");
+        BinaryTreeMap<TerminalTextSpan>.Surrounding surrounding = uiControlPoints.getSurrounding(start);
+        TerminalTextSpan lastUiControl = null;
+        while (surrounding.higherKey != -1 && surrounding.higherKey < end) {
+            long uiControlIndex = surrounding.higherKey;
+            lastUiControl = surrounding.higherObject;
+            surrounding = surrounding.getNext();
+            uiControlPoints.remove(uiControlIndex);
+        }
+        if (lastUiControl != null) {
+            uiControlPoints.put(start, lastUiControl);
+        }
     }
 
     /**
@@ -196,5 +202,21 @@ public class OutputData {
             cursorPosition = nextPosition == outputData.length() ? LAST_CHAR_OF_OUTPUT_DATA : nextPosition;
             lines += Util.countCharacterOccurrence(text, '\n') - deletedLines;
         }
+    }
+
+    /**
+     * Get the cursor position relative in the specific line or -1,
+     * if the cursor is not in the line.  
+     * 
+     * @param lineNumber The line of the output data.
+     * @return The relative cursor position to the start of the line.
+     */
+    public int getCursorPosInLine(int lineNumber) {
+        findLine(lineNumber);
+        int cursorPos = getCursorPosition();
+        if (lastStringStartIndex < cursorPos && lastStringEndIndex >= cursorPos) {
+            return cursorPos - Math.max(lastStringStartIndex, 0) - 1;
+        }
+        return -1;
     }
 }

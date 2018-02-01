@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 
@@ -30,13 +31,13 @@ import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
  */
 
 public class TerminalFragment extends PythonFragment implements TerminalInterface {
-    
     private TerminalInput   pythonInput;
     private TerminalAdapter pythonOutput;
     private ProgramHandler  programHandler;
-    private View rootView = null;
-    private FrameLayout rootLayout = null;
-    private String outputBuffer = null;
+    private View        rootView        = null;
+    private FrameLayout rootLayout      = null;
+    private String      outputBuffer    = null;
+    private ListView    scrollContainer = null;
     private int terminalCharWith = 0, terminalCharHeight = 0;
 
     public TerminalFragment(Activity activity, String tag) {
@@ -59,7 +60,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                     updateTerminalMetrics();
                 }
             });
-            ListView scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
+            scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context);
             if (outputBuffer != null) {
                 pythonOutput.addOutput(outputBuffer);
@@ -67,23 +68,25 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             }
             this.pythonInput = (TerminalInput) layoutInflater.inflate(
                     context.getResources().getLayout(R.layout.terminal_input), scrollContainer, false);
-            scrollContainer.addFooterView(this.pythonInput);
+            this.pythonOutput.setInputView(this.pythonInput);
+            scrollContainer.setFocusable(false);
             scrollContainer.setAdapter(this.pythonOutput);
             scrollContainer.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
             scrollContainer.setItemsCanFocus(true);
             pythonInput.requestFocus();
-            this.pythonInput.setOnTouchListener(new View.OnTouchListener() {
+            rootView.setOnTouchListener(new View.OnTouchListener() {
                 final GestureDetector detector = new GestureDetector(
                         context, new GestureDetector.SimpleOnGestureListener() {
                     @Override
                     public boolean onFling(MotionEvent firstEvent, MotionEvent lastEvent,
                                            float velocityX, float velocityY) {
-                        if (firstEvent != null && lastEvent != null &&
+                        if (programHandler != null && firstEvent != null && lastEvent != null &&
+                                Math.abs(firstEvent.getY() - lastEvent.getY()) < 50 &&
                                 Math.abs(firstEvent.getX() - lastEvent.getX()) > 30) {
                             if (firstEvent.getX() - lastEvent.getX() > 0) {
-                                pythonInput.loadNextCommand();
+                                programHandler.sendInput("\033[B");
                             } else {
-                                pythonInput.loadLastCommand();
+                                programHandler.sendInput("\033[A");
                             }
                             return true;
                         }
@@ -93,7 +96,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
 
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
-                    return pythonInput.isInputEnabled() && detector.onTouchEvent(event);
+                    return detector.onTouchEvent(event);
                 }
             });
             this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {
@@ -102,25 +105,25 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                 
                 @Override
                 public void onCommit(TerminalInput terminalInput) {
-                    String[] inputList = terminalInput.popCurrentInput();
-                    String prompt = inputList[0], input = inputList[1];
-                    int splitIndex = input.indexOf('\n') + 1;
-                    pythonOutput.addOutput(prompt + input.substring(0, splitIndex));
-                    if (programHandler == null) return;
-                    programHandler.sendInput(input);
+                    String input = terminalInput.popCurrentInput();
+                    if (programHandler != null) {
+                        programHandler.sendInput(input);
+                    }
                 }
 
                 @Override
-                public void onKeyEventWhileDisabled(KeyEvent event) {
+                public boolean onKeyEventWhileDisabled(KeyEvent event) {
+                    int keyCode = event.getKeyCode();
+                    boolean result;
                     switch (event.getAction()) {
                     case KeyEvent.ACTION_DOWN:
-                        keyInputListener.onKeyDown(null, keyInput, event.getKeyCode(), event);
+                        result = keyInputListener.onKeyDown(null, keyInput, keyCode, event);
                         break;
                     case KeyEvent.ACTION_UP:
-                        keyInputListener.onKeyUp(null, keyInput, event.getKeyCode(), event);
+                        result = keyInputListener.onKeyUp(null, keyInput, keyCode, event);
                         break;
                     default:
-                        keyInputListener.onKeyOther(null, keyInput, event);
+                        result = keyInputListener.onKeyOther(null, keyInput, event);
                     }
                     if (programHandler != null) {
                         String input = null;
@@ -128,17 +131,28 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                             input = keyInput.toString();
                             keyInput.clear();
                         } else if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                            if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
+                            if (keyCode == KeyEvent.KEYCODE_DEL) {
                                 input = "\u007F";
-                            } else if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+                            } else if (keyCode == KeyEvent.KEYCODE_BACK) {
                                 programHandler.interrupt();
-                                return;
+                                return result;
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                                input = "\033[A";
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                                input = "\033[B";
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                                input = "\033[D";
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                                input = "\033[C";
+                            } else if (keyCode == KeyEvent.KEYCODE_TAB) {
+                                input = "\t";
                             }
                         }
                         if (input != null) {
                             programHandler.sendInput(input);
                         }
                     }
+                    return result;
                 }
             });
         } else {
@@ -146,16 +160,25 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootLayout = new FrameLayout(getActivity().getApplicationContext());
             rootLayout.addView(rootView);
         }
+        rootLayout.setFocusable(true);
+        rootLayout.setFocusableInTouchMode(true);
+        rootLayout.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                return pythonInput.getCommitHandler().onKeyEventWhileDisabled(event);
+            }
+        });
 
         // Make the keyboard always visible
-        this.getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
-                                                      | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        this.getActivity().getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE |
+                        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         return rootLayout;
     }
 
     @Override
     public boolean isInputEnabled() {
-        return pythonInput.isInputEnabled();
+        return pythonInput.isLineInputEnabled();
     }
 
     @Override
@@ -168,18 +191,25 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     }
 
     @Override
-    public void enableInput(String prompt, String enqueuedInput) {
-        pythonInput.enableInput(prompt, enqueuedInput != null ? enqueuedInput : "");
-    }
-
-    @Override
     public void setProgramHandler(ProgramHandler programHandler) {
         this.programHandler = programHandler;
     }
 
     @Override
-    public void disableInput() {
-        pythonInput.setEnabled(false);
+    public void enableLineInput(String prompt) {
+        pythonOutput.enableLineInput(prompt);
+    }
+
+    @Override
+    public void disableLineInput() {
+        pythonOutput.disableLineInput();
+        if (rootLayout.requestFocus()) {
+            InputMethodManager inputManager = (InputMethodManager) getActivity()
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (inputManager != null) {
+                inputManager.showSoftInput(rootLayout, InputMethodManager.SHOW_IMPLICIT);
+            }
+        }
     }
 
     @Override

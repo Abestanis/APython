@@ -13,7 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.apython.python.pythonhost.CalledByNative;
-import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterThreadHandle;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
@@ -128,7 +127,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                     interpreter.interrupt();
                 }
             });
-            interpreter.setIOHandler(new PythonInterpreterHandle.IOHandler() {
+            interpreter.setIOHandler(new PythonInterpreterHandle.LineIOHandler() {
                 @Override
                 public void onOutput(final String output) {
                     hostingAppActivity.runOnUiThread(new Runnable() {
@@ -137,6 +136,16 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                             terminal.addOutput(output);
                         }
                     });
+                }
+
+                @Override
+                public void enableLineMode(String prompt) {
+                    terminal.enableLineInput(prompt);
+                }
+
+                @Override
+                public void stopLineMode() {
+                    terminal.disableLineInput();
                 }
             });
         } else if (windowFragment instanceof SDLWindowFragment) {

@@ -54,6 +54,12 @@ public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHa
     }
 
     @Override
+    public boolean stopInterpreter() {
+        stopOutputListener();
+        return super.stopInterpreter();
+    }
+
+    @Override
     public Integer getInterpreterResult(boolean block) {
         if (exitCode == null && block) {
             synchronized (exitLocker) {

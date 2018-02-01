@@ -3,6 +3,8 @@ package com.apython.python.pythonhost.views.terminal;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
@@ -10,6 +12,7 @@ import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.apython.python.pythonhost.MainActivity;
@@ -25,6 +28,9 @@ class TerminalAdapter extends BaseAdapter {
     private final OutputData screenData = new OutputData();
     private TerminalTextSpan currentTextAttr = null;
     private MultiCharTerminalEscSeq currentEscSeq = null;
+    private final ToneGenerator beepGenerator;
+    private EditText inputView        = null;
+    private boolean  lineInputEnabled = false;
     private static final int[] COLORS = { // https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
             Color.rgb(0, 0, 0),
             Color.rgb(205, 0, 0),
@@ -38,6 +44,7 @@ class TerminalAdapter extends BaseAdapter {
 
     TerminalAdapter(Context context) {
         this.context = context;
+        beepGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
     }
 
     @Override
@@ -63,7 +70,15 @@ class TerminalAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         CharSequence text = screenData.getLineWithUiData(position);
-        if (convertView != null) {
+        int cursorPos;
+        if (inputView != null && lineInputEnabled &&
+                (cursorPos = screenData.getCursorPosInLine(position)) != -1) {
+            inputView.setEnabled(true);
+            inputView.setText(text);
+            inputView.setSelection(cursorPos);
+            return inputView;
+        }
+        if (convertView instanceof TextView && !(convertView instanceof EditText)) {
             ((TextView) convertView).setText(text);
             return convertView;
         }
@@ -157,6 +172,9 @@ class TerminalAdapter extends BaseAdapter {
                     screenData.setCursorPosition(cursorPosition - 1);
                 }
                 break; }
+            case '\07': { // '\a'
+                playBell();
+                break; }
             case '\033': // ANSI escape sequence
                 if (currentEscSeq == null) currentEscSeq = new MultiCharTerminalEscSeq();
                 int charsParsed = currentEscSeq.parse(text, specialCharacterIndex + 1);
@@ -189,6 +207,13 @@ class TerminalAdapter extends BaseAdapter {
             specialCharacterIndex = getNextSpecialCharacterIndex(text);
         }
         screenData.add(text);
+    }
+
+    /**
+     * Play a bell sound.
+     */
+    private void playBell() {
+        beepGenerator.startTone(ToneGenerator.TONE_PROP_BEEP);
     }
 
     /**
@@ -280,5 +305,26 @@ class TerminalAdapter extends BaseAdapter {
             }
         }
         return true;
+    }
+
+    void setInputView(EditText view) {
+        inputView = view;
+    }
+    
+    void enableLineInput(String prompt) {
+        lineInputEnabled = true;
+        if (inputView != null) {
+            if (inputView instanceof TerminalInput) {
+                ((TerminalInput) inputView).setPrompt(prompt);
+            }
+            notifyDataSetChanged();
+        }
+    }
+    
+    void disableLineInput() {
+        lineInputEnabled = false;
+        if (inputView != null) {
+            inputView.setEnabled(false);
+        }
     }
 }

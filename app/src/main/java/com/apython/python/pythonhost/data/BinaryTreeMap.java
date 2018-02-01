@@ -1,7 +1,5 @@
 package com.apython.python.pythonhost.data;
 
-import android.support.annotation.Nullable;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 
