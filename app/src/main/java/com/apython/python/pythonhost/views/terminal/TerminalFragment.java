@@ -3,7 +3,6 @@ package com.apython.python.pythonhost.views.terminal;
 import android.app.Activity;
 import android.content.Context;
 import android.text.Editable;
-import android.text.TextUtils;
 import android.text.method.TextKeyListener;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -13,7 +12,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.AdapterView;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.ListView;
@@ -220,16 +218,28 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
     }
     
     private void updateTerminalMetrics() {
-        StringBuilder testString = new StringBuilder();
-        for (int i = pythonInput.getWidth(); i > 0; i -= 30) testString.append("MMM" + "MMM" + "MMM"); // TODO: This is ridicules
-        int charWidth = pythonInput.getPaint().breakText(testString, 0, testString.length(),
-                                                         true, pythonInput.getWidth(), null);
-        int charHeight = (int) Math.floor(rootLayout.getHeight() / pythonInput.getHeight());
-        if (charHeight != terminalCharHeight || charWidth != terminalCharWith) {
-            Log.i(MainActivity.TAG, "Terminal layout changed: " + charWidth + "x" + charHeight);
-            // TODO
+        int newWidth = (int) Math.floor(
+                rootLayout.getWidth() / pythonInput.getPaint().measureText("M"));
+        int pythonInputHeight = pythonInput.getHeight();
+        if (pythonInputHeight == 0) {
+            pythonInputHeight = pythonInput.getMeasuredHeight();
         }
-        terminalCharWith = charWidth;
-        terminalCharHeight = charHeight;
+        if (pythonInputHeight == 0) {
+            int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(
+                    0, View.MeasureSpec.UNSPECIFIED);
+            int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(
+                    0, View.MeasureSpec.UNSPECIFIED);
+            pythonInput.measure(widthMeasureSpec, heightMeasureSpec);
+            pythonInputHeight = pythonInput.getMeasuredHeight();
+        }
+        int newHeight = (int) Math.floor(rootLayout.getHeight() / pythonInputHeight);
+        if (newHeight != terminalCharHeight || newWidth != terminalCharWith) {
+            if (programHandler != null) {
+                programHandler.onTerminalSizeChanged(
+                        newWidth, newHeight, rootLayout.getWidth(), rootLayout.getHeight());
+            }
+        }
+        terminalCharWith = newWidth;
+        terminalCharHeight = newHeight;
     }
 }

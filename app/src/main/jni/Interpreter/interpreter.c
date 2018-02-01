@@ -209,3 +209,15 @@ JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_getEnqueueInput)
     free(input);
     return jInput;
 }
+
+JNIEXPORT void NATIVE_FUNCTION(interpreter_PythonInterpreter_setPseudoTerminalSize)(
+        JNIEnv *env, jclass __unused cls, jobject fileDescriptor,
+        jint width, jint height, jint pixelWidth, jint pixelHeight) {
+    int masterFd;
+    struct winsize size = {
+            (unsigned short) height, (unsigned short) width,
+            (unsigned short) pixelWidth, (unsigned short) pixelHeight
+    };
+    masterFd = getFdFromFileDescriptor(env, fileDescriptor);
+    ioctl(masterFd, TIOCSWINSZ, &size);
+}

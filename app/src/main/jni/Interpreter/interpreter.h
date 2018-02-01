@@ -73,6 +73,15 @@ JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_getEnqueueInput)
         JNIEnv *, jclass __unused, jobject
 );
 
+/*
+ * Class:     com_apython_python_pythonhost_PythonInterpreter
+ * Method:    setPseudoTerminalSize
+ * Signature: (Ljava/io/FileDescriptor;IIII)V
+ */
+JNIEXPORT void NATIVE_FUNCTION(interpreter_PythonInterpreter_setPseudoTerminalSize)(
+        JNIEnv *, jclass __unused, jobject, jint, jint, jint, jint
+);
+
 #ifdef __cplusplus
 }
 #endif

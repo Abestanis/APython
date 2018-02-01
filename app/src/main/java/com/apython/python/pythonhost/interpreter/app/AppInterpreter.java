@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.apython.python.pythonhost.CalledByNative;
+import com.apython.python.pythonhost.interpreter.handles.InterpreterPseudoTerminalIOHandle;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterThreadHandle;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
@@ -120,6 +121,15 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                 @Override
                 public void terminate() {
                     // TODO: Handle
+                }
+
+                @Override
+                public void onTerminalSizeChanged(int newWidth, int newHeight,
+                                                  int pixelWidth, int pixelHeight) {
+                    if (interpreter instanceof InterpreterPseudoTerminalIOHandle) {
+                        ((InterpreterPseudoTerminalIOHandle) interpreter).setTerminalSize(
+                                newWidth, newHeight, pixelWidth, pixelHeight);
+                    }
                 }
 
                 @Override

@@ -17,6 +17,7 @@ import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.PythonSettingsActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.Util;
+import com.apython.python.pythonhost.interpreter.handles.InterpreterPseudoTerminalIOHandle;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterHandle;
 import com.apython.python.pythonhost.interpreter.handles.PythonInterpreterProcessHandle;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
@@ -177,6 +178,15 @@ public class PythonInterpreterActivity extends Activity {
             @Override
             public void terminate() {
                 // TODO: Handle
+            }
+
+            @Override
+            public void onTerminalSizeChanged(int newWidth, int newHeight,
+                                              int pixelWidth, int pixelHeight) {
+                if (interpreter instanceof InterpreterPseudoTerminalIOHandle) {
+                    ((InterpreterPseudoTerminalIOHandle) interpreter).setTerminalSize(
+                            newWidth, newHeight, pixelWidth, pixelHeight);
+                }
             }
 
             @Override

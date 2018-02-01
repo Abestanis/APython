@@ -19,7 +19,7 @@ import java.io.UnsupportedEncodingException;
  * 
  * Created by Sebastian on 21.10.2017.
  */
-abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHandle {
+public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHandle {
     private IOHandler ioHandler;
     private FileDescriptor pythonProcessFd = null;
     private PythonInterpreter.ExitHandler exitHandler = null;
@@ -181,5 +181,20 @@ abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpreterHan
 //            } catch (InterruptedException ignored) {}
         }
         readLineThread = null;
+    }
+
+    /**
+     * Tell the pseudo terminal that the terminal window has a new size. 
+     * 
+     * @param width  The width of the terminal window in characters.
+     * @param height The height of the terminal window in characters.
+     * @param pixelWidth  The width of the terminal window in pixel.
+     * @param pixelHeight The height of the terminal window in pixel.
+     */
+    public void setTerminalSize(int width, int height, int pixelWidth, int pixelHeight) {
+        if (pythonProcessFd == null) return;
+        Log.i(MainActivity.TAG, "Terminal layout changed: " + width + "x" + height + " (" + pixelWidth + "x" + pixelHeight + ")");
+        PythonInterpreter.setPseudoTerminalSize(pythonProcessFd, width, height,
+                                                pixelWidth, pixelHeight);
     }
 }

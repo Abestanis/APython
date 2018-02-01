@@ -11,6 +11,7 @@ public interface TerminalInterface extends WindowManagerInterface.Window {
         void sendInput(String input);
         void interrupt();
         void terminate();
+        void onTerminalSizeChanged(int newWidth, int newHeight, int pixelWidth, int pixelHeight);
     }
     void addOutput(String output);
     void enableLineInput(String prompt);
