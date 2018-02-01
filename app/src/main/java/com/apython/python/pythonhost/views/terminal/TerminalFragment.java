@@ -133,7 +133,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                                 input = "\u007F";
                             } else if (keyCode == KeyEvent.KEYCODE_BACK) {
                                 programHandler.interrupt();
-                                return result;
+                                return true;
                             } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                                 input = "\033[A";
                             } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
