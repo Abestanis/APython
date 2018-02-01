@@ -103,7 +103,7 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     }
     free(termInfoDirPath);
     
-    setenv("TERM", "linux", 0); // TODO: Figure out a real value here
+    setenv("TERM", "xterm-256color", 0);
 }
 
 int runPythonInterpreter(int argc, char** argv) {
