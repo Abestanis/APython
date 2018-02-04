@@ -8,19 +8,20 @@ import android.media.MediaRecorder;
 import android.os.Build;
 import android.util.Log;
 
+import com.apython.python.pythonhost.CalledByNative;
+
 /**
  * An Audio handler that enables sdl applications to play audio on Android devices.
- * 
- * Created by Sebastian on 21.11.2015.
  */
-class SDLAudioHandler {
-    private static final String TAG = "SDL_Audio";
+class SDLAudioManager {
+    private static final String TAG = "SDLAudio";
 
     private AudioTrack audioTrack = null;
-    private static AudioRecord audioRecord = null;
+    private AudioRecord audioRecord = null;
 
+    @CalledByNative
     int audioOpen(int sampleRate, boolean is16Bit, boolean isStereo, int desiredFrames) {
-        int channelConfig = isStereo ? AudioFormat.CHANNEL_OUT_STEREO : AudioFormat.CHANNEL_OUT_MONO;
+        int channelConfig = isStereo ? AudioFormat.CHANNEL_CONFIGURATION_STEREO : AudioFormat.CHANNEL_CONFIGURATION_MONO;
         int audioFormat = is16Bit ? AudioFormat.ENCODING_PCM_16BIT : AudioFormat.ENCODING_PCM_8BIT;
         int frameSize = (isStereo ? 2 : 1) * (is16Bit ? 2 : 1);
 
@@ -59,8 +60,62 @@ class SDLAudioHandler {
         return 0;
     }
 
+    @CalledByNative
+    void audioWriteShortBuffer(short[] buffer) {
+        if (audioTrack == null) {
+            Log.e(TAG, "Attempted to make audio call with uninitialized audio!");
+            return;
+        }
+
+        for (int i = 0; i < buffer.length; ) {
+            int result = audioTrack.write(buffer, i, buffer.length - i);
+            if (result > 0) {
+                i += result;
+            } else if (result == 0) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException ignored) {}
+            } else {
+                Log.w(TAG, "SDL audio: error return from write(short)");
+                return;
+            }
+        }
+    }
+
+    @CalledByNative
+    void audioWriteByteBuffer(byte[] buffer) {
+        if (audioTrack == null) {
+            Log.e(TAG, "Attempted to make audio call with uninitialized audio!");
+            return;
+        }
+        
+        for (int i = 0; i < buffer.length; ) {
+            int result = audioTrack.write(buffer, i, buffer.length - i);
+            if (result > 0) {
+                i += result;
+            } else if (result == 0) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException ignored) {}
+            } else {
+                Log.w(TAG, "SDL audio: error return from write(byte)");
+                return;
+            }
+        }
+    }
+
+    @CalledByNative
+    void audioClose() {
+        if (audioTrack != null) {
+            audioTrack.stop();
+            audioTrack.release();
+            audioTrack = null;
+        }
+    }
+
+    @CalledByNative
     int captureOpen(int sampleRate, boolean is16Bit, boolean isStereo, int desiredFrames) {
-        int channelConfig = isStereo 
+        int channelConfig = isStereo
                 ? AudioFormat.CHANNEL_CONFIGURATION_STEREO : AudioFormat.CHANNEL_CONFIGURATION_MONO;
         int audioFormat = is16Bit ? AudioFormat.ENCODING_PCM_16BIT : AudioFormat.ENCODING_PCM_8BIT;
         int frameSize = (isStereo ? 2 : 1) * (is16Bit ? 2 : 1);
@@ -77,7 +132,7 @@ class SDLAudioHandler {
 
         if (audioRecord == null) {
             audioRecord = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, sampleRate,
-                                           channelConfig, audioFormat, desiredFrames * frameSize);
+                                          channelConfig, audioFormat, desiredFrames * frameSize);
 
             // see notes about AudioTrack state in audioOpen(), above. Probably also applies here.
             if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
@@ -97,54 +152,7 @@ class SDLAudioHandler {
         return 0;
     }
 
-    void audioClose() {
-        if (audioTrack != null) {
-            audioTrack.stop();
-            audioTrack.release();
-            audioTrack = null;
-        }
-    }
-
-    void captureClose() {
-        if (audioRecord != null) {
-            audioRecord.stop();
-            audioRecord.release();
-            audioRecord = null;
-        }
-    }
-
-    void audioWriteShortBuffer(short[] buffer) {
-        for (int i = 0; i < buffer.length; ) {
-            int result = audioTrack.write(buffer, i, buffer.length - i);
-            if (result > 0) {
-                i += result;
-            } else if (result == 0) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException ignored) {}
-            } else {
-                Log.w(TAG, "SDL audio: error return from write(short)");
-                return;
-            }
-        }
-    }
-
-    void audioWriteByteBuffer(byte[] buffer) {
-        for (int i = 0; i < buffer.length; ) {
-            int result = audioTrack.write(buffer, i, buffer.length - i);
-            if (result > 0) {
-                i += result;
-            } else if (result == 0) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException ignored) {}
-            } else {
-                Log.w(TAG, "SDL audio: error return from write(byte)");
-                return;
-            }
-        }
-    }
-    
+    @CalledByNative
     int captureReadShortBuffer(short[] buffer, boolean blocking) {
         // !!! FIXME: this is available in API Level 23. Until then, we always block.  :(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -154,6 +162,7 @@ class SDLAudioHandler {
         return audioRecord.read(buffer, 0, buffer.length);
     }
 
+    @CalledByNative
     int captureReadByteBuffer(byte[] buffer, boolean blocking) {
         // !!! FIXME: this is available in API Level 23. Until then, we always block.  :(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -161,5 +170,14 @@ class SDLAudioHandler {
                     ? AudioRecord.READ_BLOCKING : AudioRecord.READ_NON_BLOCKING);
         }
         return audioRecord.read(buffer, 0, buffer.length);
+    }
+
+    @CalledByNative
+    void captureClose() {
+        if (audioRecord != null) {
+            audioRecord.stop();
+            audioRecord.release();
+            audioRecord = null;
+        }
     }
 }

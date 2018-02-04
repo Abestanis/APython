@@ -13,7 +13,7 @@ import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.views.ActivityLifecycleEventListener;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
-import com.apython.python.pythonhost.views.sdl.SDLLibraryHandler;
+import com.apython.python.pythonhost.views.sdl.SDLServer;
 import com.apython.python.pythonhost.views.terminal.TerminalFragment;
 
 import java.util.ArrayList;
@@ -33,10 +33,11 @@ public class WindowManagerFragment extends PythonFragment implements
     private static final String                 DEFAULT_UNTITLED_NAME  = "Untitled";
     private final        ArrayList<String>      windowNames            = new ArrayList<>(5);
     private final        ArrayList<Window>      windows                = new ArrayList<>(5);
+    private final        SDLServer              sdlServer;
 
     public WindowManagerFragment(Activity activity, String tag) {
         super(activity, tag);
-        SDLLibraryHandler.initLibraries(activity, this);
+        sdlServer = new SDLServer(activity, this);
     }
 
     @Override
@@ -119,22 +120,22 @@ public class WindowManagerFragment extends PythonFragment implements
     
     @Override
     public void onPause() {
-        SDLLibraryHandler.onActivityPause();
+        sdlServer.onActivityPause();
     }
 
     @Override
     public void onResume() {
-        SDLLibraryHandler.onActivityResume();
+        sdlServer.onActivityResume();
     }
 
     @Override
     public void onDestroy() {
-        SDLLibraryHandler.onActivityDestroyed();
+        sdlServer.onActivityDestroyed();
     }
 
     @Override
     public void onLowMemory() {
-        SDLLibraryHandler.onActivityLowMemory();
+        sdlServer.onActivityLowMemory();
     }
 
     private int getWindowIndex(Window window) {

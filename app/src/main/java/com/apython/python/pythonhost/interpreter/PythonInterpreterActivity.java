@@ -160,9 +160,8 @@ public class PythonInterpreterActivity extends Activity {
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
         PythonFragment currentWindow = terminalWindowManager.getCurrentWindow();
         if (currentWindow instanceof SDLWindowInterface) {
-            if (((SDLWindowInterface) currentWindow).dispatchKeyEvent(event)) {
-                return true;
-            }
+            Boolean result = ((SDLWindowInterface) currentWindow).dispatchKeyEvent(event);
+            if (result != null) { return result; }
         }
         return super.dispatchKeyEvent(event);
     }

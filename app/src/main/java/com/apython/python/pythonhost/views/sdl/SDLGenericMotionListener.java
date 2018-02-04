@@ -7,12 +7,19 @@ import android.view.MotionEvent;
 import android.view.View;
 
 /**
- * Generic motion handler for {@link SDLSurfaceView}s. 
- * 
+ * Generic motion handler for {@link SDLSurfaceView}s.
+ * <p>
  * Created by Sebastian on 16.11.2016.
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
 class SDLGenericMotionListener implements View.OnGenericMotionListener {
+    private final SDLServer sdlServer;
+
+    SDLGenericMotionListener(SDLServer sdlServer) {
+        super();
+        this.sdlServer = sdlServer;
+    }
+
     // Generic Motion (mouse hover, joystick...) events go here
     @Override
     public boolean onGenericMotion(View v, MotionEvent event) {
@@ -20,13 +27,16 @@ class SDLGenericMotionListener implements View.OnGenericMotionListener {
         float x, y;
         int action;
 
-        switch ( event.getSource() ) {
+        switch (event.getSource()) {
         case InputDevice.SOURCE_JOYSTICK:
         case InputDevice.SOURCE_GAMEPAD:
         case InputDevice.SOURCE_DPAD:
-            return SDLWindowFragment.joystickHandler.handleMotionEvent(event);
+            return sdlServer.getControllerManager().getJoystickHandler().handleMotionEvent(event);
 
         case InputDevice.SOURCE_MOUSE:
+            if (!sdlServer.separateMouseAndTouch()) {
+                break;
+            }
             action = event.getActionMasked();
             switch (action) {
             case MotionEvent.ACTION_SCROLL:

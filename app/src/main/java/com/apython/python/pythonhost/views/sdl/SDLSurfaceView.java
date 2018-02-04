@@ -1,6 +1,8 @@
 package com.apython.python.pythonhost.views.sdl;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.Sensor;
@@ -25,7 +27,6 @@ import android.view.WindowManager;
  *
  * Created by Sebastian on 20.11.2015.
  */
-
 class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         View.OnKeyListener, View.OnTouchListener, SensorEventListener {
     private static final String TAG = "SDLSurfaceView";
@@ -39,6 +40,7 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
     private static int displayWidth = -1, displayHeight = -1;
 
     SDLWindowFragment sdlWindow;
+    private SDLServer sdlServer;
     private final Object  surfaceCreationNotifier = new Object();
     private       boolean isSurfaceReady          = false;
     private       boolean surfaceWasDestroyed     = false;
@@ -47,11 +49,10 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         static final int RGB565   = 0x15151002;
         static final int RGB332   = 0x14110801;
         static final int RGB888   = 0x16161804;
-        static final int RGBA4444 = 0x15441002;
+        static final int RGBA4444 = 0x15421002;
         static final int RGBA5551 = 0x15441002;
         static final int RGBA8888 = 0x16462004;
         static final int RGBX8888 = 0x16261804;
-        static final int UNKNOWN  = 0;
     }
 
     public SDLSurfaceView(Context context) {
@@ -78,19 +79,29 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         setOnKeyListener(this);
         setOnTouchListener(this);
 
-        display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+        WindowManager windowManager = (WindowManager)
+                context.getSystemService(Context.WINDOW_SERVICE);
+        display = windowManager == null ? null : windowManager.getDefaultDisplay();
         if (!isInEditMode()) {
             sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         }
 
-        if(Build.VERSION.SDK_INT >= 12) {
-            setOnGenericMotionListener(new SDLGenericMotionListener());
-        }
-
-
         // Some arbitrary defaults to avoid a potential division by zero
         width = 1.0f;
         height = 1.0f;
+    }
+
+    public void handlePause() {
+        enableSensor(Sensor.TYPE_ACCELEROMETER, false);
+    }
+
+    public void handleResume() {
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        requestFocus();
+        setOnKeyListener(this);
+        setOnTouchListener(this);
+        enableSensor(Sensor.TYPE_ACCELEROMETER, true);
     }
 
     public Surface getNativeSurface() {
@@ -105,7 +116,6 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         synchronized (surfaceCreationNotifier) {
             surfaceCreationNotifier.notifyAll();
         }
-        enableSensor(Sensor.TYPE_ACCELEROMETER, true);
         if (hasFocus()) {
             sdlWindow.onNativeWindowFocusChanged(true);
         }
@@ -120,7 +130,6 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         if (isSurfaceReady) {
             sdlWindow.onNativeHideWindow();
             surfaceWasDestroyed = true;
-            enableSensor(Sensor.TYPE_ACCELEROMETER, false);
         }
         isSurfaceReady = false;
         sdlWindow.onNativeSurfaceDestroyed();
@@ -132,7 +141,7 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
                                int format, int width, int height) {
         Log.v(TAG, "surfaceChanged()");
 
-        int sdlFormat = SDLPixelFormat.UNKNOWN;
+        int sdlFormat = SDLPixelFormat.RGB565;
         switch (format) {
         //noinspection deprecation
         case PixelFormat.A_8:
@@ -175,10 +184,9 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
             break;
         case PixelFormat.RGB_888:
             Log.v(TAG, "pixel format RGB_888");
-            // Not sure this is right, maybe RGB24 instead?
+            // Not sure this is right, maybe SDL_PIXELFORMAT_RGB24 instead?
             sdlFormat = SDLPixelFormat.RGB888;
             break;
-        case PixelFormat.UNKNOWN:
         default:
             Log.v(TAG, "pixel format unknown " + format);
             break;
@@ -189,6 +197,37 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         this.height = height;
         sdlWindow.onNativeResize(width, height, sdlFormat);
         Log.v(TAG, "Window size: " + width + "x" + height);
+ 
+        boolean skip = false;
+        int requestedOrientation = sdlServer.getActivity().getRequestedOrientation();
+        if (requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                || requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT) {
+            if (width > height) {
+               skip = true;
+            }
+        } else if (requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                || requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE) {
+            if (width < height) {
+               skip = true;
+            }
+        } /* else: Accept any*/
+
+        // Special Patch for Square Resolution: Black Berry Passport
+        if (skip) {
+           double min = Math.min(width, height);
+           double max = Math.max(width, height);
+           
+           if (max / min < 1.20) {
+              Log.v(TAG, "Don't skip on such aspect-ratio. Could be a square resolution.");
+              skip = false;
+           }
+        }
+
+        if (skip) {
+           Log.v(TAG, "Skip .. Surface is not ready.");
+           return;
+        }
+        
         if (surfaceWasDestroyed) {
             surfaceWasDestroyed = false;
             sdlWindow.onNativeRestoreWindow();
@@ -210,11 +249,11 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         if (SDLJoystickHandler.isDeviceSDLJoystick(event.getDeviceId())) {
             // Note that we process events with specific key codes here
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (sdlWindow.onNativePadDown(event.getDeviceId(), keyCode) == 0) {
+                if (SDLControllerManager.onNativePadDown(event.getDeviceId(), keyCode) == 0) {
                     return true;
                 }
             } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                if (sdlWindow.onNativePadUp(event.getDeviceId(), keyCode) == 0) {
+                if (SDLControllerManager.onNativePadUp(event.getDeviceId(), keyCode) == 0) {
                     return true;
                 }
             }
@@ -244,7 +283,7 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -260,8 +299,8 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         int i = -1;
         float x,y,p;
 
-        if (event.getSource() == InputDevice.SOURCE_MOUSE && SDLLibraryHandler.separateMouseAndTouch) {
-            if (Build.VERSION.SDK_INT < 14) {
+        if (event.getSource() == InputDevice.SOURCE_MOUSE && sdlServer.separateMouseAndTouch()) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
                 mouseButton = 1; // all mouse buttons are the left button
             } else {
                 mouseButton = event.getButtonState();
@@ -355,11 +394,11 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
         }
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     public static void updateDisplaySize(Display display) {
         Point size = new Point();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
             display.getSize(size);
-
         } else {
             // noinspection deprecation
             size.x = display.getWidth();
@@ -376,7 +415,7 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
             changed = true;
         }
         if (changed) {
-            SDLLibraryHandler.nativeDisplayResize(displayWidth, displayHeight, display.getRefreshRate());
+            SDLServer.nativeDisplayResize(displayWidth, displayHeight, display.getRefreshRate());
         }
     }
 
@@ -429,6 +468,14 @@ class SDLSurfaceView extends SurfaceView implements SurfaceHolder.Callback,
 
     public void setSDLWindow(SDLWindowFragment sdlWindow) {
         this.sdlWindow = sdlWindow;
+    }
+
+    @SuppressLint("ObsoleteSdkInt")
+    public void setSDLServer(SDLServer sdlServer) {
+        this.sdlServer = sdlServer;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+            setOnGenericMotionListener(new SDLGenericMotionListener(sdlServer));
+        }
     }
 
 //    public void setPixelFormat(int pixelFormat) {
