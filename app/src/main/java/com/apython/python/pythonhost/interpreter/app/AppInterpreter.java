@@ -21,7 +21,7 @@ import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.SDLWindowInterface;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
-import com.apython.python.pythonhost.views.sdl.SDLLibraryHandler;
+import com.apython.python.pythonhost.views.sdl.SDLServer;
 import com.apython.python.pythonhost.views.sdl.SDLWindowFragment;
 import com.apython.python.pythonhost.views.terminal.TerminalFragment;
 import com.apython.python.pythonhost.views.terminalwm.WindowManagerFragment;
@@ -70,6 +70,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
     private String                  logTag         = "PythonApp";
     private PythonInterpreterHandle interpreter    = null;
     private PythonFragment          windowFragment = null;
+    private SDLServer               sdlServer      = null;
     
     public AppInterpreter(Context pyHostContext, Activity hostingAppActivity, String pythonVersion) {
         super();
@@ -159,7 +160,9 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
                 }
             });
         } else if (windowFragment instanceof SDLWindowFragment) {
-            SDLLibraryHandler.initLibraries(hostingAppActivity, this);
+            if (sdlServer == null) {
+                sdlServer = new SDLServer(hostingAppActivity, this);
+            }
         }
     }
 
@@ -171,8 +174,11 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        return windowFragment instanceof SDLWindowInterface &&
-                ((SDLWindowInterface) windowFragment).dispatchKeyEvent(event);
+        if (windowFragment instanceof SDLWindowInterface) {
+            Boolean result = ((SDLWindowInterface) windowFragment).dispatchKeyEvent(event);
+            if (result != null) { return result; }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override

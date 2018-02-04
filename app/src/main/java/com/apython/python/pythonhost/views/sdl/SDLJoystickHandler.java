@@ -2,6 +2,7 @@ package com.apython.python.pythonhost.views.sdl;
 
 import android.annotation.SuppressLint;
 import android.os.Build;
+import android.util.Log;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 
@@ -15,11 +16,11 @@ import java.util.List;
  * 
  * Created by Sebastian on 21.11.2015.
  */
-@SuppressLint("NewApi")
 class SDLJoystickHandler {
     private class SDLJoystick {
         int                                device_id;
         String                             name;
+        String                             desc;
         ArrayList<InputDevice.MotionRange> axes;
         ArrayList<InputDevice.MotionRange> hats;
     }
@@ -31,33 +32,16 @@ class SDLJoystickHandler {
         }
     }
 
+    private static final String TAG = "SDLJoystickHandler";
     private final ArrayList<SDLJoystick> joysticks;
-    private final boolean                isApiAvailable;
 
     SDLJoystickHandler() {
-        isApiAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1;
         joysticks = new ArrayList<>();
     }
-
-    // Check if a given device is considered a possible SDL joystick
-    static boolean isDeviceSDLJoystick(int deviceId) {
-        final int SOURCE_GAMEPAD = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1
-                ? InputDevice.SOURCE_GAMEPAD : 0x00000401;
-        InputDevice device = InputDevice.getDevice(deviceId);
-        // We cannot use InputDevice.isVirtual before API 16, so let's accept
-        // only non-negative device ids (VIRTUAL_KEYBOARD equals -1)
-        if ((device == null) || (deviceId < 0)) {
-            return false;
-        }
-        int sources = device.getSources();
-        return (((sources & InputDevice.SOURCE_CLASS_JOYSTICK) == InputDevice.SOURCE_CLASS_JOYSTICK) ||
-                ((sources & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD) ||
-                ((sources & SOURCE_GAMEPAD) == SOURCE_GAMEPAD)
-        );
-    }
     
+    @SuppressLint("ObsoleteSdkInt")
     void pollInputDevices() {
-        if (!isApiAvailable) { return; }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR1) { return; }
         int[] deviceIds = InputDevice.getDeviceIds();
         // It helps processing the device ids in reverse order
         // For example, in the case of the XBox 360 wireless dongle,
@@ -72,6 +56,7 @@ class SDLJoystickHandler {
                 if (isDeviceSDLJoystick(deviceIds[i])) {
                     joystick.device_id = deviceIds[i];
                     joystick.name = joystickDevice.getName();
+                    joystick.desc = getJoystickDescriptor(joystickDevice);
                     joystick.axes = new ArrayList<>();
                     joystick.hats = new ArrayList<>();
 
@@ -90,8 +75,9 @@ class SDLJoystickHandler {
                     }
 
                     joysticks.add(joystick);
-                    SDLWindowFragment.nativeAddJoystick(joystick.device_id, joystick.name, 0, -1,
-                                                        joystick.axes.size(), joystick.hats.size() / 2, 0);
+                    SDLControllerManager.nativeAddJoystick(
+                            joystick.device_id, joystick.name, joystick.desc, 0, -1,
+                            joystick.axes.size(), joystick.hats.size() / 2, 0);
                 }
             }
         }
@@ -111,7 +97,7 @@ class SDLJoystickHandler {
 
         for(int i=0; i < removedDevices.size(); i++) {
             int device_id = removedDevices.get(i);
-            SDLWindowFragment.nativeRemoveJoystick(device_id);
+            SDLControllerManager.nativeRemoveJoystick(device_id);
             for (int j=0; j < joysticks.size(); j++) {
                 if (joysticks.get(j).device_id == device_id) {
                     joysticks.remove(j);
@@ -130,9 +116,9 @@ class SDLJoystickHandler {
         return null;
     }
 
-    @SuppressLint("NewApi")
+    @SuppressLint("ObsoleteSdkInt")
     boolean handleMotionEvent(MotionEvent event) {
-        if (!isApiAvailable) { return false; }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR1) { return false; }
         if ((event.getSource() & InputDevice.SOURCE_JOYSTICK) != 0) {
             int actionPointerIndex = event.getActionIndex();
             int action = event.getActionMasked();
@@ -145,12 +131,12 @@ class SDLJoystickHandler {
                         /* Normalize the value to -1...1 */
                         float value = (event.getAxisValue(range.getAxis(), actionPointerIndex) - range.getMin())
                                 / range.getRange() * 2.0f - 1.0f;
-                        SDLWindowFragment.onNativeJoy(joystick.device_id, i, value);
+                        SDLControllerManager.onNativeJoy(joystick.device_id, i, value);
                     }
                     for (int i = 0; i < joystick.hats.size(); i += 2) {
                         int hatX = Math.round(event.getAxisValue(joystick.hats.get(i).getAxis(), actionPointerIndex));
                         int hatY = Math.round(event.getAxisValue(joystick.hats.get(i + 1).getAxis(), actionPointerIndex));
-                        SDLWindowFragment.onNativeHat(joystick.device_id, i / 2, hatX, hatY);
+                        SDLControllerManager.onNativeHat(joystick.device_id, i / 2, hatX, hatY);
                     }
                 }
                 break;
@@ -159,5 +145,46 @@ class SDLJoystickHandler {
             }
         }
         return true;
+    }
+
+    private String getJoystickDescriptor(InputDevice joystickDevice) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            String desc = joystickDevice.getDescriptor();
+            if (!"".equals(desc)) {
+                return desc;
+            }
+        }
+        return joystickDevice.getName();
+    }
+
+    /**
+     * Check if a given device is considered a possible SDL joystick
+     *
+     * @param deviceId The device id.
+     * @return true, if the device is a SDL joystic
+     */
+    static boolean isDeviceSDLJoystick(int deviceId) {
+        InputDevice device = InputDevice.getDevice(deviceId);
+        // We cannot use InputDevice.isVirtual before API 16, so let's accept
+        // only nonnegative device ids (VIRTUAL_KEYBOARD equals -1)
+        if ((device == null) || (deviceId < 0)) {
+            return false;
+        }
+        int sources = device.getSources();
+
+        if ((sources & InputDevice.SOURCE_CLASS_JOYSTICK) == InputDevice.SOURCE_CLASS_JOYSTICK) {
+            Log.v(TAG, "Input device " + device.getName() + " is a joystick.");
+        }
+        if ((sources & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD) {
+            Log.v(TAG, "Input device " + device.getName() + " is a dpad.");
+        }
+        if ((sources & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
+            Log.v(TAG, "Input device " + device.getName() + " is a gamepad.");
+        }
+
+        return (((sources & InputDevice.SOURCE_CLASS_JOYSTICK) == InputDevice.SOURCE_CLASS_JOYSTICK) ||
+                ((sources & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD) ||
+                ((sources & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD)
+        );
     }
 }

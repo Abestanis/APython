@@ -1,7 +1,7 @@
 package com.apython.python.pythonhost.views.sdl;
 
 import android.content.Context;
-import android.os.Build;
+import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -30,23 +30,17 @@ class SDLInputView extends View implements View.OnKeyListener {
 
     @Override
     public boolean onKey(View v, int keyCode, KeyEvent event) {
-
         // This handles the hardware keyboard input
-        if (event.isPrintingKey() || keyCode == KeyEvent.KEYCODE_SPACE) {
-            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (SDLInputConnection.isTextInputEvent(event)) {
                 inputConnection.commitText(String.valueOf((char) event.getUnicodeChar()), 1);
             }
-            return true;
-        }
-
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
             sdlWindow.onNativeKeyDown(keyCode);
             return true;
         } else if (event.getAction() == KeyEvent.ACTION_UP) {
             sdlWindow.onNativeKeyUp(keyCode);
             return true;
         }
-
         return false;
     }
 
@@ -68,15 +62,12 @@ class SDLInputView extends View implements View.OnKeyListener {
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
-        final int IME_FLAG_NO_FULLSCREEN;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            IME_FLAG_NO_FULLSCREEN = EditorInfo.IME_FLAG_NO_FULLSCREEN;
-        } else {
-            IME_FLAG_NO_FULLSCREEN = 33554432;
-        }
-
         inputConnection = new SDLInputConnection(this, true, sdlWindow);
-        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI | IME_FLAG_NO_FULLSCREEN;
+
+        outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                | EditorInfo.IME_FLAG_NO_FULLSCREEN /* API 11 */;
+        
         return inputConnection;
     }
 

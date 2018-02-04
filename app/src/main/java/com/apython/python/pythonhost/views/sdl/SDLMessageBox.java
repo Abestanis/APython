@@ -6,7 +6,6 @@ import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -55,9 +54,14 @@ class SDLMessageBox {
         this.buttonIds = buttonIds;
         this.buttonTexts = buttonTexts;
         this.colors = colors;
+        this.messageboxSelection[0] = -1;
     }
     
-    private void createDialog() {
+    private boolean createDialog() {
+        // sanity checks
+        if ((buttonFlags.length != buttonIds.length) || (buttonIds.length != buttonTexts.length)) {
+            return false; // implementation broken
+        }
         // TODO set values from "flags" to messagebox dialog
 
         // get colors
@@ -121,13 +125,7 @@ class SDLMessageBox {
                     mapping.put(KeyEvent.KEYCODE_ENTER, button);
                 }
                 if ((buttonFlags[i] & 0x00000002) != 0) {
-                    final int KEYCODE_ESCAPE;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                        KEYCODE_ESCAPE = KeyEvent.KEYCODE_ESCAPE;
-                    } else {
-                        KEYCODE_ESCAPE = 111;
-                    }
-                    mapping.put(KEYCODE_ESCAPE, button);
+                    mapping.put(KeyEvent.KEYCODE_ESCAPE, button); /* API 11 */
                 }
             }
             button.setText(buttonTexts[i]);
@@ -179,13 +177,19 @@ class SDLMessageBox {
                 return false;
             }
         });
+        return true;
     }
     
     public void show() {
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (dialog == null) createDialog();
+                if (dialog == null && !createDialog()) {
+                    synchronized (messageboxSelection) {
+                        messageboxSelection.notify();
+                    }
+                    return;
+                }
                 dialog.show();
             }
         });
