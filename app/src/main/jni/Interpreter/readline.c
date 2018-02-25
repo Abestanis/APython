@@ -9,7 +9,7 @@ JNIEXPORT jobject NATIVE_FUNCTION(interpreter_PythonInterpreter_waitForReadLineC
                   (JNIEnv* env, jclass __unused cls) {
     static ipcConnection* connection = NULL;
     if (connection == NULL) {
-        connection = createConnection("readLineAndroid");
+        connection = createConnection("readLineAndroid", 0);
     }
     if (connection == NULL) {
         LOG_WARN("CreateConnection failed: %s!", strerror(errno));

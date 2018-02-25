@@ -6,9 +6,11 @@ extern "C" {
 
 typedef struct _ipcConnection ipcConnection;
 
-ipcConnection* createConnection(const char* address);
+#define ALLOW_SEND_FD (1 << 0)
+
+ipcConnection* createConnection(const char* address, u_int8_t flags);
 int waitForClient(ipcConnection* connection);
-int openConnection(const char* address, u_int8_t blocking);
+int openConnection(const char* address, u_int8_t blocking, u_int8_t flags);
 void closeConnection(ipcConnection* connection);
 
 #ifdef __cplusplus
