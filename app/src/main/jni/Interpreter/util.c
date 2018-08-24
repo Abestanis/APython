@@ -34,7 +34,7 @@ jobject createFileDescriptor(JNIEnv* env, int fd) {
     mid = (*env)->GetMethodID(env, fileDescriptorClass, "<init>", "()V");
     ASSERT(mid, "Could not find the constructor of the FileDescriptor class!");
     fdFieldId = (*env)->GetFieldID(env, fileDescriptorClass, "descriptor", "I");
-    ASSERT(mid, "Could not find the 'descriptor' field of the FileDescriptor class!");
+    ASSERT(fdFieldId, "Could not find the 'descriptor' field of the FileDescriptor class!");
     jobject fileDescriptor = (*env)->NewObject(env, fileDescriptorClass, mid);
     if (fileDescriptor != NULL) {
         (*env)->SetIntField(env, fileDescriptor, fdFieldId, fd);

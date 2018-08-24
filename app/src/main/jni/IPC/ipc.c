@@ -55,7 +55,7 @@ int openConnection(const char* address, u_int8_t blocking) {
     int socketSetting = 0;
     int fd;
     if (makeAddress(address, &sockAddress, &sockLen) < 0) {
-        return NULL;
+        return -1;
     }
     if ((fd = socket(AF_LOCAL, SOCK_STREAM, PF_UNIX)) < 0) {
         return -1;
