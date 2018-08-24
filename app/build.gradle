@@ -17,9 +17,6 @@ android {
             }
         }
         ndk {
-//            abiFilters 'armeabi-v7a'
-//            abiFilters 'x86_64'
-            abiFilters 'x86'
         }
     }
     buildTypes {
