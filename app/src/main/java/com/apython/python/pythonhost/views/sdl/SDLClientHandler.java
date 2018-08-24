@@ -143,32 +143,20 @@ public class SDLClientHandler extends Thread {
                     long windowId = clientInConnection.readLong();
                     SDLWindowFragment window = windowMap.get(windowId);
                     if (window != null) {
-                        Surface surface = window.getNativeSurface();
-                        try {
-                            Field nativeObjectField = surface.getClass().getDeclaredField("mNativeObject");
-                            nativeObjectField.setAccessible(true);
-                            Number number = (Number) nativeObjectField.get(surface);
-                            long nativeObject = number.longValue();
-                            Log.d(TAG, "Got native surface object " + nativeObject);
-                            clientOutConnection.writeInt(8);
-                            clientOutConnection.writeLong(nativeObject);
-                        } catch (NoSuchFieldException e) {
-                            e.printStackTrace();
-                        } catch (IllegalAccessException e) {
-                            e.printStackTrace();
+                        final Surface surface = window.getNativeSurface();
+                        final long nativeBuffer = sdlServer.nativeShareSurfaceWithClient(clientFd, surface);
+                        if (nativeBuffer != 0) {
+//                            // TODO: Manage the thread
+//                            // TODO: Handle surface changed / destroyed
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    sdlServer.nativeRenderThread(nativeBuffer, surface);
+                                }
+                            }).start();
+                        } else {
+                            Log.e(TAG, "Failed to share the window surface for window " + windowId);
                         }
-                        Parcel p = Parcel.obtain();
-                        p.writeParcelable(surface, 0);
-                        p.recycle();
-                        
-//                        android.app.ActivityThread.main(null);
-                                
-                        //                        Parcel p = Parcel.obtain();
-//                        p.writeParcelable(surface, 0);
-//                        byte data[] = p.marshall();
-//                        clientOutConnection.writeInt(data.length);
-//                        clientOutConnection.write(data);
-//                        p.recycle();
                     } else {
                         Log.w(TAG, "Got GetNativeSurface command for unknown window " + windowId);
                     }
@@ -228,3 +216,13 @@ public class SDLClientHandler extends Thread {
         }
     }
 }
+
+/*
+Server:
+(Java) Get Parcel of surface 
+(Java) Get native Parcel reference
+Send parcel via binder and fd
+
+
+
+ */

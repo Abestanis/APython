@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.Surface;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
@@ -208,6 +209,7 @@ public class SDLServer {
                     FileDescriptor clientFd = nativeWaitForSDLClient();
                     if (clientFd == null) { continue; }
                     Log.d(TAG, "Got client connection");
+                    // TODO: use select in native
                     new SDLClientHandler(clientFd, SDLServer.this).start();
                 }
             }
@@ -405,4 +407,6 @@ public class SDLServer {
     public native void onNativeClipboardChanged();
     native static void nativeDisplayResize(int screenWidth, int screenHeight, float refreshRate);
     native FileDescriptor nativeWaitForSDLClient();
+    native long nativeShareSurfaceWithClient(FileDescriptor fileDescriptor, Surface surface);
+    native void nativeRenderThread(long hardwareBuffer, Surface surface);
 }
