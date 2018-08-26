@@ -2,20 +2,24 @@ package com.apython.python.pythonhost;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
-import android.system.ErrnoException;
+import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.system.Os;
 import android.util.Log;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
@@ -40,11 +44,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /*
@@ -53,7 +55,7 @@ import java.util.zip.ZipFile;
  * Created by Sebastian on 05.07.2015.
  */
 
-public class Util {
+public final class Util {
 
     /**
      * Ensures that a file or directory can be accessed from other apps.
@@ -725,6 +727,127 @@ public class Util {
             //noinspection deprecation
             return context.getResources().getDrawable(id);
         }
+    }
+
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is ExternalStorageProvider.
+     */
+    public static boolean isExternalStorageDocument(Uri uri) {
+        return "com.android.externalstorage.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is DownloadsProvider.
+     */
+    public static boolean isDownloadsDocument(Uri uri) {
+        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * Get the real file path from the uri,´.
+     * 
+     * @param context The current context.
+     * @param uri The uri to the file.
+     * @return The path to the file or {@code null}.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @Nullable
+    public static String getRealPathFromURI(Context context, Uri uri) {
+        String filePath = null;
+        if (isExternalStorageDocument(uri)) {
+            final String docId = DocumentsContract.getDocumentId(uri);
+            final String[] uriParts = docId.split(":");
+            final String type = uriParts[0];
+            if ("primary".equalsIgnoreCase(type)) {
+                return Environment.getExternalStorageDirectory() + "/" + uriParts[1];
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    File externalMediaDirs[] = context.getExternalMediaDirs();
+                    if (externalMediaDirs.length > 1) {
+                        filePath = externalMediaDirs[1].getAbsolutePath();
+                        filePath = filePath.substring(0, filePath.indexOf("Android")) + uriParts[1];
+                    }
+                } else {
+                    filePath = "/storage/" + type + "/" + uriParts[1];
+                }
+                return filePath;
+            }
+        } else if (isDownloadsDocument(uri)) {
+            Cursor cursor = null;
+            final String column = "_data";
+            final String[] projection = {column};
+
+            try {
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    final int index = cursor.getColumnIndexOrThrow(column);
+                    String result = cursor.getString(index);
+                    cursor.close();
+                    return result;
+                }
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        } else if (DocumentsContract.isDocumentUri(context, uri)) {
+            String wholeID = DocumentsContract.getDocumentId(uri);
+
+            // Split at colon, use second item in the array
+            String[] ids = wholeID.split(":");
+            String id;
+            String type;
+            if (ids.length > 1) {
+                id = ids[1];
+                type = ids[0];
+            } else {
+                id = ids[0];
+                type = ids[0];
+            }
+
+            Uri contentUri;
+            if ("image".equals(type)) {
+                contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+            } else if ("video".equals(type)) {
+                contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+            } else if ("audio".equals(type)) {
+                contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            } else {
+                return null;
+            }
+
+            final String selection = "_id=?";
+            final String[] selectionArgs = new String[]{id};
+            final String column = "_data";
+            final String[] projection = {column};
+            Cursor cursor = context.getContentResolver().query(
+                    contentUri, projection, selection, selectionArgs, null);
+
+            if (cursor != null) {
+                int columnIndex = cursor.getColumnIndex(column);
+
+                if (cursor.moveToFirst()) {
+                    filePath = cursor.getString(columnIndex);
+                }
+                cursor.close();
+            }
+            return filePath;
+        } else {
+            String[] projection = {MediaStore.Audio.Media.DATA};
+            Cursor cursor = context.getContentResolver().query(
+                    uri, projection, null, null, null);
+            if (cursor != null) {
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+                if (cursor.moveToFirst())
+                    filePath = cursor.getString(column_index);
+                cursor.close();
+            }
+            return filePath;
+        }
+        return null;
     }
     
     static {

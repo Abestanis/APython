@@ -32,7 +32,24 @@
             android:label="PythonInterpreter"
             android:windowSoftInputMode="stateVisible|stateAlwaysVisible"
             android:theme="@style/TerminalTheme"
-            android:configChanges="orientation|screenSize"/>
+            android:configChanges="orientation|screenSize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.py" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="*/*" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.py" />
+            </intent-filter>
+        </activity>
         <activity
             android:name="com.apython.python.pythonhost.GetPythonAppExecutionInfoActivity"
             android:excludeFromRecents="true"

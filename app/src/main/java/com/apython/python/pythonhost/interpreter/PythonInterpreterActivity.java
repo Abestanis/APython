@@ -2,7 +2,11 @@ package com.apython.python.pythonhost.interpreter;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -28,6 +32,7 @@ import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 import com.apython.python.pythonhost.views.terminal.TerminalFragment;
 import com.apython.python.pythonhost.views.terminalwm.WindowManagerFragment;
 
+import java.io.File;
 import java.util.ArrayList;
 
 /*
@@ -40,6 +45,7 @@ public class PythonInterpreterActivity extends Activity {
     private TerminalInterface       terminalView;
     private WindowManagerInterface  terminalWindowManager;
     private PythonInterpreterHandle interpreter = null;
+    private String[] interpreterArgs = null;
     boolean startedInterpreter = false;
 
     @Override
@@ -89,7 +95,27 @@ public class PythonInterpreterActivity extends Activity {
                 finish();
             }
         });
-        String pyVersion = getIntent().getStringExtra("pythonVersion");
+        Intent intent = getIntent();
+        Uri filePathData = intent.getData();
+        if (filePathData != null) { // TODO: Show warnings for permissions, read python version from file
+            Util.makeFileAccessible(new File(filePathData.toString()), false);
+            interpreterArgs = new String[] {filePathData.toString()};
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            ClipData clipData = getIntent().getClipData();
+            if (clipData != null && clipData.getItemCount() > 0) {
+                Uri fileUri = clipData.getItemAt(0).getUri();
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT &&
+                        fileUri != null) {
+                    String filePath = Util.getRealPathFromURI(this, fileUri);
+                    if (filePath != null) {
+                        Util.makeFileAccessible(new File(filePath), false);
+                        interpreterArgs = new String[] {filePath};
+                    }
+                }
+            }
+        }
+        String pyVersion = intent.getStringExtra("pythonVersion");
         if (pyVersion == null) {
             pyVersion = PreferenceManager.getDefaultSharedPreferences(this).getString(
                     PythonSettingsActivity.KEY_PYTHON_VERSION,
@@ -98,7 +124,7 @@ public class PythonInterpreterActivity extends Activity {
         }
         if (!PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED.equals(pyVersion)
                 && PackageManager.isPythonVersionInstalled(this, pyVersion)) {
-            this.interpreter.startInterpreter(Util.getMainVersionPart(pyVersion), null);
+            this.interpreter.startInterpreter(Util.getMainVersionPart(pyVersion), interpreterArgs);
             startedInterpreter = true;
         } else {
             showPythonVersionDialog();
@@ -200,7 +226,7 @@ public class PythonInterpreterActivity extends Activity {
         final ArrayList<String> versions = PackageManager.getInstalledPythonVersions(getApplicationContext());
         if (versions.size() <= 1) {
             if (versions.size() == 1) {
-                interpreter.startInterpreter(versions.get(0), null);
+                interpreter.startInterpreter(versions.get(0), interpreterArgs);
                 startedInterpreter = true;
                 return;
             }
@@ -223,7 +249,8 @@ public class PythonInterpreterActivity extends Activity {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
                 ListView listView = ((AlertDialog) dialog).getListView();
-                interpreter.startInterpreter(versions.get(listView.getCheckedItemPosition()), null);
+                interpreter.startInterpreter(
+                        versions.get(listView.getCheckedItemPosition()), interpreterArgs);
                 bindInterpreter();
             }
         });
@@ -235,7 +262,7 @@ public class PythonInterpreterActivity extends Activity {
                 String version = versions.get(listView.getCheckedItemPosition());
                 PreferenceManager.getDefaultSharedPreferences(PythonInterpreterActivity.this)
                         .edit().putString(PythonSettingsActivity.KEY_PYTHON_VERSION, version).apply();
-                interpreter.startInterpreter(version, null);
+                interpreter.startInterpreter(version, interpreterArgs);
                 bindInterpreter();
             }
         });
