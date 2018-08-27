@@ -42,6 +42,14 @@
                 <data android:pathPattern=".*\\.py" />
             </intent-filter>
             <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.py" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
@@ -73,9 +81,6 @@
         <activity android:name="com.apython.python.pythonhost.PythonSettingsActivity"
                   android:theme="@style/PyHostAppTheme"
                   android:label="Settings"/>
-        <activity android:name="com.apython.python.pythonhost.ToolsActivity"
-                  android:theme="@style/PyHostAppTheme"
-                  android:label="Tools"/>
         <service
             android:name=".downloadcenter.PythonDownloadCenterService"
             android:exported="false"/>
