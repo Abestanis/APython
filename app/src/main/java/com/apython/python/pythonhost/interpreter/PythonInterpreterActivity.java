@@ -98,8 +98,16 @@ public class PythonInterpreterActivity extends Activity {
         Intent intent = getIntent();
         Uri filePathData = intent.getData();
         if (filePathData != null) { // TODO: Show warnings for permissions, read python version from file
-            Util.makeFileAccessible(new File(filePathData.toString()), false);
-            interpreterArgs = new String[] {filePathData.toString()};
+            String filePath;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                filePath = Util.getRealPathFromURI(this, filePathData);
+            } else {
+                filePath = filePathData.toString();
+            }
+            if (filePath != null) {
+                Util.makeFileAccessible(new File(filePath), false);
+                interpreterArgs = new String[] {filePath};
+            }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             ClipData clipData = getIntent().getClipData();
