@@ -90,5 +90,4 @@
             android:exported="false"
             android:icon="@drawable/python_launcher_icon"/>
     </application>
-
 </manifest>
