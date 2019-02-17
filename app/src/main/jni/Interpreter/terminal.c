@@ -2,18 +2,15 @@
 // Created by Sebastian on 25.11.2016.
 //
 
-#include "terminal.h"
-#include "log.h"
-#include "util.h"
-
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-#define STDIN_INDEX 0
-#define STDOUT_INDEX 1
-#define STDERR_INDEX 2
+#include "terminal.h"
+#include "log.h"
+#include "py_utils.h"
+#include "util.h"
 
 int createPseudoTerminal() {
     int masterFd;
@@ -69,9 +66,9 @@ int openSlavePseudoTerminal(const char* path) {
 //    terminal->slaveStdStreams[STDOUT_INDEX] = dup(fileno(stdout));
 //    terminal->slaveStdStreams[STDERR_INDEX] = dup(fileno(stderr));
     
-    while ((dup2(slaveFd, STDIN_FILENO)  == -1) && (errno == EINTR)) {}
-    while ((dup2(slaveFd, STDOUT_FILENO) == -1) && (errno == EINTR)) {}
-    while ((dup2(slaveFd, STDERR_FILENO) == -1) && (errno == EINTR)) {}
+    while ((dup2(slaveFd, fileno(stdin))  == -1) && (errno == EINTR)) {}
+    while ((dup2(slaveFd, fileno(stdout)) == -1) && (errno == EINTR)) {}
+    while ((dup2(slaveFd, fileno(stderr)) == -1) && (errno == EINTR)) {}
     
     setvbuf(stdout, NULL, _IOLBF, 0);
 //    setvbuf(stderr, 0, _IONBF, 0);

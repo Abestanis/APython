@@ -54,7 +54,7 @@ void exitHandler(int exitCode) {
 /* JNI functions */
 
 JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_nativeGetPythonVersion)(
-        JNIEnv *env, jclass __unused cls, jstring jPythonLibName) {
+        JNIEnv *env, jobject __unused obj, jstring jPythonLibName) {
     const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
     setPythonLibrary(pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);

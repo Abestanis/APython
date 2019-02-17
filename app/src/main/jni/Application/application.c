@@ -12,7 +12,7 @@
 #define SET_LOG_TAG_DEF       "setLogTag", "(Ljava/lang/String;)V"
 #define START_INTERPRETER_DEF "startInterpreter", "([Ljava/lang/String;)I"
 
-#define ARRAY_LEN(array) (sizeof(array) / sizeof(array[0]))
+#define ARRAY_LEN(array) (sizeof(array) / sizeof((array)[0]))
 
 static JNINativeMethod nativeJMethods[] = {
     { "loadPythonHost", "(Landroid/app/Activity;Ljava/lang/String;)Z",

@@ -13,7 +13,7 @@ extern "C" {
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_nativeGetPythonVersion)(
-        JNIEnv *, jclass __unused, jstring
+        JNIEnv *, jobject __unused, jstring
 );
 
 /*
