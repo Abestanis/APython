@@ -3,21 +3,25 @@ import org.apache.tools.ant.DirectoryScanner
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 26
     defaultConfig {
         applicationId "com.apython.python.pythonhost"
         minSdkVersion 14
-        targetSdkVersion 27
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
-            ndkBuild {
-                arguments 'NDK_APPLICATION_MK:=' + file('src/main/jni/Application.mk').absolutePath
+//            ndkBuild {
+//                arguments 'NDK_APPLICATION_MK:=' + file('src/main/jni/Application.mk').absolutePath
+//            }
+            cmake {
+                cppFlags ""
             }
         }
         ndk {
             abiFilters 'x86'
+//            abiFilters 'armeabi-v7a'
         }
     }
     buildTypes {
@@ -27,8 +31,12 @@ android {
         }
     }
     externalNativeBuild {
-        ndkBuild {
-            path file('src/main/jni/Android.mk')
+//        ndkBuild {
+//            path file('src/main/jni/Android.mk')
+//        }
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+            version "3.10.2+"
         }
     }
     tasks.whenTaskAdded {
@@ -76,10 +84,11 @@ allprojects {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:appcompat-v7:26.1.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test:rules:1.0.2'
+    androidTestImplementation 'com.android.support:support-annotations:23.4.0'
     implementation 'org.apache.commons:commons-compress:1.12'
 }
 
@@ -271,13 +280,13 @@ class Util {
 
 
 class UpdatePythonLibZips extends DefaultTask {
-    @Input
+    @InputDirectory
     File pythonSourceParentDir
     @OutputDirectory
     File destinationDir
 
-    @InputFiles
-    private File[] getPythonLibDirs() {
+    @TaskAction
+    protected void main() {
         def pythonSourceDirs = pythonSourceParentDir.listFiles(new FileFilter() {
             @Override
             boolean accept(File pathname) {
@@ -285,24 +294,19 @@ class UpdatePythonLibZips extends DefaultTask {
                     && pathname.getName().matches("Python\\d\\.\\d\\.\\d\$")
             }
         })
-        return pythonSourceDirs.collect { sourceDir -> new File(sourceDir, 'source/Lib') }
-    }
-
-    @TaskAction
-    protected void main() {
-        def pythonLibDirs = getPythonLibDirs()
-        for (File pythonLib: pythonLibDirs) {
-            def version = pythonLib.getParentFile().getParentFile().getName().substring(6)
-            if (!pythonLib.isDirectory()) {
+        for (File pythonSource: pythonSourceDirs) {
+            def version = pythonSource.getName().substring(6)
+            def libDir = new File(pythonSource, 'source/Lib')
+            if (!libDir.isDirectory()) {
                 getLogger().log(LogLevel.WARN,
-                        'Could not find the Python std modules at ' + pythonLib.absolutePath)
+                        'Could not find the Python std modules at ' + libDir.absolutePath)
                 continue
             }
             println("Creating std module zip for Python $version...")
             def versionParts = version.split('\\.')
             def libName = 'lib' + versionParts[0] + '_' + versionParts[1]
             def zipTask = project.tasks.create(name: "updatePython$libName", type: Zip) {
-                from pythonLib
+                from libDir
                 destinationDir this.destinationDir
                 baseName libName
                 extension 'zip'
