@@ -2,20 +2,24 @@ package com.apython.python.pythonhost;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
-import android.system.ErrnoException;
+import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.system.Os;
 import android.util.Log;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
@@ -40,11 +44,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /*
@@ -53,14 +55,14 @@ import java.util.zip.ZipFile;
  * Created by Sebastian on 05.07.2015.
  */
 
-public class Util {
+public final class Util {
 
     /**
      * Ensures that a file or directory can be accessed from other apps.
      * More specific, ensures that other apps have read and execute,
      * but not write permission.
      *
-     * @param file The file or directory, that should be made accessible.
+     * @param file      The file or directory, that should be made accessible.
      * @param recursive If {@code true}, makes all files and subdirectories of the given
      *                  directory accessible, if the given FileObject is a directory.
      * @return {@code true} on success, {@code false} otherwise.
@@ -69,41 +71,48 @@ public class Util {
         if (!file.exists()) {
             try {
                 if (!file.createNewFile()) {
-                    Log.w(MainActivity.TAG, "Could not make file '" + file.getAbsolutePath() + "' accessible: Could not create file.");
+                    Log.w(MainActivity.TAG, "Could not make file '" + file.getAbsolutePath() +
+                            "' accessible: Could not create file.");
                     return false;
                 }
             } catch (IOException e) {
-                Log.w(MainActivity.TAG, "Could not make file '" + file.getAbsolutePath() + "' accessible: Could not create file.", e);
+                Log.w(MainActivity.TAG, "Could not make file '" + file.getAbsolutePath() +
+                        "' accessible: Could not create file.", e);
                 return false;
             }
-        } 
+        }
         //            if (file.setReadable(true, false) && file.setExecutable(true, false)) { // TODO: Check this
         //                Log.d(TAG, "Successfully made '" + file.getAbsolutePath() + "' accessible.");
         //                return true;
         //            }
         String rec = recursive ? "-R " : "";
         try {
-            int result = Runtime.getRuntime().exec("chmod " + rec + "755 " + file.getAbsolutePath()).waitFor();
+            int result = Runtime.getRuntime().exec(
+                    "chmod " + rec + "755 " + file.getAbsolutePath()).waitFor();
             if (result == 0) {
-                Log.d(MainActivity.TAG, "Successfully made '" + file.getAbsolutePath() + "' accessible via chmod.");
+                Log.d(MainActivity.TAG, "Successfully made '" +
+                        file.getAbsolutePath() + "' accessible via chmod.");
                 return true;
             } else {
-                Log.w(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() + "' accessible via chmod: Process failed with exit status " + result);
+                Log.w(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() +
+                        "' accessible via chmod: Process failed with exit status " + result);
                 return true;
             }
         } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() + "' accessible via chmod!", e);
+            Log.e(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() +
+                    "' accessible via chmod!", e);
         } catch (InterruptedException ie) {
-            Log.e(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() + "' accessible via chmod: Chmod was interrupted!", ie);
+            Log.e(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() +
+                    "' accessible via chmod: Chmod was interrupted!", ie);
         }
         return false;
     }
 
     /**
      * Makes the path between stop and startPath read and executable by everyone.
-     * 
+     *
      * @param startPath The directory from which to start and work up towards stopPath.
-     * @param stopPath The directory to stop.
+     * @param stopPath  The directory to stop.
      * @return {@code true} if every directory between stop and startPath has been made accessible.
      */
     public static boolean makePathAccessible(File startPath, File stopPath) {
@@ -132,12 +141,13 @@ public class Util {
             BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
             out.flush();
             String line;
-            while((line = in.readLine()) != null) {
+            while ((line = in.readLine()) != null) {
                 String[] parts = line.trim().split(" ");
                 String permission = parts[0];
-                if (permission.charAt(1) == '-' || permission.charAt(2) == '-' || permission.charAt(3) == '-'
-                        || permission.charAt(4) == '-' || permission.charAt(6) == '-'
-                        || permission.charAt(7) == '-' || permission.charAt(9) == '-') {
+                if (permission.charAt(1) == '-' || permission.charAt(2) == '-'
+                        || permission.charAt(3) == '-' || permission.charAt(4) == '-'
+                        || permission.charAt(6) == '-' || permission.charAt(7) == '-'
+                        || permission.charAt(9) == '-') {
                     inaccessibleFiles.add(new File(dir, parts[parts.length - 1]));
                 }
             }
@@ -151,7 +161,7 @@ public class Util {
     /**
      * Connects to an url and returns the {@link URLConnection} on success.
      *
-     * @param url The url to connect to.
+     * @param url     The url to connect to.
      * @param timeout The maximum time in milliseconds to wait for the connection to be established.
      * @return The {@code URLConnection} on success and {@code null} on failure.
      */
@@ -176,17 +186,20 @@ public class Util {
     /**
      * See {@link #installFromInputStream(File, InputStream, long, ProgressHandler)}.
      *
-     * @param destination The destination where the {@code InputStream} should be saved.
+     * @param destination      The destination where the {@code InputStream} should be saved.
      * @param resourceLocation The {@code InputStream} to read from.
-     * @param progressHandler An optional progress handler (can be {@code null}).
+     * @param progressHandler  An optional progress handler (can be {@code null}).
      * @return {@code true}, if the installation succeeded, {@code false} otherwise.
      */
-    public static boolean installFromInputStream(File destination, InputStream resourceLocation, ProgressHandler progressHandler) {
+    public static boolean installFromInputStream(
+            File destination, InputStream resourceLocation, ProgressHandler progressHandler) {
         long size;
         try {
             size = resourceLocation.available();
         } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to install resource to " + destination.getAbsolutePath() + ": Failed to get the estimated length of the input.", e);
+            Log.e(MainActivity.TAG, 
+                  "Failed to install resource to " + destination.getAbsolutePath() +
+                          ": Failed to get the estimated length of the input.", e);
             return false;
         }
         return installFromInputStream(destination, resourceLocation, size, progressHandler);
@@ -196,13 +209,16 @@ public class Util {
      * Installs the contents of the given {@code InputStream} and saves it to the specified
      * destination. Uses the {@code ProgressHandler} to report progress.
      *
-     * @param destination The destination where the {@code InputStream} should be saved.
+     * @param destination      The destination where the {@code InputStream} should be saved.
      * @param resourceLocation The {@code InputStream} to read from.
-     * @param inputLength The total amount of bytes that can be read from the {@code InputStream}.
-     * @param progressHandler An optional progress handler (can be {@code null}).
+     * @param inputLength      The total amount of bytes that can be read
+     *                         from the {@code InputStream}.
+     * @param progressHandler  An optional progress handler (can be {@code null}).
      * @return {@code true}, if the installation succeeded, {@code false} otherwise.
      */
-    public static boolean installFromInputStream(File destination, InputStream resourceLocation, long inputLength, ProgressHandler progressHandler) {
+    public static boolean installFromInputStream(
+            File destination, InputStream resourceLocation,
+            long inputLength, ProgressHandler progressHandler) {
         byte[] buffer = new byte[1024];
         int count;
         long startTime;
@@ -213,7 +229,8 @@ public class Util {
             float nextUpdate = 0;
             float onePercent = inputLength / 100.0f;
             if (!destination.getParentFile().exists() && !destination.getParentFile().mkdirs()) {
-                Log.w(MainActivity.TAG, "Failed to install resource to " + destination.getAbsolutePath() + ": Could not make the directories!");
+                Log.w(MainActivity.TAG, "Failed to install resource to " +
+                        destination.getAbsolutePath() + ": Could not make the directories!");
                 return false;
             }
             if (progressHandler != null) {
@@ -231,10 +248,9 @@ public class Util {
                         float progress = (float) totalCount / inputLength;
                         if (timeDiff >= 1000L) {
                             int bytesPerSecond = Math.round(secCount * (timeDiff / 1000.0f));
-                            progressHandler.setProgress(
-                                    progress,
-                                    bytesPerSecond,
-                                    Math.round(Math.max(inputLength - totalCount, 0) / Math.max(0.0001f, bytesPerSecond))
+                            progressHandler.setProgress(progress, bytesPerSecond,
+                                    Math.round(Math.max(inputLength - totalCount, 0)
+                                                       / Math.max(0.0001f, bytesPerSecond))
                             );
                             startTime = System.currentTimeMillis();
                             secCount = 0;
@@ -263,14 +279,15 @@ public class Util {
      * given destination. The content will be checked against the given
      * md5CheckSum. Progress is reported via the optional {@code ProgressHandler}.
      *
-     * @param url The url from which to download from.
-     * @param destination The file to save the contents of the data retrieved from the url to.
-     * @param md5CheckSum The md5 check sum the downloaded data must have in order to be valid.
+     * @param url             The url from which to download from.
+     * @param destination     The file to save the contents of the data retrieved from the url to.
+     * @param md5CheckSum     The md5 check sum the downloaded data must have in order to be valid.
      * @param progressHandler An optional progress handler (can be {@code null}).
      * @return {@code true} if the data was successfully downloaded, verified and made accessible
      * to other apps.
      */
-    public static boolean downloadFile(String url, File destination, String md5CheckSum, ProgressHandler progressHandler) {
+    public static boolean downloadFile(
+            String url, File destination, String md5CheckSum, ProgressHandler progressHandler) {
         URLConnection connection = Util.connectToUrl(url, 20000);
         if (connection == null) {
             Log.e(MainActivity.TAG, "Failed to connect to '" + url + "'!");
@@ -280,19 +297,23 @@ public class Util {
         try {
             hashAlgorithm = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            Log.e(MainActivity.TAG, "Failed to download from '" + url + "': Md5 Hash is not supported on this device!", e);
+            Log.e(MainActivity.TAG, "Failed to download from '" + url +
+                    "': Md5 Hash is not supported on this device!", e);
             return false;
         }
         try {
-            DigestInputStream inputStream = new DigestInputStream(connection.getInputStream(), hashAlgorithm);
-            if (!Util.installFromInputStream(destination, inputStream, connection.getContentLength(), progressHandler)) {
+            DigestInputStream inputStream = new DigestInputStream(
+                    connection.getInputStream(), hashAlgorithm);
+            if (!Util.installFromInputStream(
+                    destination, inputStream, connection.getContentLength(), progressHandler)) {
                 inputStream.close();
                 return false;
             }
             if (!hashToHex(hashAlgorithm.digest()).equals(md5CheckSum)) {
                 Log.w(MainActivity.TAG, "Md5 checksum of downloaded File invalid!");
                 if (!destination.delete()) {
-                    Log.e(MainActivity.TAG, "Failed to delete downloaded file '" + destination.getAbsolutePath() + "'.");
+                    Log.e(MainActivity.TAG, "Failed to delete downloaded file '" +
+                            destination.getAbsolutePath() + "'.");
                 }
                 inputStream.close();
                 return false;
@@ -302,7 +323,8 @@ public class Util {
             Log.e(MainActivity.TAG, "Failed to download '" + destination.getName() + "'!", e);
             if (destination.exists()) {
                 if (!destination.delete()) {
-                    Log.w(MainActivity.TAG, "Failed to clean up downloaded file '" + destination.getAbsolutePath() + "'.");
+                    Log.w(MainActivity.TAG, "Failed to clean up downloaded file '"
+                            + destination.getAbsolutePath() + "'.");
                 }
             }
             return false;
@@ -313,13 +335,14 @@ public class Util {
     /**
      * Extracts a given archive into the given directory.
      * Progress is reported via the optional {@code ProgressHandler}.
-     * 
-     * @param archive The archive to extract.
-     * @param destDir The directory to extract the archive into.
+     *
+     * @param archive         The archive to extract.
+     * @param destDir         The directory to extract the archive into.
      * @param progressHandler An optional progress handler (can be {@code null}).
      * @return {@code true} if the data was successfully extracted.
      */
-    public static boolean extractArchive(File archive, File destDir, ProgressHandler progressHandler) {
+    public static boolean extractArchive(
+            File archive, File destDir, ProgressHandler progressHandler) {
         ArchiveInputStream archiveInputStream = null;
         ArchiveEntry entry;
         int numEntries = 0;
@@ -327,7 +350,9 @@ public class Util {
         byte[] buffer = new byte[8192];
         try {
             if (archive.getName().endsWith(".zip")) {
-                if (progressHandler != null) { numEntries = new ZipFile(archive).size(); }
+                if (progressHandler != null) {
+                    numEntries = new ZipFile(archive).size();
+                }
                 archiveInputStream = new ZipArchiveInputStream(new FileInputStream(archive));
             } else if (archive.getName().endsWith(".tar")
                     || archive.getName().endsWith(".tar.gz")) {
@@ -341,7 +366,9 @@ public class Util {
                         + archive.getAbsolutePath() + ": Unknown archive format!");
                 return false;
             }
-            if (progressHandler != null) { progressHandler.setProgress(numEntries == 0 ? -1 : 0); }
+            if (progressHandler != null) {
+                progressHandler.setProgress(numEntries == 0 ? -1 : 0);
+            }
             while ((entry = archiveInputStream.getNextEntry()) != null) {
                 File file = new File(destDir, entry.getName());
                 File dir = entry.isDirectory() ? file : file.getParentFile();
@@ -385,17 +412,19 @@ public class Util {
                 if (archiveInputStream != null) {
                     archiveInputStream.close();
                 }
-            } catch (IOException unused) { /* ignore it */ }
+            } catch (IOException ignored) {}
         }
-        if (progressHandler != null) { progressHandler.setProgress(1); }
+        if (progressHandler != null) {
+            progressHandler.setProgress(1);
+        }
         return true;
     }
 
     /**
      * Create a symbolic link at the given link File that points to target.
-     * 
+     *
      * @param target The target of the symbolic link.
-     * @param link The symbolic link file.
+     * @param link   The symbolic link file.
      * @return Weather or not the symbolic link was created successfully.
      */
     public static boolean createSymbolicLink(File target, File link) {
@@ -429,9 +458,9 @@ public class Util {
     /**
      * Add two arrays together.
      *
-     * @param first The first array.
+     * @param first  The first array.
      * @param second The second array.
-     * @param <T> The type of array.
+     * @param <T>    The type of array.
      * @return A new array that contains all the elements of {@code first} and {@code second}.
      */
     public static <T> T[] mergeArrays(T[] first, T[] second) {
@@ -442,8 +471,9 @@ public class Util {
                 throw new IllegalArgumentException("No array given to mergeArrays.");
             }
         }
-        if (first == null) { return second; }
-
+        if (first == null) {
+            return second;
+        }
         int aLen = first.length;
         int bLen = second.length;
 
@@ -471,14 +501,16 @@ public class Util {
                     }
                 } else {
                     if (!file.delete()) {
-                        Log.w(MainActivity.TAG, "Failed to delete file '" + file.getAbsolutePath() + "'.");
+                        Log.w(MainActivity.TAG, "Failed to delete file '"
+                                + file.getAbsolutePath() + "'.");
                         return false;
                     }
                 }
             }
         }
         if (directory.exists() && !directory.delete()) {
-            Log.w(MainActivity.TAG, "Failed to delete directory '" + directory.getAbsolutePath() + "'.");
+            Log.w(MainActivity.TAG, "Failed to delete directory '"
+                    + directory.getAbsolutePath() + "'.");
             return false;
         }
         return true;
@@ -491,7 +523,9 @@ public class Util {
      * @return The content of the given {@code InputStream} as a {@code String}.
      */
     public static String convertStreamToString(InputStream input) {
-        if (input == null) { return ""; }
+        if (input == null) {
+            return "";
+        }
         Scanner s = new Scanner(input).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
@@ -522,8 +556,9 @@ public class Util {
      * Like {@link Math#round(float)}, but takes an additional parameter to specify at which
      * decimal should be rounded.
      *
-     * @param number The float to be rounded.
-     * @param decimalPlace The number of digits after the decimal point that the rounded float should have.
+     * @param number       The float to be rounded.
+     * @param decimalPlace The number of digits after the decimal point
+     *                     that the rounded float should have.
      * @return The rounded float with the specified number of digits after the decimal point.
      */
     public static float round(float number, int decimalPlace) {
@@ -536,12 +571,13 @@ public class Util {
      * Generates a string which contains information about a download progress.
      * The returned String can be used in the UI.
      *
-     * @param context The current context.
-     * @param bytesPerSecond The amount of bytes read over the last second.
+     * @param context          The current context.
+     * @param bytesPerSecond   The amount of bytes read over the last second.
      * @param remainingSeconds The amount of seconds remaining until the action has finished.
      * @return A human readable string which contains the provided information.
      */
-    public static String generateDownloadInfoText(Context context, int bytesPerSecond, int remainingSeconds) {
+    public static String generateDownloadInfoText(
+            Context context, int bytesPerSecond, int remainingSeconds) {
         float bytesAmount = bytesPerSecond;
         String bytesUnit = "B";
         DecimalFormat decimalFormatter = new DecimalFormat();
@@ -639,7 +675,7 @@ public class Util {
     /**
      * Count how often the given character occurs in the given string.
      *
-     * @param string The string to search in.
+     * @param string    The string to search in.
      * @param character The character to search for.
      * @return The number of times the character was found in the string.
      */
@@ -650,7 +686,7 @@ public class Util {
     /**
      * Translates a string into a list of key events, which, executed on an
      * {@link android.widget.EditText EditText} would produce the given string.
-     * 
+     *
      * @param input The string which should be converted into key events.
      * @return A list of key events.
      */
@@ -673,8 +709,8 @@ public class Util {
      * test.txt -> txt
      * <br>
      * archive.tar.gz -> tar.gz
-     * 
-     * @param file The file who's extension should be returned. 
+     *
+     * @param file The file who's extension should be returned.
      * @return The file extension of the given file.
      */
     public static String getFileExt(File file) {
@@ -696,27 +732,29 @@ public class Util {
     }
 
     /**
-     * Joins all given strings with the connector. 
-     * 
+     * Joins all given strings with the connector.
+     *
      * @param connector A string which should connect all given strings.
-     * @param parts A list of strings which should be concatenated.
+     * @param parts     A list of strings which should be concatenated.
      * @return The joined string.
      */
     public static String join(String connector, ArrayList<String> parts) {
         Iterator<String> partsIterator = parts.iterator();
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(partsIterator.next());
-        while (partsIterator.hasNext()) stringBuilder.append(connector).append(partsIterator.next());
+        while (partsIterator.hasNext()) {
+            stringBuilder.append(connector).append(partsIterator.next());
+        }
         return stringBuilder.toString();
     }
 
     /**
      * Convenience method to get a drawable.
-     * 
+     *
      * @param context The context from which to get the drawable.
-     * @param id The identifier of the resource
+     * @param id      The identifier of the resource.
      * @return The requested drawable.
-     * @see android.content.res.Resources#getDrawable(int, Resources.Theme) 
+     * @see android.content.res.Resources#getDrawable(int, Resources.Theme)
      */
     public static Drawable getResourceDrawable(Context context, @DrawableRes int id) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -725,6 +763,128 @@ public class Util {
             //noinspection deprecation
             return context.getResources().getDrawable(id);
         }
+    }
+
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is ExternalStorageProvider.
+     */
+    public static boolean isExternalStorageDocument(Uri uri) {
+        return "com.android.externalstorage.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is DownloadsProvider.
+     */
+    public static boolean isDownloadsDocument(Uri uri) {
+        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * Get the real file path from the uri,´.
+     *
+     * @param context The current context.
+     * @param uri     The uri to the file.
+     * @return The path to the file or {@code null}.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @Nullable
+    public static String getRealPathFromURI(Context context, Uri uri) {
+        String filePath = null;
+        if (isExternalStorageDocument(uri)) {
+            final String docId = DocumentsContract.getDocumentId(uri);
+            final String[] uriParts = docId.split(":");
+            final String type = uriParts[0];
+            if ("primary".equalsIgnoreCase(type)) {
+                return Environment.getExternalStorageDirectory() + "/" + uriParts[1];
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    File externalMediaDirs[] = context.getExternalMediaDirs();
+                    if (externalMediaDirs.length > 1) {
+                        filePath = externalMediaDirs[1].getAbsolutePath();
+                        filePath = filePath.substring(0, filePath.indexOf("Android")) + uriParts[1];
+                    }
+                } else {
+                    filePath = "/storage/" + type + "/" + uriParts[1];
+                }
+                return filePath;
+            }
+        } else if (isDownloadsDocument(uri)) {
+            Cursor cursor = null;
+            final String column = "_data";
+            final String[] projection = {column};
+
+            try {
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    final int index = cursor.getColumnIndexOrThrow(column);
+                    String result = cursor.getString(index);
+                    cursor.close();
+                    return result;
+                }
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        } else if (DocumentsContract.isDocumentUri(context, uri)) {
+            String wholeID = DocumentsContract.getDocumentId(uri);
+
+            // Split at colon, use second item in the array
+            String[] ids = wholeID.split(":");
+            String id;
+            String type;
+            if (ids.length > 1) {
+                id = ids[1];
+                type = ids[0];
+            } else {
+                id = ids[0];
+                type = ids[0];
+            }
+
+            Uri contentUri;
+            if ("image".equals(type)) {
+                contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+            } else if ("video".equals(type)) {
+                contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+            } else if ("audio".equals(type)) {
+                contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            } else {
+                return null;
+            }
+
+            final String selection = "_id=?";
+            final String[] selectionArgs = new String[] {id};
+            final String column = "_data";
+            final String[] projection = {column};
+            Cursor cursor = context.getContentResolver().query(
+                    contentUri, projection, selection, selectionArgs, null);
+
+            if (cursor != null) {
+                int columnIndex = cursor.getColumnIndex(column);
+                if (cursor.moveToFirst()) {
+                    filePath = cursor.getString(columnIndex);
+                }
+                cursor.close();
+            }
+            return filePath;
+        } else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        } else {
+            String[] projection = {MediaStore.Audio.Media.DATA};
+            Cursor cursor = context.getContentResolver().query(
+                    uri, projection, null, null, null);
+            if (cursor != null) {
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+                if (cursor.moveToFirst())
+                    filePath = cursor.getString(column_index);
+                cursor.close();
+            }
+            return filePath;
+        }
+        return null;
     }
     
     static {

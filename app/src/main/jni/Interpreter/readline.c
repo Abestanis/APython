@@ -2,6 +2,7 @@
 #include <ipc.h>
 #include <log.h>
 #include <errno.h>
+#include <memory.h>
 #include "util.h"
 
 

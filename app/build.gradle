@@ -3,22 +3,25 @@ import org.apache.tools.ant.DirectoryScanner
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 26
     defaultConfig {
         applicationId "com.apython.python.pythonhost"
         minSdkVersion 14
-        targetSdkVersion 23
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
-            ndkBuild {
-                arguments 'NDK_APPLICATION_MK:=' + file('src/main/jni/Application.mk').absolutePath
+//            ndkBuild {
+//                arguments 'NDK_APPLICATION_MK:=' + file('src/main/jni/Application.mk').absolutePath
+//            }
+            cmake {
+                cppFlags ""
             }
         }
         ndk {
+            abiFilters 'x86'
 //            abiFilters 'armeabi-v7a'
-//            abiFilters 'x86_64'
         }
     }
     buildTypes {
@@ -28,8 +31,12 @@ android {
         }
     }
     externalNativeBuild {
-        ndkBuild {
-            path file('src/main/jni/Android.mk')
+//        ndkBuild {
+//            path file('src/main/jni/Android.mk')
+//        }
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+            version "3.10.2+"
         }
     }
     tasks.whenTaskAdded {
@@ -77,12 +84,12 @@ allprojects {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'com.android.support:appcompat-v7:23.4.0'
+    implementation 'com.android.support:appcompat-v7:26.1.0'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:0.5'
-    androidTestImplementation 'com.android.support.test:rules:0.5'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test:rules:1.0.2'
     androidTestImplementation 'com.android.support:support-annotations:23.4.0'
-    implementation 'org.apache.commons:commons-compress:1.2'
+    implementation 'org.apache.commons:commons-compress:1.12'
 }
 
 

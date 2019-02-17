@@ -18,7 +18,6 @@ jint __unused JNI_OnLoad(JavaVM *vm, void __unused *reserved) {
 
 int getFdFromFileDescriptor(JNIEnv *env, jobject fileDescriptor) {
     static jclass *fileDescriptorClass = NULL;
-    static jmethodID mid = NULL;
     static jfieldID fdFieldId = NULL;
     
     // TODO: Initialize these once.
@@ -26,10 +25,8 @@ int getFdFromFileDescriptor(JNIEnv *env, jobject fileDescriptor) {
     if (fileDescriptorClass == NULL) {
         fileDescriptorClass = (*env)->FindClass(env, "java/io/FileDescriptor");
         ASSERT(fileDescriptorClass, "Could not find class 'java/io/FileDescriptor'!");
-        mid = (*env)->GetMethodID(env, fileDescriptorClass, "<init>", "()V");
-        ASSERT(mid, "Could not find the constructor of the FileDescriptor class!");
         fdFieldId = (*env)->GetFieldID(env, fileDescriptorClass, "descriptor", "I");
-        ASSERT(mid, "Could not find the 'descriptor' field of the FileDescriptor class!");
+        ASSERT(fdFieldId, "Could not find the 'descriptor' field of the FileDescriptor class!");
     }
     return (*env)->GetIntField(env, fileDescriptor, fdFieldId);
 }
@@ -57,7 +54,7 @@ void exitHandler(int exitCode) {
 /* JNI functions */
 
 JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_nativeGetPythonVersion)(
-        JNIEnv *env, jclass __unused cls, jstring jPythonLibName) {
+        JNIEnv *env, jobject __unused obj, jstring jPythonLibName) {
     const char *pythonLibName = (*env)->GetStringUTFChars(env, jPythonLibName, 0);
     setPythonLibrary(pythonLibName);
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);

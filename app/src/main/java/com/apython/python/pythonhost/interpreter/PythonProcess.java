@@ -101,6 +101,11 @@ public class PythonProcess extends Service {
             public void onExit(int exitCode) {
                 Message exitCodeMessage = Message.obtain(null, PROCESS_EXIT);
                 exitCodeMessage.arg1 = exitCode;
+                if (responseMessenger == null) {
+                    Log.w(interpreter.getLogTag(), "Python process exiting with code " +
+                            exitCode + ", no handler installed");
+                    return;
+                }
                 try {
                     responseMessenger.send(exitCodeMessage);
                 } catch (RemoteException e) {

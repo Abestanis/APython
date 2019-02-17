@@ -2,18 +2,15 @@
 // Created by Sebastian on 25.11.2016.
 //
 
-#include "terminal.h"
-#include "log.h"
-#include "py_utils.h"
-
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-#define STDIN_INDEX 0
-#define STDOUT_INDEX 1
-#define STDERR_INDEX 2
+#include "terminal.h"
+#include "log.h"
+#include "py_utils.h"
+#include "util.h"
 
 int createPseudoTerminal() {
     int masterFd;

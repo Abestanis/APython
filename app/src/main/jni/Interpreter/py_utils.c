@@ -7,6 +7,7 @@
 #include "log.h"
 #include "py_compatibility.h"
 
+
 void setupPython(const char* pythonProgramPath, const char* pythonLibs, const char* pythonHostLibs,
                  const char* pythonHome, const char* pythonTemp, const char* xdgBasePath,
                  const char* dataDir) {
@@ -21,14 +22,28 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
         setenv("LD_LIBRARY_PATH", newValue, 1);
         free((char*) newValue);
     }
-
+    
+    char* path = strdup(pythonProgramPath);
+    char* pythonExeDir = strdup(dirname(path));
+    free(path);
     char cwd[32];
     if (getcwd(cwd, sizeof(cwd)) == NULL || strcmp(cwd, "/") == 0) {
         // '/' is the default working dir for a java process, but it is unusable for the python program
-        char* path = strdup(pythonProgramPath);
-        chdir(dirname(path));
-        free(path);
+        chdir(pythonExeDir);
     }
+    
+    const char* pathValue = (const char*) getenv("PATH");
+    if (value == NULL) {
+        setenv("PATH", pythonExeDir, 1);
+    } else {
+        size_t pathLen = strlen(pathValue) + strlen(pythonExeDir) + 2;
+        char* newValue = malloc(sizeof(char) * (pathLen));
+        ASSERT(newValue != NULL, "Not enough memory to change 'PATH'!");
+        snprintf(newValue, pathLen, "%s:%s", pathValue, pythonExeDir);
+        setenv("PATH", newValue, 1);
+        free(newValue);
+    }
+    free(pythonExeDir);
     
     // These must not be freed before the interpreter exits.
     char* pyHomeCopy = strdup(pythonHome);
@@ -104,6 +119,7 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     free(termInfoDirPath);
     
     setenv("TERM", "xterm-256color", 0);
+    setenv("LANG", "en_US.utf8", 0); // TODO: Keep this updated
 }
 
 int runPythonInterpreter(int argc, char** argv) {

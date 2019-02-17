@@ -67,7 +67,7 @@ int openConnection(const char* address, u_int8_t blocking, u_int8_t flags) {
         protocol = PF_UNIX;
     }
     if (makeAddress(address, &sockAddress, &sockLen, socketType) < 0) {
-        return NULL;
+        return -1;
     }
     if ((fd = socket(socketType, SOCK_STREAM, protocol)) < 0) {
         return -1;

@@ -132,12 +132,13 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
                 while (!Thread.currentThread().isInterrupted()) {
                     FileDescriptor fd = PythonInterpreter.waitForReadLineConnection();
                     if (fd == null) continue;
+                    FileInputStream inputStream = new FileInputStream(fd);
                     try {
                         int bytesRead;
                         byte buffer[] = new byte[64];
                         StringBuilder prompt = new StringBuilder();
                         do {
-                            bytesRead = new FileInputStream(fd).read(buffer);
+                            bytesRead = inputStream.read(buffer);
                             if (bytesRead == 0) { continue; }
                             if (bytesRead == -1) { break; } // eof
                             if (buffer[bytesRead - 1] == '\0') {
@@ -150,8 +151,12 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
                                 prompt.append(new String(buffer, 0, bytesRead, "UTF-8"));
                             }
                         } while (true);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    } catch (IOException error) {
+                        Log.d(logTag, "Error listening to program output", error);
+                    } finally {
+                        try {
+                            inputStream.close();
+                        } catch (IOException ignored) {}
                     }
                     if (ioHandler instanceof LineIOHandler) {
                         ((LineIOHandler) ioHandler).stopLineMode();

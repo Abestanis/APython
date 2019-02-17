@@ -32,7 +32,32 @@
             android:label="PythonInterpreter"
             android:windowSoftInputMode="stateVisible|stateAlwaysVisible"
             android:theme="@style/TerminalTheme"
-            android:configChanges="orientation|screenSize"/>
+            android:configChanges="orientation|screenSize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.py" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.py" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="*/*" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.py" />
+            </intent-filter>
+        </activity>
         <activity
             android:name="com.apython.python.pythonhost.GetPythonAppExecutionInfoActivity"
             android:excludeFromRecents="true"
@@ -56,9 +81,6 @@
         <activity android:name="com.apython.python.pythonhost.PythonSettingsActivity"
                   android:theme="@style/PyHostAppTheme"
                   android:label="Settings"/>
-        <activity android:name="com.apython.python.pythonhost.ToolsActivity"
-                  android:theme="@style/PyHostAppTheme"
-                  android:label="Tools"/>
         <service
             android:name=".downloadcenter.PythonDownloadCenterService"
             android:exported="false"/>
@@ -68,5 +90,4 @@
             android:exported="false"
             android:icon="@drawable/python_launcher_icon"/>
     </application>
-
 </manifest>
