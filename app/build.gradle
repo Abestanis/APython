@@ -312,8 +312,13 @@ class UpdatePythonLibZips extends DefaultTask {
             pythonSourceDirs = pythonSourceParentDir.listFiles(new FileFilter() {
                 @Override
                 boolean accept(File pathname) {
-                    return pathname.isDirectory()\
-                    && pathname.getName().matches("Python\\d\\.\\d\\.\\d\$")
+                    if (!pathname.isDirectory()
+                            || !pathname.getName().matches("Python\\d\\.\\d\\.\\d\$")) {
+                        return false
+                    }
+                    def versionParts = pathname.getName().substring("Python".length()).split("\\.")
+                    return !(new File(destinationDir,
+                            "lib" + versionParts[0] + "_" + versionParts[1] + ".zip").exists())
                 }
             })
         }
