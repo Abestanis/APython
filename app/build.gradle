@@ -1,4 +1,7 @@
 import org.apache.tools.ant.DirectoryScanner
+import org.gradle.util.GFileUtils
+
+import java.nio.file.Paths
 
 apply plugin: 'com.android.application'
 
@@ -31,13 +34,14 @@ android {
         }
     }
     externalNativeBuild {
-//        ndkBuild {
-//            path file('src/main/jni/Android.mk')
-//        }
         cmake {
             path "src/main/jni/CMakeLists.txt"
             version "3.10.2+"
         }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
     tasks.whenTaskAdded {
         task ->
@@ -286,17 +290,36 @@ class UpdatePythonLibZips extends DefaultTask {
     File destinationDir
 
     @TaskAction
-    protected void main() {
-        def pythonSourceDirs = pythonSourceParentDir.listFiles(new FileFilter() {
-            @Override
-            boolean accept(File pathname) {
-                return pathname.isDirectory()\
-                    && pathname.getName().matches("Python\\d\\.\\d\\.\\d\$")
+    void execute(IncrementalTaskInputs inputs) {
+        def pythonSourceDirs
+        if (inputs.incremental) {
+            Set<File> pythonSourceDirSet = new HashSet<>()
+            def checkChanged = { change ->
+                def relativePath = pythonSourceParentDir.toPath().relativize(change.file.toPath())
+                def directory = pythonSourceParentDir.toPath()
+                        .resolve(relativePath.subpath(0, 1)).toFile()
+                if (directory.isDirectory() && directory.name.matches("Python\\d\\.\\d\\.\\d\$")) {
+                    if (relativePath.subpath(1, relativePath.nameCount)
+                            .startsWith(Paths.get('source', 'Lib'))) {
+                        pythonSourceDirSet.add(directory)
+                    }
+                }
             }
-        })
+            inputs.outOfDate checkChanged
+            inputs.removed checkChanged
+            pythonSourceDirs = pythonSourceDirSet.toArray(new File[0])
+        } else {
+            pythonSourceDirs = pythonSourceParentDir.listFiles(new FileFilter() {
+                @Override
+                boolean accept(File pathname) {
+                    return pathname.isDirectory()\
+                    && pathname.getName().matches("Python\\d\\.\\d\\.\\d\$")
+                }
+            })
+        }
         for (File pythonSource: pythonSourceDirs) {
             def version = pythonSource.getName().substring(6)
-            def libDir = new File(pythonSource, 'source/Lib')
+            def libDir = pythonSource.toPath().resolve('source').resolve('Lib').toFile()
             if (!libDir.isDirectory()) {
                 getLogger().log(LogLevel.WARN,
                         'Could not find the Python std modules at ' + libDir.absolutePath)
