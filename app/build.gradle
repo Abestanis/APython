@@ -15,9 +15,6 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
-//            ndkBuild {
-//                arguments 'NDK_APPLICATION_MK:=' + file('src/main/jni/Application.mk').absolutePath
-//            }
             cmake {
                 cppFlags ""
             }
@@ -82,15 +79,18 @@ task copyExecutable(type: Copy, description: 'Copy the python executable binarie
     include '*/python'
     into 'src/main/assets'
 }
-task createDiffs(type: DiffMaker, description: 'Create the diffs for the python versions') {
+task createDiffs(type: DiffMaker,
+        description: 'Create the diffs for the Python versions and additional libraries') {
     versionsSourceDir = file('src/main/jni/DevLibs')
     patchOutputDir = file('src/main/jni/DevLibs/patches')
+    cacheDir = file(localProperties['apython.cache.dir'])
     downloadUrl = 'https://www.python.org/ftp/python/%VERSION%/Python-%VERSION%.tgz'
     libConfigFile new File(file(localProperties['apython.libs.dir']), 'libraries.cfg')
 }
 task setupAdditionalLibrarySources(type: SetupAdditionalLibrarySources,
         description: 'Download and extract sources for all additional libraries') {
     libConfigFile new File(file(localProperties['apython.libs.dir']), 'libraries.cfg')
+    cacheDir file(localProperties['apython.cache.dir'])
 }
 task updatePythonLibZips(type: UpdatePythonLibZips,
         description: 'Create a zip of the Python libraries and place it in the ' +
@@ -112,8 +112,8 @@ task SyncBuildSystem(type: Copy,
         into 'patches'
     }
     into localProperties['apython.libs.dir']
+    includeEmptyDirs = false
 }
-
 
 class Util {
     /**
@@ -158,33 +158,69 @@ class Util {
         }
         return gitStatusLines[0].substring(10).trim()
     }
+
+    static File download(Project project, String url, File destDir) {
+        download(project, url, destDir, null)
+    }
     
-    static File download(String url, File destDir) {
+    static File download(Project project, String url, File destDir, File cacheDir) {
+        def urlSource = new URL(url)
+        def segments = urlSource.getPath().split("/")
+        def fileName = segments[segments.length - 1]
         if (url.contains('github.com') && !url.endsWith('.zip')) {
             if (!url.endsWith('/')) url += '/'
             url += 'archive/master.zip'
+            urlSource = new URL(url)
+            fileName += '.zip'
         }
-        def urlSource = new URL(url)
-        def segments = urlSource.getPath().split("/")
-        File dest = new File(destDir, segments[segments.length - 1])
+        File dest = new File(destDir, fileName)
         println('Downloading source files from \'' + url + '\'...')
-        try {
-            urlSource.withInputStream { i ->
-                dest.withOutputStream {
-                    it << i
+        if (cacheDir != null) {
+            File cacheFile = new File(cacheDir, fileName)
+            if (cacheFile.isFile()) {
+                println('Using cached version from \'' + cacheFile.absolutePath + '\'...')
+                if (dest.isFile()) {
+                    dest.delete()
+                } else if (dest.isDirectory()) {
+                    dest.deleteDir()
+                }
+                def result = project.copy {
+                    from cacheFile
+                    into destDir
+                }
+                if (result.didWork) {
+                    return dest
+                } else {
+                    project.getLogger().log(
+                            LogLevel.WARN, 'Failed to copy cached version, downloading...')
                 }
             }
-        } catch (Exception e) {
-            if (dest.exists()) {
-                dest.delete()
+        }
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                urlSource.withInputStream { i ->
+                    dest.withOutputStream {
+                        it << i
+                    }
+                }
+                break
+            } catch (Exception error) {
+                if (dest.exists()) {
+                    dest.delete()
+                }
+                if (attempt == 3) {
+                    throw new GradleException(
+                            'Downloading source files from "' + url + '" failed.', error)
+                } else {
+                    project.getLogger().log(LogLevel.WARN, 'Download attempt ' + attempt +
+                            ' from "' + url + '" failed. Retrying...')
+                }
             }
-            throw new GradleException('Downloading source files from "' + url + '" failed.', e)
         }
         return dest
     }
     
-    static boolean copy(Project project, sourceTree, File dest,
-                        filter) {
+    static boolean copy(Project project, sourceTree, File dest, filter) {
         def success = false
         DirectoryScanner.removeDefaultExclude("**/.gitignore")
         DirectoryScanner.removeDefaultExclude("**/.gitattributes")
@@ -277,11 +313,11 @@ class Util {
     }
     
     static def formatDiffOutput(String output, String[] pathsToDelete) {
-        def diffString = ""
+        def diffString = new StringBuilder()
         def pathsToDeleteFormat = "(\\Q" + pathsToDelete.join("\\E|\\Q") + "\\E)"
+        def ignorePattern = /(index .*?\\.\\.|similarity index |rename from |rename to ).*/ 
         for (String line : output.split('\n')) {
-            if (line.matches( "(index .*?\\.\\.|similarity index |" +
-                    "rename from |rename to ).*")) {
+            if (line ==~ ignorePattern) {
                 continue
             }
             if (pathsToDelete.length > 0) {
@@ -294,9 +330,9 @@ class Util {
                     line = line.substring(0, pos) + line.substring(pos + 1)
                 }
             }
-            diffString += line + '\n'
+            diffString.append(line).append('\n')
         }
-        return diffString
+        return diffString.toString()
     }
 }
 
@@ -371,6 +407,8 @@ class UpdatePythonLibZips extends DefaultTask {
 class SetupAdditionalLibrarySources extends DefaultTask {
     @InputFile
     File libConfigFile
+    
+    File cacheDir
     
     @TaskAction
     def run() {
@@ -490,7 +528,7 @@ class SetupAdditionalLibrarySources extends DefaultTask {
             println('Updating ' + libName)
             // Download
             def url = libConfig.get(libName).get('url')
-            File archive = Util.download(url, this.temporaryDir)
+            File archive = Util.download(project, url, this.temporaryDir, this.cacheDir)
             // extract and overwrite
             def libDirName = libName.capitalize()
             File sourceDir = project.file('src/main/jni/DevLibs/' + libDirName + '/source') // TODO: Extract path as config
@@ -510,6 +548,8 @@ class DiffMaker extends DefaultTask {
 
     @InputFile
     File libConfigFile
+    
+    File cacheDir
 
     @Input
     String downloadUrl
@@ -536,6 +576,16 @@ class DiffMaker extends DefaultTask {
             data.put('file_type_filter', pyFileTypeFilter.join(", "))
             libConfig.put(sourceDir.name, data)
         }
+        // Cleaning output dir
+        def oldPatchFiles = patchOutputDir.listFiles(new FilenameFilter() {
+            @Override
+            boolean accept(File dir, String name) {
+                return name.endsWith('.patch')
+            }
+        })
+        for (def patchFile : oldPatchFiles) {
+            patchFile.delete()
+        }
         for (libData in libConfig.entrySet()) {
             def libName = libData.key
             if (!libData.value.containsKey('url')) {
@@ -555,7 +605,7 @@ class DiffMaker extends DefaultTask {
                 throw new GradleException('Failed to find source dir of ' + libName
                         + ' in ' + versionsSourceDir.absolutePath)
             }
-            def archiveFile = Util.download(url, this.temporaryDir)
+            def archiveFile = Util.download(project, url, this.temporaryDir, this.cacheDir)
 
             def filter = null
             if (libData.value.containsKey('extraction_filter')) {
@@ -615,15 +665,18 @@ class DiffMaker extends DefaultTask {
                 extractDir.absolutePath.replaceAll("\\\\", "\\\\\\\\"),
                 sourceDir.absolutePath.replaceAll("\\\\", "\\\\\\\\")
             ]
+            println("Formatting diff...")
             def diffString = Util.formatDiffOutput(output.toString(), pathsToDelete)
             if (diffString.isEmpty()) {
                 throw new GradleException('Failed to create patch for ' + libName +
                         ' (empty diff file).')
             }
+            if (diffString == "\n") {
+                println('Skipping empty diff.')
+                continue
+            }
             try {
-                patchFile.withDataOutputStream { out ->
-                    out.writeBytes(diffString)
-                }
+                patchFile.write diffString
             } catch (IOException e) {
                 println('Failed to save diff to "' + patchFile.absolutePath + '": ' + e.message)
                 if (patchFile.exists()) patchFile.delete()
