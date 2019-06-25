@@ -29,19 +29,10 @@ public class MainActivity extends Activity {
         } else {
             // Display the splash screen
             Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                public void run() {
-                    setupMainMenu();
-                }
-            }, 4000);
+            handler.postDelayed(this::setupMainMenu, 4000);
 
-            RelativeLayout container = (RelativeLayout) findViewById(R.id.splash_container);
-            container.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    setupMainMenu();
-                }
-            });
+            RelativeLayout container = findViewById(R.id.splash_container);
+            container.setOnClickListener(v -> setupMainMenu());
             PackageManager.installPythonExecutable(getApplicationContext(), null);
         }
     }
@@ -65,15 +56,12 @@ public class MainActivity extends Activity {
      */
     private void setupMainMenu() {
         setContentView(R.layout.main_menu);
-        LinearLayout interpreterButtonContainer = (LinearLayout) findViewById(R.id.main_menu_interpreter_button_container);
-        interpreterButtonContainer.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                Intent interpreterIntent = new Intent(MainActivity.this, PythonInterpreterActivity.class);
-                interpreterIntent.putExtra("pythonVersion", PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED);
-                startActivity(interpreterIntent);
-                return true;
-            }
+        LinearLayout interpreterButtonContainer = findViewById(R.id.main_menu_interpreter_button_container);
+        interpreterButtonContainer.setOnLongClickListener(v -> {
+            Intent interpreterIntent = new Intent(MainActivity.this, PythonInterpreterActivity.class);
+            interpreterIntent.putExtra("pythonVersion", PythonSettingsActivity.PYTHON_VERSION_NOT_SELECTED);
+            startActivity(interpreterIntent);
+            return true;
         });
     }
 }

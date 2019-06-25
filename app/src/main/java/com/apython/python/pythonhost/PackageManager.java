@@ -15,7 +15,6 @@ import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -40,7 +39,7 @@ public class PackageManager {
         return context.getCacheDir();
     }
 
-    public static File getSitePackages(Context context, String pythonVersion) {
+    static File getSitePackages(Context context, String pythonVersion) {
         return new File(getStandardLibPath(context), "python" + pythonVersion + "/site-packages");
     }
 
@@ -123,9 +122,9 @@ public class PackageManager {
      * @param disallowedPythonVersions A list of disallowed Python versions.
      * @return The optimal Python version or {@code null} if no optimal version was found.
      */
-    public static String getOptimalInstalledPythonVersion(Context context, String requestedPythonVersion,
-                                                          String minPythonVersion, String maxPythonVersion,
-                                                          String[] disallowedPythonVersions) {
+    static String getOptimalInstalledPythonVersion(Context context, String requestedPythonVersion,
+                                                   String minPythonVersion, String maxPythonVersion,
+                                                   String[] disallowedPythonVersions) {
         if (requestedPythonVersion != null) {
             return isPythonVersionInstalled(context, requestedPythonVersion) ? requestedPythonVersion : null;
         }
@@ -182,7 +181,7 @@ public class PackageManager {
      * @param context The current context.
      * @param libraryName The name of the library to load.
      *
-     * @throws UnsatisfiedLinkError if the library was not downloaded
+     * @throws UnsatisfiedLinkError If the library was not downloaded
      *                              or it is not in the usual directory.
      */
     @SuppressLint("UnsafeDynamicallyLoadedCode")
@@ -197,13 +196,10 @@ public class PackageManager {
      * @param context The current context.
      * @return A list of {@link File} objects pointing to the library files.
      */
-    public static File[] getAdditionalLibraries(Context context) {
-        File[] additionalLibraries = getDynamicLibraryPath(context).listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String filename) {
-                return filename.endsWith(".so") && !filename.matches(".*python\\d+\\.\\d+\\.so");
-            }
-        });
+    private static File[] getAdditionalLibraries(Context context) {
+        File[] additionalLibraries = getDynamicLibraryPath(context).listFiles(
+                (dir, filename) -> filename.endsWith(".so") &&
+                        !filename.matches(".*python\\d+\\.\\d+\\.so"));
         return additionalLibraries != null ? additionalLibraries : new File[0];
     }
 
@@ -215,12 +211,8 @@ public class PackageManager {
      * @return A list of {@link File} objects pointing to the library files.
      */
     public static File[] getAdditionalModules(Context context, String pythonVersion) {
-        File[] additionalModules = getLibDynLoad(context, pythonVersion).listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String filename) {
-                return filename.endsWith(".so");
-            }
-        });
+        File[] additionalModules = getLibDynLoad(context, pythonVersion).listFiles(
+                (dir, filename) -> filename.endsWith(".so"));
         return additionalModules != null ? additionalModules : new File[0];
     }
 
@@ -280,7 +272,7 @@ public class PackageManager {
                 && checkSitePackagesAvailability(context, pythonVersion, progressHandler);
     }
 
-    public static boolean installPythonExecutable(Context context, ProgressHandler progressHandler) {
+    static boolean installPythonExecutable(Context context, ProgressHandler progressHandler) {
         File executable = getPythonExecutable(context);
         if (executable.exists()) { // TODO: Check if we really need to update it.
             if (!executable.delete()) {
@@ -308,12 +300,12 @@ public class PackageManager {
         return false;
     }
 
-    public static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
+    static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
         return Pip.install(context, pythonVersion, progressHandler)
                 && Pip.installRequirements(context, requirements, pythonVersion, progressHandler);
     }
 
-    public static boolean checkSitePackagesAvailability(Context context, String pythonVersion, ProgressHandler progressHandler) {
+    static boolean checkSitePackagesAvailability(Context context, String pythonVersion, ProgressHandler progressHandler) {
         File sitePackages = getSitePackages(context, pythonVersion);
         if (sitePackages.exists()) {
             if (!Util.makePathAccessible(sitePackages, context.getFilesDir())) { return false; }

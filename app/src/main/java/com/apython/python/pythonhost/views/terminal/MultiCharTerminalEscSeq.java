@@ -29,7 +29,7 @@ public class MultiCharTerminalEscSeq {
          * @param fallback The default value.
          * @return The parameter as an integer.
          */
-        public Integer getIntParam(int index, Integer fallback) {
+        Integer getIntParam(int index, Integer fallback) {
             try {
                 return Integer.valueOf(parameters.get(index));
             } catch (NumberFormatException e) {
@@ -78,9 +78,9 @@ public class MultiCharTerminalEscSeq {
                 if (csiData.parameters.size() == csiData.parseParamIndex) {
                     csiData.parameters.add(String.valueOf(character));
                 } else {
-                    csiData.parameters.set(csiData.parseParamIndex,
-                                           csiData.parameters.get(csiData.parseParamIndex)
-                                                   + String.valueOf(character));
+                    csiData.parameters.set(
+                            csiData.parseParamIndex, csiData.parameters.get(
+                                    csiData.parseParamIndex) + character);
                 }
             } else if (character == ':' || character == ';') {
                 if (csiData.parameters.size() == 0 || text.charAt(index - 1) == ':'
@@ -108,7 +108,7 @@ public class MultiCharTerminalEscSeq {
      * Get the parsed CSI data, if a CSI seq has been parsed.
      * @return The CSI data or null.
      */
-    public CSIData getCsiData() {
+    CSIData getCsiData() {
         return csiData;
     }
 

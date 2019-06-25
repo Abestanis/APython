@@ -35,19 +35,15 @@ public class WindowManagerTabWidget extends FrameLayout {
         super(context, attrs);
         LayoutInflater.from(context).inflate(context.getResources().getLayout(R.layout.wm_tab_widget), this);
         bottomSeparator = findViewById(R.id.wm_tabWidget_separator);
-        icon = (ImageView) findViewById(R.id.wm_tabWidget_icon);
-        closeButton = (ImageView) findViewById(R.id.wm_tabWidget_closeButton);
-        textView = (TextView) findViewById(R.id.wm_tabWidget_title);
+        icon = findViewById(R.id.wm_tabWidget_icon);
+        closeButton = findViewById(R.id.wm_tabWidget_closeButton);
+        textView = findViewById(R.id.wm_tabWidget_title);
         setIsSelectedTab(false);
     }
 
     public void setOnCloseListener(final OnCloseListener listener) {
-        closeButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                listener.onClose(WindowManagerTabWidget.this);
-            }
-        });
+        closeButton.setOnClickListener(
+                v -> listener.onClose(WindowManagerTabWidget.this));
     }
 
     public void setIcon(Drawable icon) {

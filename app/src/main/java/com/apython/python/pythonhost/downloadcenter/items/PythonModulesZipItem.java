@@ -17,7 +17,7 @@ import java.io.File;
 public class PythonModulesZipItem extends Dependency {
     private String pythonVersion = null;
 
-    public PythonModulesZipItem(Context context) {
+    PythonModulesZipItem(Context context) {
         super(context);
     }
 

@@ -20,7 +20,7 @@ import java.net.URLConnection;
  */
 public class Pip {
 
-    public static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
+    static boolean installRequirements(final Context context, String requirements, String pythonVersion, final ProgressHandler progressHandler) {
         // TODO: Need fast check if a requirement is already installed.
         File reqFile;
         try {
@@ -37,10 +37,7 @@ public class Pip {
         if (progressHandler != null) {
             progressHandler.setProgress(-1);
             progressHandler.enable(context.getString(R.string.install_requirements));
-            ioHandler = new PythonInterpreterHandle.IOHandler() {
-                @Override
-                public void onOutput(String output) { parsePipOutput(context, progressHandler, output); }
-            };
+            ioHandler = output -> parsePipOutput(context, progressHandler, output);
         }
         PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);
         interpreter.setIOHandler(ioHandler);
@@ -62,7 +59,7 @@ public class Pip {
         return false;
     }
 
-    public static boolean isInstalled(Context context, String pythonVersion) {
+    private static boolean isInstalled(Context context, String pythonVersion) {
         return new File(PackageManager.getSitePackages(context, pythonVersion), "pip").exists();
     }
 
@@ -113,10 +110,7 @@ public class Pip {
         if (progressHandler != null) {
             progressHandler.setProgress(-1);
             progressHandler.setText(context.getString(R.string.run_pip_installer));
-            ioHandler = new PythonInterpreterHandle.IOHandler() {
-                @Override
-                public void onOutput(String output) { parsePipOutput(context, progressHandler, output); }
-            };
+            ioHandler = output -> parsePipOutput(context, progressHandler, output);
         }
         PythonInterpreterHandle interpreter = new PythonInterpreterProcessHandle(context);
         interpreter.setIOHandler(ioHandler);
@@ -154,7 +148,7 @@ public class Pip {
      * @param progressHandler A progressHandler to report the output to.
      * @param text A line of output from pip.
      */
-    public static void parsePipOutput(Context context, ProgressHandler progressHandler, String text) {
+    private static void parsePipOutput(Context context, ProgressHandler progressHandler, String text) {
         text = text.trim().replace("[?25h", "");
         if (text.startsWith("[K")) {
             String[] parts = text.split(" ");

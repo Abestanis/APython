@@ -1,6 +1,5 @@
 package com.apython.python.pythonhost;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -18,15 +17,15 @@ public interface ProgressHandler {
     class Factory {
 
         static class SimpleProgressHandler implements ProgressHandler {
-            protected boolean enabled         = false;
-            protected String text             = null;
-            protected String progressText     = null;
-            protected Activity activity       = null;
-            private   TextView output         = null;
-            private   ProgressBar progressBar = null;
-            private   Runnable onEnable       = null;
-            private   Runnable onSuccess      = null;
-            private   Runnable onFailure      = null;
+            protected boolean enabled = false;
+            protected String text     = null;
+            String progressText       = null;
+            protected Activity activity;
+            private   TextView output;
+            private   ProgressBar progressBar;
+            private   Runnable onEnable;
+            private   Runnable onSuccess;
+            private   Runnable onFailure;
             SimpleProgressHandler(Activity activity, TextView output, ProgressBar progressBar,
                                   Runnable onEnable, Runnable onSuccess, Runnable onFailure) {
                 this.activity = activity;
@@ -40,36 +39,28 @@ public interface ProgressHandler {
             @Override
             public void enable(final String text) {
                 this.text = text;
-                activity.runOnUiThread(new Runnable() {
-                    @SuppressLint("SetTextI18n")
-                    @Override
-                    public void run() {
-                        if (output != null) {
-                            output.setText(text + (progressText != null ? "\n" + progressText : ""));
-                        }
-                        if (enabled) {
-                            return;
-                        }
-                        enabled = true;
-                        if (onEnable != null) {
-                            onEnable.run();
-                        }
-                        progressBar.setIndeterminate(true);
-                        progressBar.setMax(100);
+                activity.runOnUiThread(() -> {
+                    if (output != null) {
+                        output.setText(text + (progressText != null ? "\n" + progressText : ""));
                     }
+                    if (enabled) {
+                        return;
+                    }
+                    enabled = true;
+                    if (onEnable != null) {
+                        onEnable.run();
+                    }
+                    progressBar.setIndeterminate(true);
+                    progressBar.setMax(100);
                 });
             }
 
             @Override
             public void setText(final String text) {
                 this.text = text;
-                activity.runOnUiThread(new Runnable() {
-                    @SuppressLint("SetTextI18n")
-                    @Override
-                    public void run() {
-                        if (output != null) {
-                            output.setText(text + (progressText != null ? "\n" + progressText : ""));
-                        }
+                activity.runOnUiThread(() -> {
+                    if (output != null) {
+                        output.setText(text + (progressText != null ? "\n" + progressText : ""));
                     }
                 });
             }
@@ -88,19 +79,15 @@ public interface ProgressHandler {
                 if (progressTextString != null || progress < 0) {
                     this.progressText = progressTextString;
                 }
-                activity.runOnUiThread(new Runnable() {
-                    @SuppressLint("SetTextI18n")
-                    @Override
-                    public void run() {
-                        if (progress < 0) {
-                            progressBar.setIndeterminate(true);
-                        } else {
-                            progressBar.setIndeterminate(false);
-                            progressBar.setProgress((int) (progress * 100));
-                        }
-                        if (output != null) {
-                            output.setText(text + (progressText != null ? "\n" + progressText : ""));
-                        }
+                activity.runOnUiThread(() -> {
+                    if (progress < 0) {
+                        progressBar.setIndeterminate(true);
+                    } else {
+                        progressBar.setIndeterminate(false);
+                        progressBar.setProgress((int) (progress * 100));
+                    }
+                    if (output != null) {
+                        output.setText(text + (progressText != null ? "\n" + progressText : ""));
                     }
                 });
             }
@@ -108,14 +95,11 @@ public interface ProgressHandler {
             @Override
             public void onComplete(final boolean success) {
                 if ((success && onSuccess != null) || (!success && onFailure != null)) {
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (success) {
-                                onSuccess.run();
-                            } else {
-                                onFailure.run();
-                            }
+                    activity.runOnUiThread(() -> {
+                        if (success) {
+                            onSuccess.run();
+                        } else {
+                            onFailure.run();
                         }
                     });
                 }
@@ -141,23 +125,15 @@ public interface ProgressHandler {
             @Override
             public void setTotalSteps(final int totalSteps) {
                 this.totalSteps = totalSteps;
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        totalProgressBar.setMax(100 * totalSteps);
-                    }
-                });
+                activity.runOnUiThread(() -> totalProgressBar.setMax(100 * totalSteps));
             }
 
             @Override
             public void enable(String text) {
                 if (!enabled) {
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            totalProgressBar.setIndeterminate(true);
-                            totalProgressBar.setMax(100 * totalSteps);
-                        }
+                    activity.runOnUiThread(() -> {
+                        totalProgressBar.setIndeterminate(true);
+                        totalProgressBar.setMax(100 * totalSteps);
                     });
                 }
                 super.enable(text);
@@ -172,12 +148,9 @@ public interface ProgressHandler {
                     } else {
                         totalProgress = Math.round(totalProgress) + progress;
                     }
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            totalProgressBar.setIndeterminate(false);
-                            totalProgressBar.setProgress((int) (totalProgress * 100));
-                        }
+                    activity.runOnUiThread(() -> {
+                        totalProgressBar.setIndeterminate(false);
+                        totalProgressBar.setProgress((int) (totalProgress * 100));
                     });
                     lastProgress = progress;
                 }

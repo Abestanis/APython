@@ -2,7 +2,6 @@ package com.apython.python.pythonhost;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -37,12 +36,8 @@ public class GetPythonAppExecutionInfoActivity extends Activity {
             final TextView progressTextView = new TextView(this.getApplicationContext());
             final ProgressBar progressView = new ProgressBar(this.getApplicationContext(), null, android.R.attr.progressBarStyleHorizontal);
 
-            dialogBuilder.setNegativeButton(getText(R.string.run_in_background), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
+            dialogBuilder.setNegativeButton(
+                    getText(R.string.run_in_background), (dialog, which) -> dialog.dismiss());
 
             progressContainer.setPadding(20, 20, 20, 20);
             progressContainer.setOrientation(LinearLayout.VERTICAL);
@@ -60,28 +55,23 @@ public class GetPythonAppExecutionInfoActivity extends Activity {
             final AlertDialog dialog = dialogBuilder.create();
             dialog.setCancelable(false);
 
-            final ProgressHandler progressHandler = ProgressHandler.Factory.create(this, progressTextView, progressView, new Runnable() {
-                @Override
-                public void run() {
-                    dialog.show();
-                    WindowManager.LayoutParams windowLayoutParams = new WindowManager.LayoutParams();
-                    Window window = dialog.getWindow();
-                    if (window != null) {
-                        windowLayoutParams.copyFrom(window.getAttributes());
-                        windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
-                        window.setAttributes(windowLayoutParams);
-                    }
+            final ProgressHandler progressHandler = ProgressHandler.Factory.create(
+                    this, progressTextView, progressView, () -> {
+                dialog.show();
+                WindowManager.LayoutParams windowLayoutParams = new WindowManager.LayoutParams();
+                Window window = dialog.getWindow();
+                if (window != null) {
+                    windowLayoutParams.copyFrom(window.getAttributes());
+                    windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+                    window.setAttributes(windowLayoutParams);
                 }
             }, null);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    communicationManager.startPythonApp(progressHandler);
-                    if (dialog.isShowing()) {
-                        dialog.dismiss();
-                    }
-                    finish();
+            new Thread(() -> {
+                communicationManager.startPythonApp(progressHandler);
+                if (dialog.isShowing()) {
+                    dialog.dismiss();
                 }
+                finish();
             }).start();
         } else {
             finish();

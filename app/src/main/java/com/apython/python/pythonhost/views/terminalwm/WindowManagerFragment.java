@@ -47,7 +47,7 @@ public class WindowManagerFragment extends PythonFragment implements
         Context context = getActivity().getBaseContext();
         View root = LayoutInflater.from(context).inflate(context.getResources().getLayout(
                 R.layout.terminal_window_manager_layout), container, false);
-        tabHost = (WindowManagerFragmentTabHost) root.findViewById(android.R.id.tabhost);
+        tabHost = root.findViewById(android.R.id.tabhost);
         return root;
     }
 
@@ -64,15 +64,12 @@ public class WindowManagerFragment extends PythonFragment implements
         final String windowName = getUnusedWindowName();
         final String windowTag = "window " + count++;
         windowNames.add(windowName);
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                    tabHost.addTab(tabHost.getFragmentTabSpec(getActivity(), windowTag)
-                                           .setFragmentClass(windowClass)
-                                           .setTitle(windowName));
-                    tabHost.setCurrentTab(windowTag);
-                    countDownLatch.countDown();
-            }
+        getActivity().runOnUiThread(() -> {
+                tabHost.addTab(tabHost.getFragmentTabSpec(getActivity(), windowTag)
+                                       .setFragmentClass(windowClass)
+                                       .setTitle(windowName));
+                tabHost.setCurrentTab(windowTag);
+                countDownLatch.countDown();
         });
         try {
             countDownLatch.await();
@@ -83,12 +80,7 @@ public class WindowManagerFragment extends PythonFragment implements
         final T window = (T) tabHost.getCurrentFragment();
         if (window != null) {
             windows.add(window);
-            tabHost.getTabWidget(window.getTag()).setOnCloseListener(new WindowManagerTabWidget.OnCloseListener() {
-                @Override
-                public void onClose(WindowManagerTabWidget tabWidget) {
-                    window.close();
-                }
-            });
+            tabHost.getTabWidget(window.getTag()).setOnCloseListener(tabWidget -> window.close());
         }
         return window;
     }
@@ -146,7 +138,8 @@ public class WindowManagerFragment extends PythonFragment implements
         return getUnusedWindowName(DEFAULT_UNTITLED_NAME);
     }
 
-    private String getUnusedWindowName(String proposedName) {
+    private String getUnusedWindowName(
+            @SuppressWarnings("SameParameterValue") String proposedName) {
         String name = proposedName;
         int i = 1;
         while (windowNames.contains(name)) {

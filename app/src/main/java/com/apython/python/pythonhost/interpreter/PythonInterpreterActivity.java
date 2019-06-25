@@ -3,7 +3,6 @@ package com.apython.python.pythonhost.interpreter;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -53,47 +52,29 @@ public class PythonInterpreterActivity extends Activity {
         super.onCreate(savedInstanceState);
         this.terminalWindowManager = PythonFragment.create(WindowManagerFragment.class, this, "wm");
         this.setContentView(R.layout.activity_python_interpreter);
-        ViewGroup container = ((ViewGroup) this.findViewById(R.id.pyHostWindowContainer));
+        ViewGroup container = this.findViewById(R.id.pyHostWindowContainer);
         container.addView(((PythonFragment) terminalWindowManager).createView(container));
         addTerminalWindow();
         interpreter = new PythonInterpreterProcessHandle(this);
         interpreter.setIOHandler(new PythonInterpreterHandle.LineIOHandler() {
             @Override
             public void onOutput(final String output) {
-                PythonInterpreterActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        terminalView.addOutput(output);
-                    }
-                });
+                PythonInterpreterActivity.this.runOnUiThread(() -> terminalView.addOutput(output));
             }
 
             @Override
             public void enableLineMode(final String prompt) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        terminalView.enableLineInput(prompt);
-                    }
-                });
+                runOnUiThread(() -> terminalView.enableLineInput(prompt));
             }
 
             @Override
             public void stopLineMode() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        terminalView.disableLineInput();
-                    }
-                });
+                runOnUiThread(() -> terminalView.disableLineInput());
             }
         });
-        interpreter.setExitHandler(new PythonInterpreter.ExitHandler() {
-            @Override
-            public void onExit(int exitCode) {
-                Log.d(MainActivity.TAG, "Python interpreter exited with exit code " + exitCode);
-                finish();
-            }
+        interpreter.setExitHandler(exitCode -> {
+            Log.d(MainActivity.TAG, "Python interpreter exited with exit code " + exitCode);
+            finish();
         });
         Intent intent = getIntent();
         Uri filePathData = intent.getData();
@@ -252,43 +233,34 @@ public class PythonInterpreterActivity extends Activity {
             items[i] = "Python " + versions.get(i);
         }
         builder.setSingleChoiceItems(items, 0, null);
-        builder.setNegativeButton("Just once", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                ListView listView = ((AlertDialog) dialog).getListView();
-                interpreter.startInterpreter(
-                        versions.get(listView.getCheckedItemPosition()), interpreterArgs);
-                bindInterpreter();
-            }
+        builder.setNegativeButton("Just once", (dialog, which) -> {
+            dialog.dismiss();
+            ListView listView = ((AlertDialog) dialog).getListView();
+            interpreter.startInterpreter(
+                    versions.get(listView.getCheckedItemPosition()), interpreterArgs);
+            bindInterpreter();
         });
-        builder.setPositiveButton("Set as default", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                ListView listView = ((AlertDialog) dialog).getListView();
-                String version = versions.get(listView.getCheckedItemPosition());
-                PreferenceManager.getDefaultSharedPreferences(PythonInterpreterActivity.this)
-                        .edit().putString(PythonSettingsActivity.KEY_PYTHON_VERSION, version).apply();
-                interpreter.startInterpreter(version, interpreterArgs);
-                bindInterpreter();
-            }
+        builder.setPositiveButton("Set as default", (dialog, which) -> {
+            dialog.dismiss();
+            ListView listView = ((AlertDialog) dialog).getListView();
+            String version = versions.get(listView.getCheckedItemPosition());
+            PreferenceManager.getDefaultSharedPreferences(PythonInterpreterActivity.this)
+                    .edit().putString(PythonSettingsActivity.KEY_PYTHON_VERSION, version).apply();
+            interpreter.startInterpreter(version, interpreterArgs);
+            bindInterpreter();
         });
-        builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                dialog.dismiss();
-                finish();
-            }
+        builder.setOnCancelListener(dialog -> {
+            dialog.dismiss();
+            finish();
         });
         builder.setTitle("Choose a Python version");
         builder.show();
     }
 
     private void addTerminalWindow() {
-        WindowManagerInterface.Window window = terminalWindowManager.createWindow(TerminalFragment.class);
+        TerminalInterface window = terminalWindowManager.createWindow(TerminalFragment.class);
         terminalWindowManager.setWindowName(window, "Python");
         terminalWindowManager.setWindowIcon(window, Util.getResourceDrawable(this, R.drawable.python_launcher_icon));
-        terminalView = (TerminalInterface) window;
+        terminalView = window;
     }
 }

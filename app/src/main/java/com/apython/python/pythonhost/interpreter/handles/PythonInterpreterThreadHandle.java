@@ -2,7 +2,6 @@ package com.apython.python.pythonhost.interpreter.handles;
 
 import android.content.Context;
 
-import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 import com.apython.python.pythonhost.interpreter.PythonInterpreterRunnable;
 
 /**
@@ -26,13 +25,10 @@ public class PythonInterpreterThreadHandle extends InterpreterPseudoTerminalIOHa
         super.startInterpreter(pythonVersion, args);
         interpreter = new PythonInterpreterRunnable(
                 context, pythonVersion, getPseudoTerminalPath(), args);
-        interpreter.setExitHandler(new PythonInterpreter.ExitHandler() {
-            @Override
-            public void onExit(int code) {
-                exitCode = code;
-                synchronized (exitLocker) {
-                    exitLocker.notifyAll();
-                }
+        interpreter.setExitHandler(code -> {
+            exitCode = code;
+            synchronized (exitLocker) {
+                exitLocker.notifyAll();
             }
         });
         startOutputListener();

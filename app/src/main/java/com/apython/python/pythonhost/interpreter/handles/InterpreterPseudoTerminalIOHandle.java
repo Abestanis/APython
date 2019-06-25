@@ -3,6 +3,7 @@ package com.apython.python.pythonhost.interpreter.handles;
 import android.util.Log;
 
 import com.apython.python.pythonhost.MainActivity;
+import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 
 import java.io.FileDescriptor;
@@ -53,7 +54,7 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
     public void sendInput(String input) {
         OutputStream pythonInput = new FileOutputStream(pythonProcessFd);
         try {
-            pythonInput.write(input.getBytes("Utf-8"));
+            pythonInput.write(input.getBytes(Util.UTF_8));
         } catch (UnsupportedEncodingException e) {
             Log.wtf(logTag, "Utf-8 encoding is not supported?!", e);
         } catch (IOException e) {
@@ -93,74 +94,61 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
      */
     void startOutputListener() {
         if (pythonProcessFd == null) { return; }
-        outputListenerThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final byte[] buffer = new byte[256];
-                int bytesRead;
-                InputStream pythonOutput = new FileInputStream(pythonProcessFd);
-                try {
-                    while (!Thread.currentThread().isInterrupted()
-                            && (bytesRead = pythonOutput.read(buffer)) != -1) {
-                        final String text;
-                        try {
-                            text = new String(buffer, 0, bytesRead, "Utf-8");
-                        } catch (UnsupportedEncodingException e) {
-                            Log.wtf(logTag, "Utf-8 encoding is not supported?!", e);
-                            break;
-                        }
-                        if (ioHandler != null) {
-                            ioHandler.onOutput(text);
-                        }
-                        Log.d(logTag, text);
+        outputListenerThread = new Thread(() -> {
+            final byte[] buffer = new byte[256];
+            int bytesRead;
+            InputStream pythonOutput = new FileInputStream(pythonProcessFd);
+            try {
+                while (!Thread.currentThread().isInterrupted()
+                        && (bytesRead = pythonOutput.read(buffer)) != -1) {
+                    final String text = new String(buffer, 0, bytesRead, Util.UTF_8);
+                    if (ioHandler != null) {
+                        ioHandler.onOutput(text);
                     }
-                } catch (IOException e) {
-                    Log.w(logTag, "Reading from Python process failed", e);
+                    Log.d(logTag, text);
                 }
-                if (exitHandler != null) {
-                    Integer exitCode = getInterpreterResult(false);
-                    exitHandler.onExit(exitCode == null ? 1 : exitCode);
-                }
+            } catch (IOException e) {
+                Log.w(logTag, "Reading from Python process failed", e);
+            }
+            if (exitHandler != null) {
+                Integer exitCode = getInterpreterResult(false);
+                exitHandler.onExit(exitCode == null ? 1 : exitCode);
             }
         });
         outputListenerThread.setDaemon(true);
         outputListenerThread.start();
         if (!(ioHandler instanceof LineIOHandler)) { return; }
-        readLineThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!Thread.currentThread().isInterrupted()) {
-                    FileDescriptor fd = PythonInterpreter.waitForReadLineConnection();
-                    if (fd == null) continue;
-                    FileInputStream inputStream = new FileInputStream(fd);
-                    try {
-                        int bytesRead;
-                        byte buffer[] = new byte[64];
-                        StringBuilder prompt = new StringBuilder();
-                        do {
-                            bytesRead = inputStream.read(buffer);
-                            if (bytesRead == 0) { continue; }
-                            if (bytesRead == -1) { break; } // eof
-                            if (buffer[bytesRead - 1] == '\0') {
-                                prompt.append(new String(buffer, 0, bytesRead - 1, "UTF-8"));
-                                if (ioHandler instanceof LineIOHandler) {
-                                    ((LineIOHandler) ioHandler).enableLineMode(prompt.toString());
-                                }
-                                prompt.setLength(0);
-                            } else {
-                                prompt.append(new String(buffer, 0, bytesRead, "UTF-8"));
+        readLineThread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                FileDescriptor fd = PythonInterpreter.waitForReadLineConnection();
+                if (fd == null) continue;
+                try (FileInputStream inputStream = new FileInputStream(fd)) {
+                    int bytesRead;
+                    byte[] buffer = new byte[64];
+                    StringBuilder prompt = new StringBuilder();
+                    do {
+                        bytesRead = inputStream.read(buffer);
+                        if (bytesRead == 0) {
+                            continue;
+                        }
+                        if (bytesRead == -1) {
+                            break;
+                        } // eof
+                        if (buffer[bytesRead - 1] == '\0') {
+                            prompt.append(new String(buffer, 0, bytesRead - 1, Util.UTF_8));
+                            if (ioHandler instanceof LineIOHandler) {
+                                ((LineIOHandler) ioHandler).enableLineMode(prompt.toString());
                             }
-                        } while (true);
-                    } catch (IOException error) {
-                        Log.d(logTag, "Error listening to program output", error);
-                    } finally {
-                        try {
-                            inputStream.close();
-                        } catch (IOException ignored) {}
-                    }
-                    if (ioHandler instanceof LineIOHandler) {
-                        ((LineIOHandler) ioHandler).stopLineMode();
-                    }
+                            prompt.setLength(0);
+                        } else {
+                            prompt.append(new String(buffer, 0, bytesRead, Util.UTF_8));
+                        }
+                    } while (true);
+                } catch (IOException error) {
+                    Log.d(logTag, "Error listening to program output", error);
+                }
+                if (ioHandler instanceof LineIOHandler) {
+                    ((LineIOHandler) ioHandler).stopLineMode();
                 }
             }
         });

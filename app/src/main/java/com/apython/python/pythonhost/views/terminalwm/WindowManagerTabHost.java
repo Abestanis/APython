@@ -45,11 +45,11 @@ public class WindowManagerTabHost extends LinearLayout {
         private Drawable tabIcon    = null;
         private View     tabContent = null;
 
-        public TabSpec() {
+        TabSpec() {
             this(null);
         }
 
-        public TabSpec(String tag) {
+        TabSpec(String tag) {
             mTag = tag;
         }
 
@@ -72,7 +72,8 @@ public class WindowManagerTabHost extends LinearLayout {
         /**
          * Specify an icon resource to be used as the tab icon.
          */
-        public TabSpec setIcon(Context context, @DrawableRes int drawableId) {
+        TabSpec setIcon(Context context,
+                        @SuppressWarnings("SameParameterValue") @DrawableRes int drawableId) {
             return setIcon(Util.getResourceDrawable(context, drawableId));
         }
 
@@ -94,7 +95,7 @@ public class WindowManagerTabHost extends LinearLayout {
             return tab;
         }
 
-        protected void initTab(Tab tab) {
+        void initTab(Tab tab) {
             tab.tabIndicator = new WindowManagerTabWidget(getContext());
             if (tabTitle != null) {
                 tab.tabIndicator.setTitle(tabTitle);
@@ -155,12 +156,7 @@ public class WindowManagerTabHost extends LinearLayout {
 
     public void addTab(TabSpec tabSpec) {
         final Tab newTab = tabSpec.createTab();
-        newTab.tabIndicator.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setCurrentTab(newTab, tabs.indexOf(newTab));
-            }
-        });
+        newTab.tabIndicator.setOnClickListener(v -> setCurrentTab(newTab, tabs.indexOf(newTab)));
         newTab.tabIndicator.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, 1));
         tabIndicatorContainer.addView(newTab.tabIndicator);
         tabs.add(newTab);
@@ -207,12 +203,8 @@ public class WindowManagerTabHost extends LinearLayout {
             xOffset += tab_left.tabIndicator.getWidth();
         }
         final int finalXOffset = xOffset;
-        tabIndicatorScrollContainer.post(new Runnable() {
-            @Override
-            public void run() {
-                tabIndicatorScrollContainer.scrollTo(finalXOffset, 0);
-            }
-        });
+        tabIndicatorScrollContainer.post(
+                () -> tabIndicatorScrollContainer.scrollTo(finalXOffset, 0));
         displayTabContent(tab);
         currTab = index;
     }
@@ -234,10 +226,6 @@ public class WindowManagerTabHost extends LinearLayout {
     public void removeTab(String tag) {
         Tab tab = findTabByTag(tag);
         removeTab(tab, tabs.indexOf(tab));
-    }
-
-    public void removeTabAt(int index) {
-        removeTab(tabs.get(index), index);
     }
 
     public void removeTab(Tab tab, int index) {
@@ -266,18 +254,6 @@ public class WindowManagerTabHost extends LinearLayout {
 
     public void setTabTitle(String tag, String title) {
         findTabByTag(tag).tabIndicator.setTitle(title);
-    }
-
-    public String getCurrentTabTag() {
-        return tabs.get(currTab).tag;
-    }
-
-    public TabSpec getTabSpec() {
-        return new TabSpec();
-    }
-
-    public TabSpec getTabSpec(String tag) {
-        return new TabSpec(tag);
     }
     
     public void setTabIcon(String tag, Drawable icon) {

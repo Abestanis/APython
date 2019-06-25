@@ -21,17 +21,13 @@ public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
     public class FragmentTabSpec extends TabSpec {
         private       Class<? extends PythonFragment> fragmentClass;
         private final Activity                        activity;
-        public FragmentTabSpec(Activity activity) {
-            super();
-            this.activity = activity;
-        }
         
-        public FragmentTabSpec(Activity activity, String tag) {
+        FragmentTabSpec(Activity activity, String tag) {
             super(tag);
             this.activity = activity;
         }
 
-        public FragmentTabSpec setFragmentClass(Class<? extends PythonFragment> fragmentClass) {
+        FragmentTabSpec setFragmentClass(Class<? extends PythonFragment> fragmentClass) {
             this.fragmentClass = fragmentClass;
             return this;
         }
@@ -75,10 +71,6 @@ public class WindowManagerFragmentTabHost extends WindowManagerTabHost {
         if (tab instanceof FragmentTab) {
             ((ViewGroup) findViewById(android.R.id.tabcontent)).removeView(tab.view);
         }
-    }
-
-    public FragmentTabSpec getFragmentTabSpec(Activity activity) {
-        return new FragmentTabSpec(activity);
     }
 
     public FragmentTabSpec getFragmentTabSpec(Activity activity, String tag) {

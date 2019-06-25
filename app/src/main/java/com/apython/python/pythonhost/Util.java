@@ -39,6 +39,8 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -56,6 +58,7 @@ import java.util.zip.ZipFile;
  */
 
 public final class Util {
+    public static final Charset UTF_8;
 
     /**
      * Ensures that a file or directory can be accessed from other apps.
@@ -131,7 +134,7 @@ public final class Util {
      * @param dir The directory that should be checked.
      * @return {@code true}, if the directory and all it's contents are accessible.
      */
-    public static ArrayList<File> checkDirContentsAccessibility(File dir) {
+    static ArrayList<File> checkDirContentsAccessibility(File dir) {
         ArrayList<File> inaccessibleFiles = new ArrayList<>();
         ProcessBuilder processBuilder = new ProcessBuilder("ls", "-l").directory(dir);
         Process process;
@@ -165,7 +168,7 @@ public final class Util {
      * @param timeout The maximum time in milliseconds to wait for the connection to be established.
      * @return The {@code URLConnection} on success and {@code null} on failure.
      */
-    public static URLConnection connectToUrl(String url, int timeout) {
+    static URLConnection connectToUrl(String url, int timeout) {
         URL validUrl;
         try {
             validUrl = new URL(url);
@@ -191,7 +194,7 @@ public final class Util {
      * @param progressHandler  An optional progress handler (can be {@code null}).
      * @return {@code true}, if the installation succeeded, {@code false} otherwise.
      */
-    public static boolean installFromInputStream(
+    static boolean installFromInputStream(
             File destination, InputStream resourceLocation, ProgressHandler progressHandler) {
         long size;
         try {
@@ -216,7 +219,7 @@ public final class Util {
      * @param progressHandler  An optional progress handler (can be {@code null}).
      * @return {@code true}, if the installation succeeded, {@code false} otherwise.
      */
-    public static boolean installFromInputStream(
+    static boolean installFromInputStream(
             File destination, InputStream resourceLocation,
             long inputLength, ProgressHandler progressHandler) {
         byte[] buffer = new byte[1024];
@@ -232,6 +235,20 @@ public final class Util {
                 Log.w(MainActivity.TAG, "Failed to install resource to " +
                         destination.getAbsolutePath() + ": Could not make the directories!");
                 return false;
+            }
+            if (destination.exists()) {
+                boolean deleteSuccess = false;
+                if (destination.isDirectory()) {
+                    deleteSuccess = deleteDirectory(destination);
+                } else if (destination.isFile()) {
+                    deleteSuccess = destination.delete();
+                }
+                if (!deleteSuccess) {
+                    Log.w(MainActivity.TAG, "Failed to install resource to " +
+                            destination.getAbsolutePath() + ": Could not delete file or " +
+                            "directory at the destination!");
+                    return false;
+                }
             }
             if (progressHandler != null) {
                 progressHandler.setProgress(0);
@@ -269,6 +286,10 @@ public final class Util {
         } catch (IOException e) {
             Log.e(MainActivity.TAG, "Failed to install resource to " +
                     destination.getAbsolutePath() + "!", e);
+            if (destination.isFile()) {
+                //noinspection ResultOfMethodCallIgnored
+                destination.delete();
+            }
             return false;
         }
         return true;
@@ -385,16 +406,11 @@ public final class Util {
                         // Ignore it
                     }
                 } else if (!entry.isDirectory()) {
-                    FileOutputStream outputStream = new FileOutputStream(file);
-                    int count;
-                    try {
+                    try (FileOutputStream outputStream = new FileOutputStream(file)) {
+                        int count;
                         while ((count = archiveInputStream.read(buffer)) != -1) {
                             outputStream.write(buffer, 0, count);
                         }
-                    } finally {
-                        try {
-                            outputStream.close();
-                        } catch (IOException unused) { /* ignore it */ }
                     }
                 }
                 entryCount++;
@@ -427,7 +443,7 @@ public final class Util {
      * @param link   The symbolic link file.
      * @return Weather or not the symbolic link was created successfully.
      */
-    public static boolean createSymbolicLink(File target, File link) {
+    private static boolean createSymbolicLink(File target, File link) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             try {
                 Os.symlink(target.getAbsolutePath(), link.getAbsolutePath());
@@ -445,7 +461,7 @@ public final class Util {
      * @param hash The hash to convert.
      * @return A hexadecimal representation of the hash.
      */
-    public static String hashToHex(byte[] hash) {
+    private static String hashToHex(byte[] hash) {
         StringBuilder hexString = new StringBuilder();
         for (byte hashByte : hash) {
             String hex = Integer.toHexString(0xff & hashByte);
@@ -623,7 +639,7 @@ public final class Util {
      * @param url The url to check.
      * @return {@code true} if the url is valid, {@code false} otherwise.
      */
-    public static boolean isValidUrl(String url) {
+    static boolean isValidUrl(String url) {
         try {
             URL validUrl = new URL(url);
             return !"".equals(validUrl.getHost());
@@ -638,7 +654,7 @@ public final class Util {
      * @param directory The directory to calculate the size for.
      * @return The size in bytes
      */
-    public static long calculateDirectorySize(File directory) {
+    static long calculateDirectorySize(File directory) {
         long size = 0;
         File[] fileList = directory.listFiles();
         if (fileList != null) {
@@ -660,7 +676,7 @@ public final class Util {
      * @param pythonVersion The Python version to convert.
      * @return The int[] representation of the given Python version.
      */
-    public static int[] getNumericPythonVersion(String pythonVersion) {
+    static int[] getNumericPythonVersion(String pythonVersion) {
         String[] versionParts = pythonVersion.split("\\.");
         int[] version = {Integer.valueOf(versionParts[0]), 0, 0};
         if (versionParts.length >= 3) {
@@ -692,11 +708,7 @@ public final class Util {
      */
     public static KeyEvent[] stringToKeyEvents(String input) {
         KeyCharacterMap charMap;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
-            charMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
-        } else {
-            charMap = KeyCharacterMap.load(KeyCharacterMap.ALPHA);
-        }
+        charMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
         KeyEvent[] keyEvents = charMap.getEvents(input.toCharArray());
         return keyEvents != null ? keyEvents : new KeyEvent[0];
     }
@@ -770,7 +782,7 @@ public final class Util {
      * @param uri The Uri to check.
      * @return Whether the Uri authority is ExternalStorageProvider.
      */
-    public static boolean isExternalStorageDocument(Uri uri) {
+    private static boolean isExternalStorageDocument(Uri uri) {
         return "com.android.externalstorage.documents".equals(uri.getAuthority());
     }
 
@@ -778,7 +790,7 @@ public final class Util {
      * @param uri The Uri to check.
      * @return Whether the Uri authority is DownloadsProvider.
      */
-    public static boolean isDownloadsDocument(Uri uri) {
+    private static boolean isDownloadsDocument(Uri uri) {
         return "com.android.providers.downloads.documents".equals(uri.getAuthority());
     }
 
@@ -801,7 +813,7 @@ public final class Util {
                 return Environment.getExternalStorageDirectory() + "/" + uriParts[1];
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    File externalMediaDirs[] = context.getExternalMediaDirs();
+                    File[] externalMediaDirs = context.getExternalMediaDirs();
                     if (externalMediaDirs.length > 1) {
                         filePath = externalMediaDirs[1].getAbsolutePath();
                         filePath = filePath.substring(0, filePath.indexOf("Android")) + uriParts[1];
@@ -812,21 +824,16 @@ public final class Util {
                 return filePath;
             }
         } else if (isDownloadsDocument(uri)) {
-            Cursor cursor = null;
+
             final String column = "_data";
             final String[] projection = {column};
-
-            try {
-                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+            try (Cursor cursor = context.getContentResolver().query(
+                    uri, projection, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     final int index = cursor.getColumnIndexOrThrow(column);
                     String result = cursor.getString(index);
                     cursor.close();
                     return result;
-                }
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
                 }
             }
         } else if (DocumentsContract.isDocumentUri(context, uri)) {
@@ -889,6 +896,11 @@ public final class Util {
     
     static {
         System.loadLibrary("pyInterpreter");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            UTF_8 = StandardCharsets.UTF_8;
+        } else {
+            UTF_8 = Charset.forName("UTF-8");
+        }
     }
     
     native static boolean nativeCreateSymlink(String target, String link);

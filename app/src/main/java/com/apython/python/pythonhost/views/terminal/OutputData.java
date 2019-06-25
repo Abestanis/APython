@@ -25,23 +25,23 @@ public class OutputData {
     private       int                                lastStringStartIndex = -1, lastStringEndIndex = 0;
     private int cursorPosition = LAST_CHAR_OF_OUTPUT_DATA;
 
-    public int getLineCount() {
+    int getLineCount() {
         return lines;
     }
     
-    public String getLine(int position) {
+    String getLine(int position) {
         return accessLine(position);
     }
     
-    public int getCursorPosition() {
+    int getCursorPosition() {
         return cursorPosition == LAST_CHAR_OF_OUTPUT_DATA ? outputData.length() : cursorPosition;
     }
     
-    public void setCursorPosition(int cursorPosition) {
+    void setCursorPosition(int cursorPosition) {
         this.cursorPosition = cursorPosition;
     }
     
-    public void addUiControl(TerminalTextSpan control) {
+    void addUiControl(TerminalTextSpan control) {
         uiControlPoints.put(getCursorPosition(), control);
     }
 
@@ -49,7 +49,7 @@ public class OutputData {
         return outputData.length();
     }
     
-    public CharSequence getLineWithUiData(int line) {
+    CharSequence getLineWithUiData(int line) {
         BinaryTreeMap<TerminalTextSpan>.Surrounding surrounding;
         CharSequence text = getLine(line);
         int lineStartIndex = lastStringStartIndex + 1;
@@ -75,12 +75,13 @@ public class OutputData {
         return text;
     }
     
-    int indexOf(String subString, int start, int fallback) {
+    int indexOf(@SuppressWarnings("SameParameterValue") String subString, int start, int fallback) {
         int index = this.outputData.indexOf(subString, start);
         return index == -1 ? fallback : index;
     }
 
-    int lastIndexOf(String subString, int start, int fallback) {
+    int lastIndexOf(
+            @SuppressWarnings("SameParameterValue") String subString, int start, int fallback) {
         int index = this.outputData.lastIndexOf(subString, start);
         return index == -1 ? fallback : index;
     }
@@ -127,7 +128,7 @@ public class OutputData {
      * @param lineNumber The line to get.
      * @return The content of the line given by linenumber.
      */
-    public String accessLine(int lineNumber) {
+    private String accessLine(int lineNumber) {
         findLine(lineNumber);
         int endIndex = lastStringEndIndex;
         if (endIndex == -1) { endIndex = 0; }
@@ -211,7 +212,7 @@ public class OutputData {
      * @param lineNumber The line of the output data.
      * @return The relative cursor position to the start of the line.
      */
-    public int getCursorPosInLine(int lineNumber) {
+    int getCursorPosInLine(int lineNumber) {
         findLine(lineNumber);
         int cursorPos = getCursorPosition();
         if (lastStringStartIndex < cursorPos && lastStringEndIndex >= cursorPos) {

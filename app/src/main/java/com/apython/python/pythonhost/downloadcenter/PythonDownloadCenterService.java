@@ -43,10 +43,6 @@ public class PythonDownloadCenterService extends IntentService {
         }
     }
 
-    public ArrayList<PythonDownloadCenterActivity.ServiceActionRunnable> getActionQueue() {
-        return actionQueue;
-    }
-
     class PythonDownloadServiceBinder extends Binder {
         PythonDownloadCenterService getService() {
             return PythonDownloadCenterService.this;
@@ -224,13 +220,14 @@ public class PythonDownloadCenterService extends IntentService {
         while (actionQueue.size() != 0) {
             PythonDownloadCenterActivity.ServiceActionRunnable currentAction = actionQueue.remove(actionQueue.size() - 1);
             ProgressHandler.TwoLevelProgressHandler progressHandler = new ProgressHandlerProxy(currentAction.getProgressHandler());
-            progressHandler.setTotalSteps(currentAction.getDependency().getActionSteps(new ArrayList<String>()));
+            progressHandler.setTotalSteps(currentAction.getDependency().getActionSteps(new ArrayList<>()));
             boolean success = currentAction.applyAction(progressHandler);
             progressHandler.onComplete(success);
         }
         Util.makePathAccessible(PackageManager.getDynamicLibraryPath(getApplicationContext()), getFilesDir().getParentFile());
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public synchronized boolean showingNotification() {
         return displayNotification;
     }

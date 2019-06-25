@@ -28,7 +28,7 @@ public class DataItem extends Dependency {
         dataName = name;
     }
     
-    public DataItem(Context context) {
+    private DataItem(Context context) {
         super(context);
     }
 

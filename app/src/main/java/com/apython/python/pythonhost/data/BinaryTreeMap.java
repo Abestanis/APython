@@ -44,7 +44,7 @@ public class BinaryTreeMap<Value> {
         this(DEFAULT_CAPACITY);
     }
     
-    public BinaryTreeMap(int capacity) {
+    private BinaryTreeMap(int capacity) {
         keys = new long[capacity];
         values = new ArrayList<>(capacity);
     }

@@ -122,29 +122,26 @@ public class TerminalInput extends EditText {
             }
         };
         this.addTextChangedListener(inputWatcher);
-        this.setOnKeyListener(new OnKeyListener() {
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (!isLineInputEnabled() || keyCode == KeyEvent.KEYCODE_DPAD_UP
-                        || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    return commitHandler != null && commitHandler.onKeyEventWhileDisabled(event);
-                }
-                if (keyCode == KeyEvent.KEYCODE_TAB) {
-                    if (event.getAction() == KeyEvent.ACTION_UP) {
-                        int start = Math.max(getSelectionStart(), 0);
-                        int end = Math.max(getSelectionEnd(), 0);
-                        String tab = preferences.getBoolean(PythonSettingsActivity.KEY_REPLACE_TABS,
-                                                            false) ? "    " : "\t"; 
-                        if (start != end) {
-                            getText().insert(prompt == null ? 0 : prompt.length(), tab);
-                        } else {
-                            getText().replace(start, end, tab, 0, tab.length());
-                        }
-                    }
-                    return true;
-                }
-                return false;
+        this.setOnKeyListener((v, keyCode, event) -> {
+            if (!isLineInputEnabled() || keyCode == KeyEvent.KEYCODE_DPAD_UP
+                    || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                return commitHandler != null && commitHandler.onKeyEventWhileDisabled(event);
             }
+            if (keyCode == KeyEvent.KEYCODE_TAB) {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    int start = Math.max(getSelectionStart(), 0);
+                    int end = Math.max(getSelectionEnd(), 0);
+                    String tab = preferences.getBoolean(
+                            PythonSettingsActivity.KEY_REPLACE_TABS, false) ? "    " : "\t"; 
+                    if (start != end) {
+                        getText().insert(prompt == null ? 0 : prompt.length(), tab);
+                    } else {
+                        getText().replace(start, end, tab, 0, tab.length());
+                    }
+                }
+                return true;
+            }
+            return false;
         });
         requestKeyboardFocus();
     }
@@ -217,7 +214,7 @@ public class TerminalInput extends EditText {
     public String popCurrentInput() {
         String text = this.getText().toString();
         String promptStr = prompt == null ? "" : prompt;
-        String input = text.substring(promptStr.length(), text.length());
+        String input = text.substring(promptStr.length());
         disableInput();
         return input;
     }

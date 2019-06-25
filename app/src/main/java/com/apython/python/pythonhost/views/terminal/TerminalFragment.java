@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.text.Editable;
 import android.text.method.TextKeyListener;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -16,7 +15,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 
-import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.R;
 import com.apython.python.pythonhost.views.PythonFragment;
 import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
@@ -51,14 +49,10 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootView = layoutInflater.inflate(context.getResources().getLayout(R.layout.view_terminal_layout),
                                         container, false);
             rootLayout.addView(rootView);
-            rootLayout.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-                @Override
-                public void onLayoutChange(View v, int left, int top, int right, int bottom,
-                                           int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                    updateTerminalMetrics();
-                }
-            });
-            scrollContainer = (ListView) rootView.findViewById(R.id.terminalView);
+            rootLayout.addOnLayoutChangeListener(
+                    (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> 
+                            updateTerminalMetrics());
+            scrollContainer = rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context);
             if (outputBuffer != null) {
                 pythonOutput.addOutput(outputBuffer);
@@ -160,12 +154,8 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
         }
         rootLayout.setFocusable(true);
         rootLayout.setFocusableInTouchMode(true);
-        rootLayout.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                return pythonInput.getCommitHandler().onKeyEventWhileDisabled(event);
-            }
-        });
+        rootLayout.setOnKeyListener((v, keyCode, event) -> pythonInput.getCommitHandler()
+                .onKeyEventWhileDisabled(event));
 
         // Make the keyboard always visible
         this.getActivity().getWindow().setSoftInputMode(

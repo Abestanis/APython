@@ -13,7 +13,6 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -117,45 +116,29 @@ public class PythonDownloadCenterActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_python_download_center);
-        
-        try {
-            this.downloadServer = new DownloadServer(this, getDownloadServerUrl());
-        } catch (IllegalArgumentException error) {
-            throw error; // TODO: Handle
-        }
 
-        final ListView pythonVersionsContainer = (ListView) findViewById(R.id.pythonVersions_scrollContainer);
-        final EditText searchInput = (EditText) findViewById(R.id.search_input);
-        refreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh_layout);
+        // TODO: Handle IllegalArgumentException
+        this.downloadServer = new DownloadServer(this, getDownloadServerUrl());
+
+        final ListView pythonVersionsContainer = findViewById(R.id.pythonVersions_scrollContainer);
+        final EditText searchInput = findViewById(R.id.search_input);
+        refreshLayout = findViewById(R.id.refresh_layout);
 
         pythonVersionListAdapter = new PythonVersionListAdapter(this);
-        pythonVersionListAdapter.setActionHandler(new PythonVersionListAdapter.ActionHandler() {
-            @Override
-            public void onAction(Dependency dependency, ProgressHandler.TwoLevelProgressHandler progressHandler) {
-                executeActionInService(dependency, progressHandler);
-            }
-        });
+        pythonVersionListAdapter.setActionHandler(this::executeActionInService);
         pythonVersionsContainer.setAdapter(pythonVersionListAdapter);
         TextView emptyTextView = new TextView(getApplicationContext());
         emptyTextView.setText(R.string.downloadManager_no_matches);
         ((ViewGroup) pythonVersionsContainer.getParent()).addView(emptyTextView);
         pythonVersionsContainer.setEmptyView(emptyTextView);
-        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                updatePythonVersions();
-            }
-        });
+        refreshLayout.setOnRefreshListener(this::updatePythonVersions);
         
-        searchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (event != null) {
-                    Log.i(MainActivity.TAG, "Selected " + pythonVersionsContainer.getItemAtPosition(0));
-                    return true;
-                }
-                return false;
+        searchInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (event != null) {
+                Log.i(MainActivity.TAG, "Selected " + pythonVersionsContainer.getItemAtPosition(0));
+                return true;
             }
+            return false;
         });
         searchInput.addTextChangedListener(new TextWatcher() {
             boolean doAutocomplete = true;
@@ -201,6 +184,9 @@ public class PythonDownloadCenterActivity extends Activity {
         super.onResume();
         if (!downloadServiceConnection.isBound) {
             ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (manager == null) {
+                return;
+            }
             for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
                 if (PythonDownloadCenterService.class.getName().equals(service.service.getClassName())) {
                     bindService(new Intent(this, PythonDownloadCenterService.class), downloadServiceConnection, 0);
@@ -227,19 +213,16 @@ public class PythonDownloadCenterActivity extends Activity {
     private void handleVersionListUpdateFinished(final boolean success) {
         pythonVersionListAdapter.checkInstalledVersions();
         isUpdateRunning = false;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                refreshLayout.setRefreshing(false);
-                if (!success) {
-                    Log.w(MainActivity.TAG, "Failed to update the download versions");
-                    if (false) {
-                        // TODO: Check for connection and display dialog
-                    } else {
-                        Toast.makeText(getApplicationContext(),
-                                       R.string.downloadManager_update_failed, Toast.LENGTH_LONG
-                        ).show();
-                    }
+        runOnUiThread(() -> {
+            refreshLayout.setRefreshing(false);
+            if (!success) {
+                Log.w(MainActivity.TAG, "Failed to update the download versions");
+                if (false) {
+                    // TODO: Check for connection and display dialog
+                } else {
+                    Toast.makeText(getApplicationContext(),
+                                   R.string.downloadManager_update_failed, Toast.LENGTH_LONG
+                    ).show();
                 }
             }
         });
@@ -250,18 +233,15 @@ public class PythonDownloadCenterActivity extends Activity {
             return;
         }
         this.isUpdateRunning = true;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                boolean success = false;
-                // Update installed libraries
-                pythonVersionListAdapter.updateInstalledLibraries();
-                DownloadServer.ServerDownloads downloads = downloadServer.getDownloads();
-                if (downloads != null) {
-                    success = pythonVersionListAdapter.onUpdatedDownloads(downloads);
-                }
-                handleVersionListUpdateFinished(success);
+        new Thread(() -> {
+            boolean success = false;
+            // Update installed libraries
+            pythonVersionListAdapter.updateInstalledLibraries();
+            DownloadServer.ServerDownloads downloads = downloadServer.getDownloads();
+            if (downloads != null) {
+                success = pythonVersionListAdapter.onUpdatedDownloads(downloads);
             }
+            handleVersionListUpdateFinished(success);
         }).start();
     }
 

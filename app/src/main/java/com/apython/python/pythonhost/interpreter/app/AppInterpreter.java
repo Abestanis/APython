@@ -68,7 +68,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
     private final Activity hostingAppActivity;
     private       String   pythonVersion;
     private String                  logTag         = "PythonApp";
-    private PythonInterpreterHandle interpreter    = null;
+    private PythonInterpreterHandle interpreter;
     private PythonFragment          windowFragment = null;
     private SDLServer               sdlServer      = null;
     
@@ -141,12 +141,7 @@ public class AppInterpreter extends Activity implements WindowManagerInterface {
             interpreter.setIOHandler(new PythonInterpreterHandle.LineIOHandler() {
                 @Override
                 public void onOutput(final String output) {
-                    hostingAppActivity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            terminal.addOutput(output);
-                        }
-                    });
+                    hostingAppActivity.runOnUiThread(() -> terminal.addOutput(output));
                 }
 
                 @Override

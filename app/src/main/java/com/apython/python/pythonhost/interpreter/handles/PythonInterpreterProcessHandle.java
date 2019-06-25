@@ -117,15 +117,13 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
 
         @Override
         public void handleMessage(Message msg) {
-            switch (msg.what) {
-            case PythonProcess.PROCESS_EXIT:
+            if (msg.what == PythonProcess.PROCESS_EXIT) {
                 Log.d(processHandle.logTag, "Python process is exiting with exit code " + msg.arg1);
                 processHandle.exitCode = msg.arg1;
                 synchronized (processHandle.exitLocker) {
                     processHandle.exitLocker.notifyAll();
                 }
-                break;
-            default:
+            } else {
                 super.handleMessage(msg);
             }
         }

@@ -78,7 +78,7 @@ import java.io.PrintWriter;
  * 
  * Created by Sebastian on 09.09.2016.
  */
-@SuppressLint("Registered")
+@SuppressLint({"Registered", "MissingPermission"})
 @SuppressWarnings("deprecation")
 public class AppActivityProxy extends Activity {
 
@@ -276,7 +276,7 @@ public class AppActivityProxy extends Activity {
     }
 
     @Override
-    public View findViewById(int id) {
+    public <T extends View> T findViewById(int id) {
         return wrappedActivity.findViewById(id);
     }
 

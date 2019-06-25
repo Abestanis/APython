@@ -64,7 +64,7 @@ public class PythonSettingsActivity extends PreferenceActivity
     private void initializeVersionSetting(ListPreference preference) {
         ArrayList<String> versions = PackageManager.getInstalledPythonVersions(this);
         versions.add("Always ask");
-        String[] options = versions.toArray(new String[versions.size()]);
+        String[] options = versions.toArray(new String[0]);
         String[] values  = new String[options.length];
         values[values.length - 1] = PYTHON_VERSION_NOT_SELECTED;
         System.arraycopy(options, 0, values, 0, options.length);

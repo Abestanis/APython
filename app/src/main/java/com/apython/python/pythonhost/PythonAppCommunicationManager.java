@@ -20,11 +20,11 @@ import java.io.File;
 public class PythonAppCommunicationManager {
 
     // The tag used by the Python host.
-    public static final String TAG                  = MainActivity.TAG;
+    public static final  String TAG                  = MainActivity.TAG;
     // The newest protocol version this Python host can understand.
-    public static final int    MAX_PROTOCOL_VERSION = 0;
+    private static final int    MAX_PROTOCOL_VERSION = 0;
     // The actual protocol version used in the current communication.
-    public              int    PROTOCOL_VERSION     = -1;
+    private              int    PROTOCOL_VERSION     = -1;
 
     // The current activity started by the Python app.
     private final Activity activity;
@@ -37,11 +37,11 @@ public class PythonAppCommunicationManager {
     private String maxPythonVersion = null;
     private String[] disallowedPythonVersions = null;
 
-    public PythonAppCommunicationManager(final Activity activity) {
+    PythonAppCommunicationManager(final Activity activity) {
         this.activity = activity;
     }
 
-    public boolean parseArgs(Intent args) {
+    boolean parseArgs(Intent args) {
         PROTOCOL_VERSION = args.getIntExtra("protocolVersion", -1);
         switch (PROTOCOL_VERSION) {
         case 0:
@@ -75,7 +75,7 @@ public class PythonAppCommunicationManager {
         this.activity.finish();
     }
 
-    public void startPythonApp(ProgressHandler progressHandler) {
+    void startPythonApp(ProgressHandler progressHandler) {
         Context context = this.activity.getApplicationContext();
         Intent args = new Intent();
         // Determine the python version to use

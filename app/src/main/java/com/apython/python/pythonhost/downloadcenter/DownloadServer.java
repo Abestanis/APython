@@ -8,6 +8,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.apython.python.pythonhost.PackageManager;
+import com.apython.python.pythonhost.Util;
 import com.apython.python.pythonhost.downloadcenter.items.*;
 
 import java.io.File;
@@ -99,7 +100,7 @@ class DownloadServer {
     private JsonReader streamServerData() {
         try {
             InputStream input = getIndexUrl(this.address).openStream();
-            return new JsonReader(new InputStreamReader(input, "UTF-8"));
+            return new JsonReader(new InputStreamReader(input, Util.UTF_8));
         } catch (IOException error) {
             Log.e(TAG, "Failed to download the version data form " + getIndexUrl(this.address),
                   error);
@@ -484,7 +485,8 @@ class DownloadServer {
     }
     
     private static ArrayList<String> saveGetStringArray(
-            JsonReader dataReader, int length, int protocolVersion, String itemName)
+            JsonReader dataReader, @SuppressWarnings("SameParameterValue") int length,
+            int protocolVersion, String itemName)
             throws IOException {
         if (dataReader.peek() != JsonToken.BEGIN_ARRAY) {
             Log.w(TAG, "(Version " + protocolVersion + ") Failed to parse " +

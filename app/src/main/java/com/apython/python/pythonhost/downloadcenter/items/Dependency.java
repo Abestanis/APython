@@ -24,18 +24,18 @@ public abstract class Dependency {
         return md5Checksum;
     }
 
-    public File getInstallLocation() {
+    private File getInstallLocation() {
         return installLocation;
     }
 
     public enum Action {DOWNLOAD, REMOVE, NONE}
     private final Context context;
-    protected ArrayList<Dependency> dependencies    = new ArrayList<>();
-    protected String                url             = null;
-    protected String                md5Checksum     = null;
-    protected File                  installLocation = null;
-    protected Action                action          = Action.NONE;
-    private   boolean               inAction        = false; 
+    protected ArrayList<Dependency> dependencies = new ArrayList<>();
+    protected String                url          = null;
+    String md5Checksum = null;
+    File installLocation = null;
+    protected Action                action       = Action.NONE;
+    private   boolean               inAction     = false; 
 
     public Dependency(Context context) {
         super();

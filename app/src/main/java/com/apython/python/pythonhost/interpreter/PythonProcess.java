@@ -96,21 +96,18 @@ public class PythonProcess extends Service {
     private void startPythonInterpreter(String pythonVersion, String pseudoTerminalPath,
                                         String[] args) {
         interpreter = new PythonInterpreterRunnable(this, pythonVersion, pseudoTerminalPath, args);
-        interpreter.setExitHandler(new PythonInterpreter.ExitHandler() {
-            @Override
-            public void onExit(int exitCode) {
-                Message exitCodeMessage = Message.obtain(null, PROCESS_EXIT);
-                exitCodeMessage.arg1 = exitCode;
-                if (responseMessenger == null) {
-                    Log.w(interpreter.getLogTag(), "Python process exiting with code " +
-                            exitCode + ", no handler installed");
-                    return;
-                }
-                try {
-                    responseMessenger.send(exitCodeMessage);
-                } catch (RemoteException e) {
-                    Log.w(interpreter.getLogTag(), "Failed to send the exit code to the host", e);
-                }
+        interpreter.setExitHandler(exitCode -> {
+            Message exitCodeMessage = Message.obtain(null, PROCESS_EXIT);
+            exitCodeMessage.arg1 = exitCode;
+            if (responseMessenger == null) {
+                Log.w(interpreter.getLogTag(), "Python process exiting with code " +
+                        exitCode + ", no handler installed");
+                return;
+            }
+            try {
+                responseMessenger.send(exitCodeMessage);
+            } catch (RemoteException e) {
+                Log.w(interpreter.getLogTag(), "Failed to send the exit code to the host", e);
             }
         });
         interpreterThread = new Thread((PythonInterpreterRunnable) interpreter);

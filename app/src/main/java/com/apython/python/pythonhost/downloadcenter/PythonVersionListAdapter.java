@@ -16,7 +16,6 @@ import com.apython.python.pythonhost.downloadcenter.items.PythonVersionItem;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -133,24 +132,16 @@ class PythonVersionListAdapter extends BaseAdapter {
                 filteredItemList.add(item);
             }
         }
-        Collections.sort(filteredItemList, new Comparator<PythonVersionListItemView>() {
-            @Override
-            public int compare(PythonVersionListItemView lhs, PythonVersionListItemView rhs) {
-                String[] lVersionParts = lhs.getMainPythonVersion().split("\\.");
-                String[] rVersionParts = rhs.getMainPythonVersion().split("\\.");
-                if (lVersionParts[0].equals(rVersionParts[0])) {
-                    return Integer.valueOf(lVersionParts[1]) - Integer.valueOf(rVersionParts[1]);
-                }
-                return Integer.valueOf(lVersionParts[0]) - Integer.valueOf(rVersionParts[0]);
+        Collections.sort(filteredItemList, (lhs, rhs) -> {
+            String[] lVersionParts = lhs.getMainPythonVersion().split("\\.");
+            String[] rVersionParts = rhs.getMainPythonVersion().split("\\.");
+            if (lVersionParts[0].equals(rVersionParts[0])) {
+                return Integer.valueOf(lVersionParts[1]) - Integer.valueOf(rVersionParts[1]);
             }
+            return Integer.valueOf(lVersionParts[0]) - Integer.valueOf(rVersionParts[0]);
         });
         if (uiChanged) {
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    notifyDataSetChanged();
-                }
-            });
+            activity.runOnUiThread(this::notifyDataSetChanged);
         }
     }
 
@@ -167,14 +158,12 @@ class PythonVersionListAdapter extends BaseAdapter {
                 }
                 installedLibraries.remove("python" + mainVersion);
             }
-            if (!listItemView.containsInformation()) {
+            if (listItemView.hasNoInformation()) {
                 entries.remove();
             }
         }
         for (AdditionalLibraryItem library : additionalLibraries.values()) {
-            if (installedLibraries.contains(library.getLibraryName())) {
-                installedLibraries.remove(library.getLibraryName());
-            }
+            installedLibraries.remove(library.getLibraryName());
         }
         // TODO: Update additionalLibraries
         for (String newLibrary : installedLibraries) {
@@ -223,7 +212,7 @@ class PythonVersionListAdapter extends BaseAdapter {
                     listItemView.removeSubVersion(subVersion);
                 }
             }
-            if (!listItemView.containsInformation()) {
+            if (listItemView.hasNoInformation()) {
                 items.remove();
             }
         }
