@@ -8,6 +8,9 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
+#define INT_BASE 10
+
+
 void printUsage(const char* programName) {
     static int mExecPrev = 0;
     if (mExecPrev++ != 0) return;  // We only want to print the usage once ;-p
@@ -45,7 +48,8 @@ void removeArgFromArgv(size_t index, int *argc, char** argv) {
 char* parseLauncherArgs(const char* programName, int* argc, char** argv) {
     // Check the command arguments for -X.Y, -N, -h or --help
     char* versionArg = NULL;
-    size_t i, j;
+    size_t i;
+    size_t j;
     int hadPossibleLauncherArg = 0;
     for (i = 0; i < *argc; i++) {
         if (argv[i][0] == '-') {
@@ -92,18 +96,22 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
             }
         } else { // Get best installed Python version of major version N (-N)
             // Check for the best match of the specified version in the lib dir
-            char fileNameStart[32];
-            size_t fileNameStartLen = 32;
-            size_t libNameLen = 0, nameLen = 0;
-            int minorVersion, maxMinorVersion = 0;
-            snprintf(fileNameStart, fileNameStartLen, "libpython%s.", &pyVersionArg[1]);
+            #define MAX_FILE_NAME_START_LENGTH 32
+            char fileNameStart[MAX_FILE_NAME_START_LENGTH];
+            size_t fileNameStartLen;
+            size_t libNameLen = 0;
+            size_t nameLen = 0;
+            int minorVersion;
+            int maxMinorVersion = 0;
+            snprintf(fileNameStart, MAX_FILE_NAME_START_LENGTH, "libpython%s.", &pyVersionArg[1]);
             fileNameStartLen = strlen(fileNameStart);
             DIR* pyLibDir = opendir(pythonLibDir);
             struct dirent* entry;
             if (pyLibDir != NULL) {
                 while ((entry = readdir(pyLibDir)) != NULL) {
                     if (strncmp(entry->d_name, fileNameStart, fileNameStartLen) == 0) {
-                        minorVersion = atoi(&entry->d_name[strlen("libpython.") + strlen(&pyVersionArg[1])]);
+                        minorVersion = strtol(&entry->d_name[
+                                strlen("libpython.") + strlen(&pyVersionArg[1])], NULL, INT_BASE);
                         if (minorVersion > maxMinorVersion) {
                             maxMinorVersion = minorVersion;
                             nameLen = strlen(entry->d_name) + 1;
@@ -138,9 +146,12 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
         LOG_ERROR("Failed to copy the Python library name from the environment: Out of memory!");
     }
     // Fall back to newest Python version from python Lib directory
-    size_t libNameLen = 0, nameLen = 0;
-    int majorVersion, maxMajorVersion = 0;
-    int minorVersion, maxMinorVersion = 0;
+    size_t libNameLen = 0;
+    size_t nameLen = 0;
+    int maxMajorVersion = 0;
+    int maxMinorVersion = 0;
+    int majorVersion;
+    int minorVersion;
     DIR* pyLibDir = opendir(pythonLibDir);
     struct dirent* entry;
     if (pyLibDir != NULL) {
@@ -197,9 +208,9 @@ void* openInterpreterHandle(const char* pyLibName, const char* hostLibPath) {
         }
         if (handle == NULL) {
             // Try to load the absolute path
-            char buff[512], subLibBuff[512];
-            subLibBuff[0] = '\0';
-            snprintf(buff, 512, "%s/libpyInterpreter.so", hostLibPath);
+            #define BUFFER_SIZE 512
+            char buff[BUFFER_SIZE];
+            snprintf(buff, BUFFER_SIZE, "%s/libpyInterpreter.so", hostLibPath);
             handle = dlopen(buff, RTLD_LAZY);
         }
     }
@@ -229,7 +240,7 @@ void closePythonLibrary(void* handle) {
 }
 
 char* getAbsoluteProgramPath(int argc, char** argv, size_t* pathLength) {
-    static const char* defaultPath  = "/data/data/com.apython.python.pythonhost/python";
+    static const char DEFAULT_PATH[] = "/data/data/com.apython.python.pythonhost/python";
     char pathBuff[PATH_MAX];
     ssize_t length = readlink("/proc/self/exe", pathBuff,
                               sizeof(pathBuff) / sizeof(pathBuff[0]) - 1);
@@ -273,8 +284,8 @@ char* getAbsoluteProgramPath(int argc, char** argv, size_t* pathLength) {
             }
         }
     }
-    *pathLength = sizeof(defaultPath) / sizeof(defaultPath[0]);
-    return strdup(defaultPath);
+    *pathLength = sizeof(DEFAULT_PATH) / sizeof(DEFAULT_PATH[0]);
+    return strdup(DEFAULT_PATH);
 }
 
 int main(int argc, char** argv) {

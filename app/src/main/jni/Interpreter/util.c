@@ -13,7 +13,8 @@ JNIEXPORT jboolean NATIVE_FUNCTION(Util_nativeCreateSymlink)
 }
 
 __sighandler_t setSignalHandler(int signal, __sighandler_t signalHandler) {
-    struct sigaction context, oldContext;
+    struct sigaction context;
+    struct sigaction oldContext;
     context.sa_handler = signalHandler;
     sigemptyset(&context.sa_mask);
     context.sa_flags = 0;

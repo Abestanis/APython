@@ -26,11 +26,13 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     char* path = strdup(pythonProgramPath);
     char* pythonExeDir = strdup(dirname(path));
     free(path);
-    char cwd[32];
-    if (getcwd(cwd, sizeof(cwd)) == NULL || strcmp(cwd, "/") == 0) {
+#define CWD_BUFFER_SIZE 32
+    char cwd[CWD_BUFFER_SIZE];
+    if (getcwd(cwd, CWD_BUFFER_SIZE * sizeof(cwd[0])) == NULL || strcmp(cwd, "/") == 0) {
         // '/' is the default working dir for a java process, but it is unusable for the python program
         chdir(pythonExeDir);
     }
+#undef CWD_BUFFER_SIZE
     
     const char* pathValue = (const char*) getenv("PATH");
     if (value == NULL) {
@@ -72,9 +74,12 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
 
     // Search dataDir for best 'tcl' dir
     char* tclDirName = NULL;
-    size_t dirNameLen = 0, nameLen = 0;
-    int majorVersion, maxMajorVersion = 0;
-    int minorVersion, maxMinorVersion = 0;
+    size_t dirNameLen = 0;
+    size_t nameLen = 0;
+    int maxMajorVersion = 0;
+    int maxMinorVersion = 0;
+    int majorVersion;
+    int minorVersion;
     DIR* dir = opendir(dataDir);
     struct dirent* entry;
     if (dir != NULL) {

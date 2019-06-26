@@ -1,5 +1,5 @@
-#ifndef LOGMODULE_H
-#define LOGMODULE_H
+#ifndef LOG_MODULE_H
+#define LOG_MODULE_H
 
 #include "android/log.h"
 
@@ -13,4 +13,4 @@ void setApplicationTag(const char*);
 #define LOG_WARN(x, args...)   _log_write_(ANDROID_LOG_WARN,  (x), ##args)
 #define LOG_ERROR(x, args...)  _log_write_(ANDROID_LOG_ERROR, (x), ##args)
 
-#endif // LOGMODULE_H //
+#endif // LOG_MODULE_H //

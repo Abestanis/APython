@@ -78,6 +78,7 @@ void syncLogTagToPyHost(JNIEnv *env) {
  */
 jobject getPythonHostContext(JNIEnv *env, jobject hostingAppActivity) {
     jclass activityCls = (*env)->GetObjectClass(env, hostingAppActivity);
+    ASSERT(activityCls != NULL, "Failed to get the activity class!");
     jclass contextCls  = (*env)->FindClass(env, "android/content/Context");
     ASSERT(contextCls != NULL, "Failed to find androids Context class!");
     #define CREATE_PACKAGE_CONTEXT_SIG "createPackageContext", "(Ljava/lang/String;I)Landroid/content/Context;"
@@ -92,8 +93,8 @@ jobject getPythonHostContext(JNIEnv *env, jobject hostingAppActivity) {
     jfieldID ignoreSecurityFId = (*env)->GetStaticFieldID(env, contextCls, "CONTEXT_IGNORE_SECURITY", "I");
     ASSERT(ignoreSecurityFId != NULL, "Failed to find the static int field 'CONTEXT_IGNORE_SECURITY' in "
                                       "Androids Context class");
-    int flags = (*env)->GetStaticIntField(env, contextCls, includeCodeFId) |
-                (*env)->GetStaticIntField(env, contextCls, ignoreSecurityFId);
+    int flags = (unsigned int) (*env)->GetStaticIntField(env, contextCls, includeCodeFId) |
+            (unsigned int) (*env)->GetStaticIntField(env, contextCls, ignoreSecurityFId);
     jstring pyHostPackageName = (*env)->NewStringUTF(env, PY_HOST_PACKAGE_PATH);
     jobject pyHostContext = (*env)->CallObjectMethod(env, hostingAppActivity, createPackageContextMId,
                                                      pyHostPackageName, flags);

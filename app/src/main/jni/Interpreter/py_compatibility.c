@@ -7,8 +7,13 @@
 #include <string.h>
 #include "log.h"
 
+#ifndef MIN
+#  define MIN(a, b) (((a)<(b))?(a):(b))
+#endif /* MIN */
+
+#define MAX_PY_VERSION_SIZE 32
 void* pythonLib = NULL;
-char pythonVersion[32] = { [0] = '\0'};
+char pythonVersion[MAX_PY_VERSION_SIZE] = { [0] = '\0'};
 
 int setPythonLibrary(const char* libName) {
     pythonLib = dlopen(libName, RTLD_LAZY);
@@ -20,7 +25,7 @@ int setPythonLibrary(const char* libName) {
             char* spacePointer = strchr(pythonVersionStr, ' ');
             if (spacePointer != NULL) {
                 size_t versionEndIndex = (spacePointer - pythonVersionStr) / sizeof(char);
-                strncpy(pythonVersion, pythonVersionStr, versionEndIndex);
+                strncpy(pythonVersion, pythonVersionStr, MIN(versionEndIndex, MAX_PY_VERSION_SIZE));
                 LOG_INFO_("Py_compatibility: PyVersion is '%s'", pythonVersion);
                 return 1;
             } else {

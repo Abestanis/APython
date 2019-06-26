@@ -6,7 +6,7 @@ extern "C" {
 
 typedef struct _ipcConnection ipcConnection;
 
-#define ALLOW_SEND_FD (1 << 0)
+#define ALLOW_SEND_FD (1U << 0U)
 
 ipcConnection* createConnection(const char* address, u_int8_t flags);
 int waitForClient(ipcConnection* connection);

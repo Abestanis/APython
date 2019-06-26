@@ -5,13 +5,16 @@
 #include <unistd.h>
 #include "ipc.h"
 
+#define BUFF_SIZE 256
+#define MAX_SOCKET_BACKLOG 5
+
 struct _ipcConnection {
     int fd;
 };
 
 int makeAddress(const char* name, struct sockaddr_un* address, socklen_t* sockLen, int addressTyp) {
-    char nameBuff[256];
-    snprintf(nameBuff, 256, "local.%s.socket", name);
+    char nameBuff[BUFF_SIZE];
+    snprintf(nameBuff, BUFF_SIZE * sizeof(nameBuff[0]), "local.%s.socket", name);
     int nameLen = strlen(nameBuff);
     if (nameLen >= (int) sizeof(address->sun_path) -1) {
         return -1;
@@ -37,12 +40,12 @@ ipcConnection* createConnection(const char* address, u_int8_t flags) {
     }
     ipcConnection* connection = malloc(sizeof(struct _ipcConnection));
     if (connection == NULL) { return NULL; }
-    if ((connection->fd = socket(socketType, SOCK_STREAM, protocol)) < 0) {
+    if ((connection->fd = socket(socketType, SOCK_STREAM | SOCK_CLOEXEC, protocol)) < 0) {
         free(connection);
         return NULL;
     }
     if (bind(connection->fd, (const struct sockaddr*) &sockAddress, sockLen) == 0) {
-        if (listen(connection->fd, 5) == 0) {
+        if (listen(connection->fd, MAX_SOCKET_BACKLOG) == 0) {
             return connection;
         }
     }
@@ -52,7 +55,11 @@ ipcConnection* createConnection(const char* address, u_int8_t flags) {
 }
 
 int waitForClient(ipcConnection* connection) {
-    return accept(connection->fd, NULL, NULL);
+#if __ANDROID_API__ >= 21
+    accept4(connection->fd, NULL, NULL, SOCK_CLOEXEC);
+#else
+    return accept(connection->fd, NULL, NULL); // NOLINT(android-cloexec-accept)
+#endif /* __ANDROID_API__ >= 21 */
 }
 
 int openConnection(const char* address, u_int8_t blocking, u_int8_t flags) {
@@ -69,7 +76,7 @@ int openConnection(const char* address, u_int8_t blocking, u_int8_t flags) {
     if (makeAddress(address, &sockAddress, &sockLen, socketType) < 0) {
         return -1;
     }
-    if ((fd = socket(socketType, SOCK_STREAM, protocol)) < 0) {
+    if ((fd = socket(socketType, SOCK_STREAM | SOCK_CLOEXEC, protocol)) < 0) {
         return -1;
     }
     if (!blocking) {

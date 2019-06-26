@@ -65,7 +65,9 @@ JNIEXPORT jint NATIVE_FUNCTION(interpreter_PythonInterpreter_runInterpreter)(
            JNIEnv *env, jobject obj, jstring jPythonLibName, jstring jProgramPath, jstring jLibPath,
            jstring jPyHostLibPath, jstring jPythonHome, jstring jPythonTemp, jstring jXDGBasePath,
            jstring jDataPath, jstring jAppTag, jobjectArray jArgs, jstring jPseudoTerminalPath) {
-    int i, result, pseudoTerminalFd = -1;
+    int i;
+    int result;
+    int pseudoTerminalFd = -1;
     jPyInterpreter = (*env)->NewGlobalRef(env, obj);
 
     const char *appTag = (*env)->GetStringUTFChars(env, jAppTag, 0);
