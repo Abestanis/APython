@@ -216,10 +216,8 @@ class Util {
         return dest
     }
 
-    static boolean copy(Project project, sourceTree, File dest, filter) {
+    static boolean copy(Project project, sourceTree, File dest, PatternFilterable filter) {
         def success = false
-//        DirectoryScanner.removeDefaultExclude("**/.gitignore")
-//        DirectoryScanner.removeDefaultExclude("**/.gitattributes")
         if (filter != null) {
             sourceTree = sourceTree.matching(filter)
         }
@@ -231,13 +229,12 @@ class Util {
         } catch (GradleException e) {
             e.printStackTrace()
         } finally {
-//            DirectoryScanner.resetDefaultExcludes()
         }
         return success
     }
 
     static boolean extract(Project project, File src, File dest,
-                           filter, boolean deleteSrc, boolean removeFirstDir) {
+                           PatternFilterable filter, boolean deleteSrc, boolean removeFirstDir) {
         println('Extracting files...')
         if (dest.exists()) {
             dest.deleteDir()
@@ -277,9 +274,9 @@ class Util {
         return success
     }
 
-    static int execIgnoreOutput(String command) {
+    static int execProcess(String command, Appendable errorOutput) {
         def execState = command.execute()
-        execState.waitForProcessOutput(null, null)
+        execState.waitForProcessOutput(null, errorOutput)
         return execState.waitFor()
     }
 
@@ -331,6 +328,39 @@ class Util {
             diffString.append(line).append('\n')
         }
         return diffString.toString()
+    }
+    
+    static def filterFromLibConfig(Map<String, String> libConfig) {
+        if (!libConfig.containsKey('extraction_filter')) {
+            return null
+        }
+        def filter = new PatternSet()
+        def includes = []
+        def fileTypeIncludes = []
+        def directoryIncludes = []
+        for (String include : libConfig.get('extraction_filter').split(', ')) {
+            if (include.contains('*.')) {
+                includes.add(include)
+                if (include.trim().startsWith('*.')) {
+                    fileTypeIncludes.add(include.trim())
+                }
+            } else {
+                includes.add(include)
+                directoryIncludes.add(include)
+            }
+        }
+        for (String dirInclude : directoryIncludes) {
+            if (fileTypeIncludes.size() != 0) {
+                for (String extInclude : fileTypeIncludes) {
+                    includes.add(dirInclude + "/" + extInclude)
+                    includes.add(dirInclude + "/**/" + extInclude)
+                }
+            } else {
+                includes.add(dirInclude + "/**")
+            }
+        }
+        filter.setIncludes(includes)
+        return filter
     }
 }
 
@@ -463,38 +493,53 @@ class SetupAdditionalLibrarySources extends DefaultTask {
             }
             assert Util.getGitBranch(gitExecPath) == 'updateLibraries'
             try {
-                if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' reset --hard ' + currBranch)) != 0) {
-                    throw new GradleException('git reset failed with exit code ' + execReturn)
+                def errorStringBuffer = new StringWriter()
+                if ((execReturn = Util.execProcess(gitExecPath + ' reset --hard ' + currBranch,
+                        errorStringBuffer)) != 0) {
+                    throw new GradleException('git reset failed with exit code ' + execReturn
+                            + '\nOutput: ' + errorStringBuffer.toString())
                 }
                 def updatedLibs = updateLibraries(libConfig)
                 println('Committing changes...')
-                String message = ''
+                String newLine = System.lineSeparator()
+                String message = 'Update libraries' + newLine + newLine
                 for (lib in updatedLibs) {
-                    message += lib + ' from ' + libConfig.get(lib).get('url') + '\n'
+                    message += lib + ' from ' + libConfig.get(lib).get('url') + newLine
                 }
-                if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' add -A')) != 0) {
-                    throw new GradleException('git add failed with exit code ' + execReturn)
+                errorStringBuffer = new StringWriter()
+                if ((execReturn = Util.execProcess(
+                        gitExecPath + ' add -A', errorStringBuffer)) != 0) {
+                    throw new GradleException('git add failed with exit code ' + execReturn +
+                            '\nOutput: ' + errorStringBuffer.toString())
                 }
-                def command = (gitExecPath + ' commit -m "Update libraries\n\n' + message + '"')
-                if ((execReturn = Util.execIgnoreOutput(command)) != 0) {
-                    throw new GradleException('git commit failed with exit code ' + execReturn)
+                errorStringBuffer = new StringWriter()
+                if ((execReturn = Util.execProcess(
+                        gitExecPath + ' commit -m "' + message + '"', errorStringBuffer)) != 0) {
+                    throw new GradleException('git commit failed with exit code ' + execReturn +
+                            '\nOutput: ' + errorStringBuffer.toString())
                 }
             } finally {
                 // Switch back to the previous branch
-                if (Util.execIgnoreOutput(gitExecPath + ' checkout ' + currBranch) != 0) {
+                if (Util.execProcess(gitExecPath + ' checkout ' + currBranch, null) != 0) {
                     (gitExecPath + ' stash').execute().waitForProcessOutput(null, null)
-                    if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' checkout ' + currBranch)) != 0) {
+                    def errorStringBuffer = new StringWriter()
+                    if ((execReturn = Util.execProcess(
+                            gitExecPath + ' checkout ' + currBranch, errorStringBuffer)) != 0) {
                         getLogger().log(LogLevel.ERROR, "!!!\ngit checkout " + currBranch +
                                 " failed with exit code " + execReturn + "! Try to run it " +
-                                "manually and the git stash apply to fix your branch state.\n!!!")
+                                "manually and the git stash apply to fix your branch state.\n!!!" +
+                                "\nOutput: " + errorStringBuffer.toString())
                     }
                 }
             }
         } finally {
             // Cleanup
-            if ((execReturn = Util.execIgnoreOutput(gitExecPath + ' stash apply')) != 0) {
+            def errorStringBuffer = new StringWriter()
+            if ((execReturn = Util.execProcess(
+                    gitExecPath + ' stash apply', errorStringBuffer)) != 0) {
                 getLogger().log(LogLevel.ERROR, "!!!\ngit stash apply failed with exit code " +
-                        execReturn + "! Try to run it manually to see what is wrong.\n!!!")
+                        execReturn + "! Try to run it manually to see what is wrong.\n!!!\nOutput: "
+                        + errorStringBuffer.toString())
             } else {
                 if ((execReturn = (gitExecPath + ' stash drop').execute().waitFor()) != 0) {
                     getLogger().log(LogLevel.ERROR, "git stash drop failed wit exit code " +
@@ -519,23 +564,32 @@ class SetupAdditionalLibrarySources extends DefaultTask {
                         "Section " + libName + ' misses entry "url". Skipping it.')
                 continue
             }
-            if (libName == 'SDL2X11Emulation') continue
+            if (project.file(getLibDirectory(libName) + '/.git').exists()) {
+                getLogger().log(LogLevel.DEBUG,
+                        "Skipping " + libName + ' because it is included as a git repository.')
+                continue
+            }
             libsToUpdate.add(libName)
         }
         for (libName in libsToUpdate) {
             println('Updating ' + libName)
+            def libData = libConfig.get(libName)
             // Download
-            def url = libConfig.get(libName).get('url')
+            def url = libData.get('url')
             File archive = Util.download(project, url, this.temporaryDir, this.cacheDir)
             // extract and overwrite
-            def libDirName = libName.capitalize()
-            File sourceDir = project.file('src/main/jni/DevLibs/' + libDirName + '/source') // TODO: Extract path as config
-            if (!Util.extract(project, archive, sourceDir, null, true, true)) {
+            def filter = Util.filterFromLibConfig(libData)
+            File sourceDir = project.file(getLibDirectory(libName) + '/source')
+            if (!Util.extract(project, archive, sourceDir, filter, true, true)) {
                 getLogger().log(LogLevel.ERROR, 'Failed to extract archive ' + archive.absolutePath)
                 currentLibData.remove(libName)
             }
         }
         return libsToUpdate
+    }
+
+    static String getLibDirectory(String libName) {
+        return 'src/main/jni/DevLibs/' + libName.capitalize() // TODO: Extract path as config
     }
 }
 
@@ -591,7 +645,7 @@ class DiffMaker extends DefaultTask {
                         "Section " + libName + ' misses entry "url". Skipping it.')
                 continue
             }
-            if (libName == 'sdl2X11Emulation') continue
+//            if (libName == 'sdl2X11Emulation') continue // TODO: Test removal of this
             def url = libData.value.get('url')
             def sourceDir = null
             for (File dir : sourceDirs) {
@@ -605,32 +659,7 @@ class DiffMaker extends DefaultTask {
             }
             def archiveFile = Util.download(project, url, this.temporaryDir, this.cacheDir)
 
-            def filter = null
-            if (libData.value.containsKey('extraction_filter')) {
-                filter = new PatternSet()
-                def includes = []
-                def directoryIncludes = []
-                for (String include : libData.value.get('extraction_filter').split(', ')) {
-                    if (include.contains('*.')) {
-                        includes.add(include)
-                    } else {
-                        includes.add(include)
-                        directoryIncludes.add(include)
-                    }
-                }
-                def fileTypeIncludes = libData.value.get('file_type_filter', '').split(', ')
-                for (String dirInclude : directoryIncludes) {
-                    if (fileTypeIncludes.size() != 0) {
-                        for (String extInclude : fileTypeIncludes) {
-                            includes.add(dirInclude + "/" + extInclude)
-                            includes.add(dirInclude + "/**/" + extInclude)
-                        }
-                    } else {
-                        includes.add(dirInclude + "/**")
-                    }
-                }
-                filter.setIncludes(includes)
-            }
+            def filter = Util.filterFromLibConfig(libData.value)
             def extractDir = new File(this.temporaryDir, libName + '.orig')
             if (!Util.extract(project, archiveFile, extractDir, filter, true, true)) {
                 throw new GradleException('Failed to extract ' + archiveFile.getAbsolutePath() + '.')
