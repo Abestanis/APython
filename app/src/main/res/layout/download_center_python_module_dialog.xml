@@ -4,7 +4,7 @@
               android:layout_height="match_parent"
               android:orientation="vertical"
               android:padding="20dp"
-              android:theme="@style/AppDialogTheme">
+              android:theme="@style/Theme.APython.Dialog">
 
     <TextView
         android:id="@+id/dialog_center_python_modules_list_no_modules"

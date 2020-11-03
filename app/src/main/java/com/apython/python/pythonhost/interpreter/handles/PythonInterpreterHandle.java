@@ -3,7 +3,7 @@ package com.apython.python.pythonhost.interpreter.handles;
 import com.apython.python.pythonhost.interpreter.PythonInterpreter;
 
 /**
- * A Handle to the python interpreter.
+ * A Handle to the Python interpreter.
  * 
  * Created by Sebastian on 21.10.2017.
  */
@@ -42,7 +42,7 @@ public interface PythonInterpreterHandle {
     /**
      * Start the Python interpreter.
      * 
-     * @param pythonVersion The python version to start.
+     * @param pythonVersion The Python version to start.
      * @param args Optional arguments to the Python interpreter.
      * @return false, if an error occurred while starting the interpreter.
      */

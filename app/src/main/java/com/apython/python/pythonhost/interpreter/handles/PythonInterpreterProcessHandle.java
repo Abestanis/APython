@@ -51,7 +51,7 @@ public class PythonInterpreterProcessHandle extends InterpreterPseudoTerminalIOH
 
         /**
          * Send a message to the Python process or put it in the message queue
-         * and send it as soon as the python process is connected.
+         * and send it as soon as the Python process is connected.
          * 
          * @param message The message to send.
          * @return true if the message was send or stored to the queue successfully.

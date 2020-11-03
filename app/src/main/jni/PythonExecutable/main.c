@@ -126,7 +126,7 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
                 }
                 closedir(pyLibDir);
                 if (libName == NULL) {
-                    LOG_ERROR("Failed to find a python version matching command line argument %s",
+                    LOG_ERROR("Failed to find a Python version matching command line argument %s",
                               pyVersionArg);
                 }
             } else {
@@ -178,7 +178,7 @@ char* getPythonLibName(const char* pythonLibDir, char* pyVersionArg) {
         return NULL;
     }
     if (libName == NULL) {
-        LOG_ERROR("Failed to find any installed python version!");
+        LOG_ERROR("Failed to find any installed Python version!");
     }
     return libName;
 }

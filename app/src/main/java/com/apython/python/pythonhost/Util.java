@@ -9,14 +9,15 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
 import android.system.Os;
 import android.util.Log;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
+
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
@@ -795,7 +796,7 @@ public final class Util {
     }
 
     /**
-     * Get the real file path from the uri,´.
+     * Get the real file path from the uri.
      *
      * @param context The current context.
      * @param uri     The uri to the file.

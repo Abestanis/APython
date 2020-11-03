@@ -9,7 +9,7 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.support.v4.widget.SwipeRefreshLayout;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -28,7 +28,7 @@ import com.apython.python.pythonhost.downloadcenter.items.Dependency;
 import java.util.ArrayList;
 
 /**
- * An activity which allows the user to download and delete python versions and modules.
+ * An activity which allows the user to download and delete Python versions and modules.
  *
  * Created by Sebastian on 09.08.2015.
  */

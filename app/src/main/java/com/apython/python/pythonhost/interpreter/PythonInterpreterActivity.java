@@ -8,12 +8,13 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 
 import com.apython.python.pythonhost.MainActivity;
 import com.apython.python.pythonhost.PackageManager;
@@ -74,6 +75,7 @@ public class PythonInterpreterActivity extends Activity {
         });
         interpreter.setExitHandler(exitCode -> {
             Log.d(MainActivity.TAG, "Python interpreter exited with exit code " + exitCode);
+            setResult(exitCode);
             finish();
         });
         Intent intent = getIntent();
@@ -211,7 +213,7 @@ public class PythonInterpreterActivity extends Activity {
     }
 
     private void showPythonVersionDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.Theme_APython_Dialog);
         final ArrayList<String> versions = PackageManager.getInstalledPythonVersions(getApplicationContext());
         if (versions.size() <= 1) {
             if (versions.size() == 1) {

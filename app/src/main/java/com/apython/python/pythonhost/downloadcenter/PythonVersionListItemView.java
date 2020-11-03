@@ -5,9 +5,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
-import android.support.annotation.UiThread;
 import android.view.ContextThemeWrapper;
-import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +21,9 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
 
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.ProgressHandler;
@@ -101,7 +102,7 @@ class PythonVersionListItemView {
         @Override
         public boolean onLongClick(View v) {
             AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(
-                    activity, R.style.AppDialogTheme);
+                    activity, R.style.Theme_APython_Dialog);
             dialogBuilder.setTitle("Delete Python version " + installedSubVersion.getPythonVersion() + "?");
             dialogBuilder.setCancelable(true);
             dialogBuilder.setNegativeButton(
@@ -240,9 +241,9 @@ class PythonVersionListItemView {
     
     private void onModuleConfigButtonClick() {
         Context context = new ContextThemeWrapper(
-                activity.getApplicationContext(), R.style.AppDialogTheme);
+                activity.getApplicationContext(), R.style.Theme_APython_Dialog);
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(
-                activity, R.style.AppDialogTheme);
+                activity, R.style.Theme_APython_Dialog);
         @SuppressLint("InflateParams")
         View dialogView = LayoutInflater.from(context).inflate(
                 R.layout.download_center_python_module_dialog, null);

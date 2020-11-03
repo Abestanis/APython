@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="MainMenuTheme" parent="android:Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">@color/background_color</item>
-        <item name="android:navigationBarColor">@color/background_color</item>
-        <item name="android:colorPrimary">@color/background_color</item>
-        <item name="android:colorPrimaryDark">@color/background_color_dark</item>
-    </style>
-</resources>

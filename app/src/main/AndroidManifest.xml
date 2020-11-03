@@ -1,41 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          xmlns:tools="http://schemas.android.com/tools"
-          package="com.apython.python.pythonhost" >
+    package="com.apython.python.pythonhost">
+
     <permission
         android:name="com.python.permission.PYTHONHOST"
-        android:label="@string/pythonHostPermission_label"
         android:description="@string/pythonHostPermission_description"
         android:icon="@drawable/python_grey_icon"
+        android:label="@string/pythonHostPermission_label"
         android:protectionLevel="dangerous" />
     <!-- TODO: Should the permission declaration be here, in the app or both? Should we define a permission tree? -->
     <uses-permission android:name="com.python.permission.PYTHONHOST" />
-    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <application
-        android:allowBackup="true"
         android:icon="@drawable/python_launcher_icon"
         android:label="@string/app_name"
-        android:theme="@style/MainMenuTheme">
-        <!--android:supportsRtl="true" TODO -->
+        android:supportsRtl="true"
+        android:theme="@style/Theme.APython.MainMenu"
+        android:allowBackup="true">
+<!--        android:roundIcon="@mipmap/ic_launcher_round"-->
         <activity
-            android:name="com.apython.python.pythonhost.MainActivity"
-            android:label="@string/app_name" >
-            <intent-filter >
+            android:name=".MainActivity"
+            android:label="@string/app_name">
+            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
             android:name=".interpreter.PythonInterpreterActivity"
+            android:configChanges="orientation|screenSize"
             android:label="PythonInterpreter"
-            android:windowSoftInputMode="stateVisible|stateAlwaysVisible"
-            android:theme="@style/TerminalTheme"
-            android:configChanges="orientation|screenSize">
+            android:theme="@style/Theme.APython.Terminal"
+            android:windowSoftInputMode="stateVisible|stateAlwaysVisible">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="*/*" />
                 <data android:scheme="file" />
                 <data android:host="*" />
@@ -44,6 +48,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="*/*" />
                 <data android:scheme="content" />
                 <data android:host="*" />
@@ -52,6 +57,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
                 <data android:mimeType="*/*" />
                 <data android:host="*" />
@@ -62,32 +68,33 @@
             android:name="com.apython.python.pythonhost.GetPythonAppExecutionInfoActivity"
             android:excludeFromRecents="true"
             android:noHistory="true"
-            android:theme="@android:style/Theme.Translucent" >
+            android:theme="@android:style/Theme.Translucent">
             <intent-filter>
                 <action android:name="com.python.pythonhost.PYTHON_APP_GET_EXECUTION_INFO" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         <activity
-            android:theme="@style/PyHostAppTheme"
             android:name=".downloadcenter.PythonDownloadCenterActivity"
             android:label="DownloadPythonSources"
             android:parentActivityName="com.apython.python.pythonhost.MainActivity"
-            tools:ignore="UnusedAttribute">
+            android:theme="@style/Theme.APython">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.apython.python.pythonhost.MainActivity"/>
+                android:value="com.apython.python.pythonhost.MainActivity" />
         </activity>
-        <activity android:name="com.apython.python.pythonhost.PythonSettingsActivity"
-                  android:theme="@style/PyHostAppTheme"
-                  android:label="Settings"/>
+        <activity
+            android:name="com.apython.python.pythonhost.PythonSettingsActivity"
+            android:label="Settings"
+            android:theme="@style/Theme.APython" />
+
         <service
             android:name=".downloadcenter.PythonDownloadCenterService"
-            android:exported="false"/>
+            android:exported="false" />
         <service
             android:name=".interpreter.PythonProcess"
-            android:process=":python"
             android:exported="false"
-            android:icon="@drawable/python_launcher_icon"/>
+            android:icon="@drawable/python_launcher_icon"
+            android:process=":python" />
     </application>
 </manifest>

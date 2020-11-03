@@ -79,7 +79,7 @@ JNIEXPORT jint NATIVE_FUNCTION(interpreter_PythonInterpreter_runInterpreter)(
     (*env)->ReleaseStringUTFChars(env, jPythonLibName, pythonLibName);
     if (!result) { return 1; }
     if (!call_setExitHandler(exitHandler)) { 
-        LOG_ERROR("Failed to set an exit handler for the python interpreter!");
+        LOG_ERROR("Failed to set an exit handler for the Python interpreter!");
     }
     if (jPseudoTerminalPath != NULL) {
         const char *pseudoTerminalPath = (*env)->GetStringUTFChars(env, jPseudoTerminalPath, 0);
@@ -183,7 +183,7 @@ JNIEXPORT void NATIVE_FUNCTION(interpreter_PythonInterpreter_closePseudoTerminal
     closePseudoTerminal(masterFd);
 }
 
-JNIEXPORT jobject NATIVE_FUNCTION(interpreter_PythonInterpreter_getPseudoTerminalPath)(
+JNIEXPORT jstring NATIVE_FUNCTION(interpreter_PythonInterpreter_getPseudoTerminalPath)(
         JNIEnv *env, jclass __unused cls, jobject fileDescriptor) {
     char* slavePath;
     int masterFd = getFdFromFileDescriptor(env, fileDescriptor);

@@ -6,11 +6,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
 
 import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.interpreter.handles.InterpreterPseudoTerminalIOHandle;
@@ -27,7 +28,7 @@ import com.apython.python.pythonhost.views.terminal.TerminalFragment;
 import com.apython.python.pythonhost.views.terminalwm.WindowManagerFragment;
 
 /**
- * This class implements the execution of python code from other Python apps.
+ * This class implements the execution of Python code from other Python apps.
  * It will be loaded and instantiated by the application library, which will
  * in turn be loaded by the Python app.
  * 

@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/APython.iml" filepath="$PROJECT_DIR$/APython.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/APython.iml" filepath="$PROJECT_DIR$/.idea/modules/APython.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/APython.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/APython.app.iml" />
     </modules>
   </component>
 </project>

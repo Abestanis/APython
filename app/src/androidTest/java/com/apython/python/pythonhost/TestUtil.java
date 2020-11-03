@@ -2,7 +2,8 @@ package com.apython.python.pythonhost;
 
 import android.content.Context;
 import android.content.res.AssetManager;
-import android.support.test.InstrumentationRegistry;
+import android.os.Environment;
+import android.os.FileUtils;
 import android.util.Log;
 
 import java.io.File;
@@ -19,11 +20,11 @@ import java.util.List;
  */
 
 public class TestUtil {
-    public static boolean installLibraryData(Context context) {
+    public static boolean installLibraryData(Context instrumentationContext, Context targetContext) {
         Object[][] data = {
-                {new File(context.getFilesDir(), "data/tcl8.6.4/library"), "tcl_library.zip"},
-                {new File(context.getFilesDir(), "data/tcl8.6.4/library/tk8.6"), "tk_library.zip"},
-                {new File(context.getFilesDir(), "data/terminfo"), "terminfo.tar"},
+                {new File(targetContext.getFilesDir(), "data/tcl8.6.4/library"), "tcl_library.zip"},
+                {new File(targetContext.getFilesDir(), "data/tcl8.6.4/library/tk8.6"), "tk_library.zip"},
+                {new File(targetContext.getFilesDir(), "data/terminfo"), "terminfo.tar"},
         };
         for (Object[] dataItem : data) {
             File dest = (File) dataItem[0];
@@ -33,21 +34,23 @@ public class TestUtil {
                     Log.e(MainActivity.TAG, "Could not create directory " + dest.getAbsolutePath());
                     return false;
                 }
-                File tempArchive = new File(context.getCacheDir(), resourcePath);
-                AssetManager testAssets = InstrumentationRegistry.getContext().getAssets();
+                File tempArchive = new File(targetContext.getCacheDir(), resourcePath);
+                AssetManager testAssets = instrumentationContext.getAssets();
                 try {
                     if (!Util.installFromInputStream(
                             tempArchive, testAssets.open(resourcePath), null)) {
-                        throw new IOException();
+                        throw new IOException("Unable to install from the asset resource");
                     }
                 } catch (IOException error) {
+                    Util.deleteDirectory(dest);
                     Log.e(MainActivity.TAG, "Could not create temporary archive at " + tempArchive.getAbsolutePath(), error);
                     return false;
                 }
                 boolean success = Util.extractArchive(tempArchive, dest, null); // TODO: See if there is a zip stream
                 tempArchive.delete();
                 if (!success) {
-                    Log.e(MainActivity.TAG, "failed to extract archive to " + dest.getAbsolutePath());
+                    Util.deleteDirectory(dest);
+                    Log.e(MainActivity.TAG, "Failed to extract archive to " + dest.getAbsolutePath());
                     return false;
                 }
             }
@@ -85,8 +88,8 @@ public class TestUtil {
         return true;
     }
 
-    public static boolean installPythonLibraries(Context context, String pythonVersion) {
-        File libDest = PackageManager.getStandardLibPath(context);
+    public static boolean installPythonLibraries(Context instrumentationContext, Context targetContext, String pythonVersion) {
+        File libDest = PackageManager.getStandardLibPath(targetContext);
         if (!(libDest.mkdirs() || libDest.isDirectory())) {
             Log.e(MainActivity.TAG, "Failed to create the 'lib' directory!");
             return false;
@@ -96,12 +99,12 @@ public class TestUtil {
             return true;
         }
         Util.makeFileAccessible(libDest, false);
-        AssetManager testAssets = InstrumentationRegistry.getContext().getAssets();
+        AssetManager testAssets = instrumentationContext.getAssets();
         InputStream libLocation;
         try {
             libLocation = testAssets.open("lib" + pythonVersion.replace('.', '_') + ".zip");
         } catch (IOException error) {
-            Log.e(MainActivity.TAG, "Did not find the library zip for the python version " +
+            Log.e(MainActivity.TAG, "Did not find the library Zip for the Python version " +
                     pythonVersion, error);
             return false;
         }

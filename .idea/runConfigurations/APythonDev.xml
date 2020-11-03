@@ -1,19 +1,18 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="APythonDev" type="AndroidTestRunConfigurationType" factoryName="Android Instrumented Tests">
-    <module name="app" />
+    <module name="APython.app" />
     <option name="TESTING_TYPE" value="3" />
-    <option name="INSTRUMENTATION_RUNNER_CLASS" value="android.support.test.runner.AndroidJUnitRunner" />
     <option name="METHOD_NAME" value="run" />
     <option name="CLASS_NAME" value="launcher.APythonDev" />
     <option name="PACKAGE_NAME" value="" />
+    <option name="INSTRUMENTATION_RUNNER_CLASS" value="androidx.test.runner.AndroidJUnitRunner" />
     <option name="EXTRA_OPTIONS" value="" />
+    <option name="INCLUDE_GRADLE_EXTRA_OPTIONS" value="true" />
     <option name="CLEAR_LOGCAT" value="false" />
     <option name="SHOW_LOGCAT_AUTOMATICALLY" value="false" />
     <option name="SKIP_NOOP_APK_INSTALLATIONS" value="true" />
     <option name="FORCE_STOP_RUNNING_APP" value="true" />
     <option name="TARGET_SELECTION_MODE" value="SHOW_DIALOG" />
-    <option name="USE_LAST_SELECTED_DEVICE" value="true" />
-    <option name="PREFERRED_AVD" value="" />
     <option name="SELECTED_CLOUD_MATRIX_CONFIGURATION_ID" value="-1" />
     <option name="SELECTED_CLOUD_MATRIX_PROJECT_ID" value="" />
     <option name="DEBUGGER_TYPE" value="Auto" />
@@ -41,10 +40,14 @@
     </Native>
     <Profilers>
       <option name="ADVANCED_PROFILING_ENABLED" value="false" />
+      <option name="STARTUP_PROFILING_ENABLED" value="false" />
+      <option name="STARTUP_CPU_PROFILING_ENABLED" value="false" />
+      <option name="STARTUP_CPU_PROFILING_CONFIGURATION_NAME" value="Sample Java Methods" />
+      <option name="STARTUP_NATIVE_MEMORY_PROFILING_ENABLED" value="false" />
+      <option name="NATIVE_MEMORY_SAMPLE_RATE_BYTES" value="2048" />
     </Profilers>
-    <method>
+    <method v="2">
       <option name="Android.Gradle.BeforeRunTask" enabled="true" />
-      <option name="com.android.instantApps.provision.BeforeRunTask" enabled="true" clearCache="false" clearProvisionedDevices="false" />
     </method>
   </configuration>
 </component>

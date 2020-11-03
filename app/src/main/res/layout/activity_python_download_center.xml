@@ -4,7 +4,7 @@
               android:layout_height="match_parent"
               android:orientation="vertical"
               android:padding="10dp"
-              android:theme="@style/PyHostAppTheme">
+              android:theme="@style/Theme.APython">
 
     <TextView
         android:id="@+id/textView"
@@ -43,7 +43,7 @@
             android:textIsSelectable="true"/>
     </LinearLayout>
 
-    <android.support.v4.widget.SwipeRefreshLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/refresh_layout"
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
@@ -54,6 +54,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
 
-    </android.support.v4.widget.SwipeRefreshLayout>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 </LinearLayout>

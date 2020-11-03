@@ -58,7 +58,7 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
         } catch (UnsupportedEncodingException e) {
             Log.wtf(logTag, "Utf-8 encoding is not supported?!", e);
         } catch (IOException e) {
-            Log.e(logTag, "Failed to write input to the python process", e);
+            Log.e(logTag, "Failed to write input to the Python process", e);
         }
     }
 
@@ -89,7 +89,7 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
     }
 
     /**
-     * Start a thread that listens for the output of the python interpreter
+     * Start a thread that listens for the output of the Python interpreter
      * and passes the output to the ioHandler.
      */
     void startOutputListener() {
@@ -157,7 +157,7 @@ public abstract class InterpreterPseudoTerminalIOHandle implements PythonInterpr
     }
 
     /**
-     * Stop the thread that listens to the output of the python interpreter.
+     * Stop the thread that listens to the output of the Python interpreter.
      */
     void stopOutputListener() {
         if (outputListenerThread != null && outputListenerThread.isAlive()) {

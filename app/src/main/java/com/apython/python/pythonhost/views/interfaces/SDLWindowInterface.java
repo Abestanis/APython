@@ -1,7 +1,8 @@
 package com.apython.python.pythonhost.views.interfaces;
 
-import android.support.annotation.Nullable;
 import android.view.KeyEvent;
+
+import androidx.annotation.Nullable;
 
 /**
  * Interface for the SDL view.

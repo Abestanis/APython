@@ -33,7 +33,7 @@ int setPythonLibrary(const char* libName) {
                           "value of 'Py_GetVersion' : '%s'", pythonVersionStr);
             }
         } else {
-            LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.",
+            LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.",
                       "Py_GetVersion");
         }
     } else {
@@ -61,7 +61,7 @@ int call_setExitHandler(_exitHandler exitHandler) {
         setExitHandler(exitHandler);
         return 1;
     }
-    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", name);
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.", name);
     return 0;
 }
 
@@ -74,7 +74,7 @@ int call_Py_Main(int argc, char** argv) {
     if (Py_Main != NULL) {
         return Py_Main(argc, argv);
     }
-    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", mainFuncName);
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.", mainFuncName);
     return 1;
 }
 
@@ -90,7 +90,7 @@ void callCharSetterFunction(const char* funcName, char* arg) {
         wchar_t* (*_Py_char2wchar) (char*, size_t*);
         _Py_char2wchar = dlsym(pythonLib, "_Py_char2wchar");
         if (_Py_char2wchar == NULL) {
-            LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.",
+            LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.",
                       "_Py_char2wchar");
             return;
         }
@@ -99,7 +99,7 @@ void callCharSetterFunction(const char* funcName, char* arg) {
             return func(_Py_char2wchar(arg, NULL));
         }
     }
-    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the python library.", funcName);
+    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.", funcName);
 }
 
 void call_Py_SetPythonHome(char* arg) {

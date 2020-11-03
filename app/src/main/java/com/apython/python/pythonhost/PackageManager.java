@@ -276,7 +276,7 @@ public class PackageManager {
         File executable = getPythonExecutable(context);
         if (executable.exists()) { // TODO: Check if we really need to update it.
             if (!executable.delete()) {
-                Log.w(MainActivity.TAG, "Could not delete previously installed python executable.");
+                Log.w(MainActivity.TAG, "Could not delete previously installed Python executable.");
                 return true; // That's hopefully ok.
             }
         }
@@ -284,7 +284,7 @@ public class PackageManager {
             progressHandler.enable(context.getString(R.string.install_executable));
         }
         String pyExecutableName = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ?
-                "python_pie" : "python";
+                "python-pie" : "python";
         try {
             for (String cpuAbi : getSupportedCPUABIS()) {
                 InputStream inputStream;
@@ -293,9 +293,9 @@ public class PackageManager {
                 } catch (FileNotFoundException ignored) { continue; }
                 return Util.installFromInputStream(executable, inputStream, progressHandler);
             }
-            Log.e(MainActivity.TAG, "Failed to install the python executable!");
+            Log.e(MainActivity.TAG, "Failed to install the Python executable!");
         } catch (IOException e) {
-            Log.e(MainActivity.TAG, "Failed to install the python executable!", e);
+            Log.e(MainActivity.TAG, "Failed to install the Python executable!", e);
         }
         return false;
     }

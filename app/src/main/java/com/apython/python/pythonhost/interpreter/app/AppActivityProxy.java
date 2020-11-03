@@ -41,8 +41,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PersistableBundle;
 import android.os.UserHandle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.transition.Scene;
 import android.transition.TransitionManager;
 import android.util.AttributeSet;
@@ -62,6 +60,9 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toolbar;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.FileDescriptor;

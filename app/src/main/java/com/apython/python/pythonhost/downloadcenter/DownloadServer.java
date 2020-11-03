@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Represents a location from which we can download python and additional libraries.
+ * Represents a location from which we can download Python and additional libraries.
  * 
  * Created by Sebastian on 02.10.2017.
  */
@@ -327,7 +327,7 @@ class DownloadServer {
             if ("lib".equals(abi)) {
                 // Get the moduleZip data
                 ArrayList<String> moduleList = saveGetStringArray(dataReader, 2, protocolVersion,
-                                                                  "the python std. modules item");
+                                                                  "the Python std. modules item");
                 if (moduleList == null) { continue; }
                 hasModuleZip = true;
                 versionItem.getPythonModulesZip().setUrl(this.address + "/" + moduleList.get(0))
