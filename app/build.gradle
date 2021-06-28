@@ -336,27 +336,10 @@ class Util {
         }
         def filter = new PatternSet()
         def includes = []
-        def fileTypeIncludes = []
-        def directoryIncludes = []
         for (String include : libConfig.get('extraction_filter').split(', ')) {
-            if (include.contains('*.')) {
-                includes.add(include)
-                if (include.trim().startsWith('*.')) {
-                    fileTypeIncludes.add(include.trim())
-                }
-            } else {
-                includes.add(include)
-                directoryIncludes.add(include)
-            }
-        }
-        for (String dirInclude : directoryIncludes) {
-            if (fileTypeIncludes.size() != 0) {
-                for (String extInclude : fileTypeIncludes) {
-                    includes.add(dirInclude + "/" + extInclude)
-                    includes.add(dirInclude + "/**/" + extInclude)
-                }
-            } else {
-                includes.add(dirInclude + "/**")
+            includes.add(include)
+            if (!(include ==~ /.*\.[^\/]+$/)) {
+                includes.add(include + "/**")
             }
         }
         filter.setIncludes(includes)
@@ -577,9 +560,8 @@ class SetupAdditionalLibrarySources extends DefaultTask {
             def url = libData.get('url')
             File archive = Util.download(project, url, this.temporaryDir, this.cacheDir)
             // extract and overwrite
-            def filter = Util.filterFromLibConfig(libData)
             File sourceDir = project.file(getLibDirectory(libName) + '/source')
-            if (!Util.extract(project, archive, sourceDir, filter, true, true)) {
+            if (!Util.extract(project, archive, sourceDir, null, true, true)) {
                 getLogger().log(LogLevel.ERROR, 'Failed to extract archive ' + archive.absolutePath)
                 currentLibData.remove(libName)
             }
