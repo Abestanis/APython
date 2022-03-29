@@ -84,6 +84,12 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                         }
                         return false;
                     }
+
+                    @Override
+                    public boolean onSingleTapUp(MotionEvent e) {
+                        pythonOutput.requestKeyboardFocus(true);
+                        return true;
+                    }
                 });
 
                 @Override
