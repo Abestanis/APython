@@ -53,7 +53,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                     (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> 
                             updateTerminalMetrics());
             scrollContainer = rootView.findViewById(R.id.terminalView);
-            this.pythonOutput = new TerminalAdapter(context);
+            this.pythonOutput = new TerminalAdapter(context, rootLayout);
             if (outputBuffer != null) {
                 pythonOutput.addOutput(outputBuffer);
                 outputBuffer = null;

@@ -143,7 +143,6 @@ public class TerminalInput extends EditText {
             }
             return false;
         });
-        requestKeyboardFocus();
     }
 
     /**
@@ -160,7 +159,7 @@ public class TerminalInput extends EditText {
         setFocusable(true);
         setFocusableInTouchMode(true);
         if (enabled) {
-            requestKeyboardFocus();
+            requestKeyboardFocus(false);
         } else {
             this.prompt = null;
         }
@@ -191,7 +190,7 @@ public class TerminalInput extends EditText {
     public boolean onTouchEvent(MotionEvent event) {
         if (lineInputEnabled && event.getAction() == MotionEvent.ACTION_DOWN) {
             if (!isInputMethodTarget()) {
-                requestKeyboardFocus();
+                requestKeyboardFocus(true);
             }
             setCursorVisible(true);
         }
@@ -275,10 +274,13 @@ public class TerminalInput extends EditText {
 
     /**
      * Try to get the keyboard focus.
+     * 
+     * @param fromUserInteraction Whether or not the request originated form a user interaction.
      */
-    private void requestKeyboardFocus() {
+    private void requestKeyboardFocus(boolean fromUserInteraction) {
         if (requestFocus() && inputManager != null) {
-            inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT);
+            inputManager.showSoftInput(this, fromUserInteraction ?
+                    InputMethodManager.SHOW_FORCED : InputMethodManager.SHOW_IMPLICIT);
         }
     }
 

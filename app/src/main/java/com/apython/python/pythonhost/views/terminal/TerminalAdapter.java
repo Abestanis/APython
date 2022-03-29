@@ -11,6 +11,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -29,8 +30,10 @@ class TerminalAdapter extends BaseAdapter {
     private TerminalTextSpan currentTextAttr = null;
     private MultiCharTerminalEscSeq currentEscSeq = null;
     private final ToneGenerator beepGenerator;
+    private final InputMethodManager inputManager;
     private EditText inputView        = null;
     private boolean  lineInputEnabled = false;
+    private ViewGroup container;
     private static final int[] COLORS = { // https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
             Color.rgb(0, 0, 0),
             Color.rgb(205, 0, 0),
@@ -42,9 +45,12 @@ class TerminalAdapter extends BaseAdapter {
             Color.rgb(255, 255, 255),
     };
 
-    TerminalAdapter(Context context) {
+    TerminalAdapter(Context context, ViewGroup container) {
         this.context = context;
-        beepGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
+        this.container = container;
+        this.beepGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
+        this.inputManager = (InputMethodManager) context.getSystemService(
+                Context.INPUT_METHOD_SERVICE);
     }
 
     @Override
@@ -325,6 +331,19 @@ class TerminalAdapter extends BaseAdapter {
         lineInputEnabled = false;
         if (inputView != null) {
             inputView.setEnabled(false);
+        }
+    }
+
+    /**
+     * Request keyboard focus for the input target, which is either the input view or the container.
+     * 
+     * @param fromUserInteraction Whether or not the request originated form a user interaction.
+     */
+    public void requestKeyboardFocus(boolean fromUserInteraction) {
+        View inputTarget = (inputView != null && lineInputEnabled) ? inputView : container;
+        if (inputTarget != null && inputTarget.requestFocus() && inputManager != null) {
+            inputManager.showSoftInput(inputTarget, fromUserInteraction ?
+                    InputMethodManager.SHOW_FORCED : InputMethodManager.SHOW_IMPLICIT);
         }
     }
 }
