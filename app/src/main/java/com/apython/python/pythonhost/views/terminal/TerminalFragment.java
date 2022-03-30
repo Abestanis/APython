@@ -215,10 +215,13 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             programHandler.terminate();
         }
     }
-    
+
     private void updateTerminalMetrics() {
-        int newWidth = (int) Math.floor(
-                rootLayout.getWidth() / pythonInput.getPaint().measureText("M"));
+        int viewWidth = rootLayout.getWidth() - rootLayout.getPaddingLeft()
+                - rootLayout.getPaddingRight();
+        int viewHeight = rootLayout.getHeight() - rootLayout.getPaddingTop()
+                - rootLayout.getPaddingBottom();
+        int newWidth = (int) Math.floor(viewWidth / pythonInput.getPaint().measureText("M"));
         int pythonInputHeight = pythonInput.getHeight();
         if (pythonInputHeight == 0) {
             pythonInputHeight = pythonInput.getMeasuredHeight();
@@ -231,11 +234,10 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             pythonInput.measure(widthMeasureSpec, heightMeasureSpec);
             pythonInputHeight = pythonInput.getMeasuredHeight();
         }
-        int newHeight = (int) Math.floor(rootLayout.getHeight() / pythonInputHeight);
+        int newHeight = viewHeight / pythonInputHeight;
         if (newHeight != terminalCharHeight || newWidth != terminalCharWith) {
             if (programHandler != null) {
-                programHandler.onTerminalSizeChanged(
-                        newWidth, newHeight, rootLayout.getWidth(), rootLayout.getHeight());
+                programHandler.onTerminalSizeChanged(newWidth, newHeight, viewWidth, viewHeight);
             }
         }
         terminalCharWith = newWidth;
