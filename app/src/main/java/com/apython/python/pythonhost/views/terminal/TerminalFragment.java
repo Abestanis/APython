@@ -2,6 +2,7 @@ package com.apython.python.pythonhost.views.terminal;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Handler;
 import android.text.Editable;
 import android.text.method.TextKeyListener;
 import android.view.GestureDetector;
@@ -167,6 +168,8 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
         this.getActivity().getWindow().setSoftInputMode(
                 WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE |
                         WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        new Handler(getActivity().getMainLooper()).postDelayed(
+                () -> this.pythonOutput.requestKeyboardFocus(false), 500);
         return rootLayout;
     }
 
