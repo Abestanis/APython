@@ -39,14 +39,15 @@ int createPseudoTerminal() {
     setSignalHandler(SIGCHLD, oldSignalHandler);
     
     struct termios attrs; // Enable line oriented input and erase and signal processing. 
-    tcgetattr(masterFd, &attrs);
-    attrs.c_iflag |= IUTF8;
-    attrs.c_lflag |= ICANON;
-    attrs.c_lflag |= PENDIN | ECHO;
-    attrs.c_lflag |= ISIG;
-    attrs.c_lflag |= ECHOCTL;
-    tcsetattr(masterFd, TCSAFLUSH, &attrs);
-    
+    if (tcgetattr(masterFd, &attrs) < 0) {
+        LOG_ERROR("Failed to get the terminal attributes");
+    } else {
+        attrs.c_iflag |= IUTF8;
+        attrs.c_lflag |= ICANON | PENDIN | ECHO | ECHOCTL | ISIG;
+        if (tcsetattr(masterFd, TCSAFLUSH, &attrs) < 0) {
+            LOG_ERROR("Failed to update the terminal attributes");
+        }
+    }
     return masterFd;
 }
 
