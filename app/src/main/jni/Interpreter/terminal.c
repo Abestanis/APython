@@ -57,7 +57,7 @@ char* getPseudoTerminalSlavePath(int masterFd) {
 
 int openSlavePseudoTerminal(const char* path) {
     int slaveFd;
-    if ((slaveFd = open(path, O_RDWR | O_NOCTTY)) < 0) {
+    if ((slaveFd = open(path, O_RDWR )) < 0) {
         LOG_ERROR("Failed to attach to pseudo terminal at %s: %s", path), strerror(errno);
         return -1;
     }
