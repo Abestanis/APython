@@ -56,7 +56,7 @@ ipcConnection* createConnection(const char* address, u_int8_t flags) {
 
 int waitForClient(ipcConnection* connection) {
 #if __ANDROID_API__ >= 21
-    accept4(connection->fd, NULL, NULL, SOCK_CLOEXEC);
+    return accept4(connection->fd, NULL, NULL, SOCK_CLOEXEC);
 #else
     return accept(connection->fd, NULL, NULL); // NOLINT(android-cloexec-accept)
 #endif /* __ANDROID_API__ >= 21 */
