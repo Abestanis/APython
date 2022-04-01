@@ -89,7 +89,7 @@ void setAsControllingTerminal(int slaveFd) {
     if (setsid() < 0 && errno != EPERM) {
         LOG_WARN("setsid failed: %s", strerror(errno));
     }
-    ioctl(slaveFd, TIOCSCTTY, 1);
+    ioctl(slaveFd, TIOCSCTTY, 0);
 }
 
 void disconnectFromPseudoTerminal(int slaveFd) {
