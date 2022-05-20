@@ -23,18 +23,18 @@ import com.apython.python.pythonhost.views.interfaces.TerminalInterface;
 /**
  * This fragment displays a terminal. It is designed to be usable from the Python
  * App via the {@link TerminalInterface}.
- *
+ * <p>
  * Created by Sebastian on 20.11.2015.
  */
 
 public class TerminalFragment extends PythonFragment implements TerminalInterface {
-    private TerminalInput   pythonInput;
+    private TerminalInput pythonInput;
     private TerminalAdapter pythonOutput;
-    private ProgramHandler  programHandler;
-    private View        rootView        = null;
-    private FrameLayout rootLayout      = null;
-    private String      outputBuffer    = null;
-    private ListView    scrollContainer = null;
+    private ProgramHandler programHandler;
+    private View rootView = null;
+    private FrameLayout rootLayout = null;
+    private String outputBuffer = null;
+    private ListView scrollContainer = null;
     private int terminalCharWith = 0, terminalCharHeight = 0;
 
     public TerminalFragment(Activity activity, String tag) {
@@ -48,10 +48,10 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             rootLayout = new FrameLayout(context);
             LayoutInflater layoutInflater = LayoutInflater.from(context);
             rootView = layoutInflater.inflate(context.getResources().getLayout(R.layout.view_terminal_layout),
-                                        container, false);
+                    container, false);
             rootLayout.addView(rootView);
             rootLayout.addOnLayoutChangeListener(
-                    (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> 
+                    (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
                             updateTerminalMetrics());
             scrollContainer = rootView.findViewById(R.id.terminalView);
             this.pythonOutput = new TerminalAdapter(context, rootLayout);
@@ -101,7 +101,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
             this.pythonInput.setCommitHandler(new TerminalInput.OnCommitHandler() {
                 TextKeyListener keyInputListener = new TextKeyListener(TextKeyListener.Capitalize.NONE, false);
                 Editable keyInput = Editable.Factory.getInstance().newEditable("");
-                
+
                 @Override
                 public void onCommit(TerminalInput terminalInput) {
                     String input = terminalInput.popCurrentInput();
@@ -115,14 +115,14 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                     int keyCode = event.getKeyCode();
                     boolean result;
                     switch (event.getAction()) {
-                    case KeyEvent.ACTION_DOWN:
-                        result = keyInputListener.onKeyDown(null, keyInput, keyCode, event);
-                        break;
-                    case KeyEvent.ACTION_UP:
-                        result = keyInputListener.onKeyUp(null, keyInput, keyCode, event);
-                        break;
-                    default:
-                        result = keyInputListener.onKeyOther(null, keyInput, event);
+                        case KeyEvent.ACTION_DOWN:
+                            result = keyInputListener.onKeyDown(null, keyInput, keyCode, event);
+                            break;
+                        case KeyEvent.ACTION_UP:
+                            result = keyInputListener.onKeyUp(null, keyInput, keyCode, event);
+                            break;
+                        default:
+                            result = keyInputListener.onKeyOther(null, keyInput, event);
                     }
                     if (programHandler != null) {
                         String input = null;

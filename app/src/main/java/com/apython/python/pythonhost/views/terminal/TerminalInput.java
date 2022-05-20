@@ -18,7 +18,7 @@ import com.apython.python.pythonhost.Util;
 
 /**
  * An input view to use within a terminal.
- *
+ * <p>
  * Created by Sebastian on 12.11.2015.
  */
 public class TerminalInput extends EditText {
@@ -39,6 +39,7 @@ public class TerminalInput extends EditText {
 
         /**
          * This method gets called when this input receives a key event while it is disabled.
+         *
          * @param event The event this input received.
          * @return Whether the event was consumed.
          */
@@ -46,11 +47,11 @@ public class TerminalInput extends EditText {
     }
 
     private boolean lineInputEnabled = false;
-    private String  prompt           = null;
-    private TextWatcher        inputWatcher;
+    private String prompt = null;
+    private TextWatcher inputWatcher;
     private InputMethodManager inputManager;
-    private OnCommitHandler    commitHandler;
-    private SharedPreferences  preferences;
+    private OnCommitHandler commitHandler;
+    private SharedPreferences preferences;
 
     public TerminalInput(Context context) {
         super(context);
@@ -74,7 +75,7 @@ public class TerminalInput extends EditText {
         setFocusableInTouchMode(true);
         inputWatcher = new TextWatcher() {
             int start, count, numCharsAdded, cursorPosBefore;
-            
+
             private String restorePrompt(String newText) {
                 String text = prompt == null ? "" : prompt;
                 if (start == 0 && newText.startsWith(text)) {
@@ -132,7 +133,7 @@ public class TerminalInput extends EditText {
                     int start = Math.max(getSelectionStart(), 0);
                     int end = Math.max(getSelectionEnd(), 0);
                     String tab = preferences.getBoolean(
-                            PythonSettingsActivity.KEY_REPLACE_TABS, false) ? "    " : "\t"; 
+                            PythonSettingsActivity.KEY_REPLACE_TABS, false) ? "    " : "\t";
                     if (start != end) {
                         getText().insert(prompt == null ? 0 : prompt.length(), tab);
                     } else {
@@ -220,6 +221,7 @@ public class TerminalInput extends EditText {
 
     /**
      * Register an handler to handle enter keys as well as key events when we are inactive.
+     *
      * @param commitHandler The commit handler to register.
      */
     public void setCommitHandler(OnCommitHandler commitHandler) {
@@ -245,13 +247,14 @@ public class TerminalInput extends EditText {
             setSelection(newSelStart, newSelEnd);
         }
     }
-    
+
     void setPrompt(String prompt) {
         this.prompt = prompt;
     }
 
     /**
      * Set the input to text without notifying our {@link #inputWatcher}.
+     *
      * @param text The text to set the input to.
      */
     private void internalSetText(CharSequence text) {
@@ -262,6 +265,7 @@ public class TerminalInput extends EditText {
 
     /**
      * Dispatch an input event to the main window, while we are inactive.
+     *
      * @param input The input event to dispatch.
      */
     private void dispatchInputToMainWindow(String input) {
