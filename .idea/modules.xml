@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/APython.iml" filepath="$PROJECT_DIR$/.idea/modules/APython.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/APython.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/APython.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/APython.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/APython.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/APython.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/APython.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/APython.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/APython.app.unitTest.iml" />
     </modules>
   </component>
 </project>
