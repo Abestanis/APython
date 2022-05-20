@@ -249,7 +249,7 @@ char* getAbsoluteProgramPath(int argc, char** argv, size_t* pathLength) {
         char* path = malloc(sizeof(char) * (length + 1));
         if (path == NULL) {
             fprintf(stderr,
-                    "Warning: Failed to allocate %d bytes for the program path!\n", length + 1);
+                    "Warning: Failed to allocate %zu bytes for the program path!\n", length + 1);
         } else {
             strncpy(path, pathBuff, (size_t) length);
             path[length] = '\0';
@@ -264,7 +264,7 @@ char* getAbsoluteProgramPath(int argc, char** argv, size_t* pathLength) {
                 if (path != NULL) {
                     return path;
                 }
-                fprintf(stderr, "Warning: Failed to allocate %d bytes for the program path!\n",
+                fprintf(stderr, "Warning: Failed to allocate %zu bytes for the program path!\n",
                         *pathLength);
             }
         } else { // Relative path?
@@ -279,7 +279,7 @@ char* getAbsoluteProgramPath(int argc, char** argv, size_t* pathLength) {
                     }
                     free(path);
                 }
-                fprintf(stderr, "Warning: Failed to allocate %d bytes for the program path!\n",
+                fprintf(stderr, "Warning: Failed to allocate %zu bytes for the program path!\n",
                         *pathLength);
             }
         }
