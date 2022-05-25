@@ -120,12 +120,14 @@ class Util {
         try {
             'git --version'.execute().waitFor()
             return ['git']
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
         Properties properties = new Properties()
         File propertiesFile = project.rootProject.file('local.properties')
         try {
             properties.load(propertiesFile.newDataInputStream())
-        } catch (FileNotFoundException ignored) {}
+        } catch (FileNotFoundException ignored) {
+        }
         String gitPath = properties.getProperty('git.path')
         if (gitPath == null) {
             throw new InvalidUserDataException('No Git executable found! Define the location with' +
@@ -149,7 +151,9 @@ class Util {
         def gitStatusLines = execState.inputStream.readLines()
         if (gitStatusLines.size() < 1 || !gitStatusLines[0].startsWith('On branch ')) {
             println('Data returned by "git status":')
-            for (def line in gitStatusLines) {println(line)}
+            for (def line in gitStatusLines) {
+                println(line)
+            }
             throw new GradleException('git status returned invalid data')
         }
         return gitStatusLines[0].substring(10).trim()
@@ -329,7 +333,7 @@ class Util {
         }
         return diffString.toString()
     }
-    
+
     static def filterFromLibConfig(Map<String, String> libConfig) {
         if (!libConfig.containsKey('extraction_filter')) {
             return null
@@ -348,7 +352,7 @@ class Util {
 }
 
 
-class UpdatePythonLibZips extends DefaultTask {
+abstract class UpdatePythonLibZips extends DefaultTask {
     @InputDirectory
     File pythonSourceParentDir
     @OutputDirectory
@@ -363,7 +367,7 @@ class UpdatePythonLibZips extends DefaultTask {
                 def relativePath = pythonSourceParentDir.toPath().relativize(change.file.toPath())
                 def directory = pythonSourceParentDir.toPath()
                         .resolve(relativePath.subpath(0, 1)).toFile()
-                if (directory.isDirectory() && directory.name.matches("Python\\d\\.\\d\\.\\d\$")) {
+                if (directory.isDirectory() && directory.name.matches("Python\\d+\\.\\d+\\.\\d+\$")) {
                     if (relativePath.subpath(1, relativePath.nameCount)
                             .startsWith(Paths.get('source', 'Lib'))) {
                         pythonSourceDirSet.add(directory)
@@ -378,7 +382,7 @@ class UpdatePythonLibZips extends DefaultTask {
                 @Override
                 boolean accept(File pathname) {
                     if (!pathname.isDirectory()
-                            || !pathname.getName().matches("Python\\d\\.\\d\\.\\d\$")) {
+                            || !pathname.getName().matches("Python\\d+\\.\\d+\\.\\d+\$")) {
                         return false
                     }
                     def versionParts = pathname.getName().substring("Python".length()).split("\\.")
@@ -387,7 +391,7 @@ class UpdatePythonLibZips extends DefaultTask {
                 }
             })
         }
-        for (File pythonSource: pythonSourceDirs) {
+        for (File pythonSource : pythonSourceDirs) {
             def version = pythonSource.getName().substring(6)
             def libDir = pythonSource.toPath().resolve('source').resolve('Lib').toFile()
             if (!libDir.isDirectory()) {
@@ -448,7 +452,9 @@ class SetupAdditionalLibrarySources extends DefaultTask {
             def gitStatusLines = execState.inputStream.readLines()
             if (gitStatusLines.size() < 1 || !gitStatusLines[0].startsWith('On branch ')) {
                 println('Data returned by "git status":')
-                for (def line in gitStatusLines) {println(line)}
+                for (def line in gitStatusLines) {
+                    println(line)
+                }
                 throw new GradleException('git status returned invalid data')
             }
             for (line in gitStatusLines) {
@@ -458,7 +464,7 @@ class SetupAdditionalLibrarySources extends DefaultTask {
                 }
             }
             // Check if updateLibraries exists
-            execState = ((String[]) (
+            execState = ((String[])(
                     gitExecPath + ['branch', '--list', 'updateLibraries'])).execute()
             if ((execReturn = execState.waitFor()) != 0) {
                 throw new GradleException('git branch --list failed with exit code ' + execReturn)
@@ -501,7 +507,7 @@ class SetupAdditionalLibrarySources extends DefaultTask {
                 }
                 errorStringBuffer = new StringWriter()
                 if ((execReturn = Util.execProcess(errorStringBuffer,
-                        gitExecPath,'commit', '-m', message)) != 0) {
+                        gitExecPath, 'commit', '-m', message)) != 0) {
                     throw new GradleException('git commit failed with exit code ' + execReturn +
                             '\nOutput: ' + errorStringBuffer.toString())
                 }
@@ -596,12 +602,14 @@ class DiffMaker extends DefaultTask {
         def libConfig = Util.parseLibConfigFile(libConfigFile)
         // Add the Python versions
         def sourceDirs = versionsSourceDir.listFiles()
-        def pythonIncludes = ['Include', 'Lib', 'Modules', 'Objects', 'Parser', 'Python', 'LICENSE',
-                              'README']
-        def pyFileTypeFilter = ['*.c', '*.h', '*.py', '*.pyc', '*.inc', '*.txt', '*.gif', '*.png',
-                                '*.def']
+        def pythonIncludes = [
+                'Include', 'Lib', 'Modules', 'Objects', 'Parser', 'Python', 'LICENSE', 'README'
+        ]
+        def pyFileTypeFilter = [
+                '*.c', '*.h', '*.py', '*.pyc', '*.inc', '*.txt', '*.gif', '*.png', '*.def'
+        ]
         for (File sourceDir : sourceDirs) {
-            if (!sourceDir.name.matches("Python\\d\\.\\d.*")) continue
+            if (!sourceDir.name.matches("Python\\d+\\.\\d+.*")) continue
             def version = sourceDir.name.substring(6)
             HashMap<String, String> data = new HashMap<>()
             data.put('url', downloadUrl.replaceAll("%VERSION%", version))
