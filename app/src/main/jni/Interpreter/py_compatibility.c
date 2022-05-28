@@ -5,6 +5,7 @@
 #include "py_compatibility.h"
 #include <dlfcn.h>
 #include <string.h>
+#include <wchar.h>
 #include "log.h"
 
 #ifndef MIN
@@ -65,6 +66,22 @@ int call_setExitHandler(_exitHandler exitHandler) {
     return 0;
 }
 
+static uint8_t isPython3OrNewer() {
+    return pythonVersion[0] >= '3' || pythonVersion[1] != '.';
+}
+
+static wchar_t* charToWchar(const char* string) {
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+    size_t length = mbsrtowcs(NULL, &string, 0, &state) + 1;
+    wchar_t* result = malloc(sizeof(wchar_t) * length);
+    if (result != NULL) {
+        memset(&state, 0, sizeof(state));
+        mbsrtowcs(result, &string, length, &state);
+    }
+    return result;
+}
+
 int call_Py_Main(int argc, char** argv) {
     static const char* pyMain = "Py_Main";
     static const char* pyMain3 = "main";
@@ -79,7 +96,7 @@ int call_Py_Main(int argc, char** argv) {
 }
 
 void callCharSetterFunction(const char* funcName, char* arg) {
-    if (pythonVersion[0] == '2' || pythonVersion[0] == '1') {
+    if (!isPython3OrNewer()) {
         void (*func)(char *);
         func = dlsym(pythonLib, funcName);
         if (func != NULL) {
@@ -87,25 +104,26 @@ void callCharSetterFunction(const char* funcName, char* arg) {
         }
     } else {
         void (*func)(wchar_t *);
-        wchar_t* (*_Py_char2wchar) (char*, size_t*);
-        _Py_char2wchar = dlsym(pythonLib, "_Py_char2wchar");
-        if (_Py_char2wchar == NULL) {
-            LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.",
-                      "_Py_char2wchar");
-            return;
-        }
         func = dlsym(pythonLib, funcName);
         if (func != NULL) {
-            return func(_Py_char2wchar(arg, NULL));
+            wchar_t* wArg = charToWchar(arg);
+            if (wArg == NULL) {
+                LOG_ERROR("Py_compatibility: Failed to convert argument of function "
+                          "'%s' to wchar_t.", funcName);
+                return;
+            }
+            func(wArg);
+            free(wArg);
+            return;
         }
     }
     LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.", funcName);
 }
 
 void call_Py_SetPythonHome(char* arg) {
-    return callCharSetterFunction("Py_SetPythonHome", arg);
+    callCharSetterFunction("Py_SetPythonHome", arg);
 }
 
 void call_Py_SetProgramName(char* arg) {
-    return callCharSetterFunction("Py_SetProgramName", arg);
+    callCharSetterFunction("Py_SetProgramName", arg);
 }
