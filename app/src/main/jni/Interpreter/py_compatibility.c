@@ -83,16 +83,40 @@ static wchar_t* charToWchar(const char* string) {
 }
 
 int call_Py_Main(int argc, char** argv) {
-    static const char* pyMain = "Py_Main";
-    static const char* pyMain3 = "main";
-    const char* mainFuncName = pythonVersion[0] >= '3' || pythonVersion[1] != '.'
-                               ? pyMain3 : pyMain;
-    int (*Py_Main)(int, char **) = dlsym(pythonLib, mainFuncName);
-    if (Py_Main != NULL) {
+    void* mainFunction = dlsym(pythonLib, "Py_Main");
+    if (mainFunction == NULL) {
+        LOG_ERROR("Py_compatibility: Didn't found method 'Py_Main' in the Python library.");
+        return 1;
+    }
+    if (!isPython3OrNewer()) {
+        int (*Py_Main)(int, char **) = mainFunction;
         return Py_Main(argc, argv);
     }
-    LOG_ERROR("Py_compatibility: Didn't found method '%s' in the Python library.", mainFuncName);
-    return 1;
+    int (*Py_Main)(int, wchar_t **) = mainFunction;
+    wchar_t** wArgv = malloc(sizeof(wchar_t*) * argc);
+    if (wArgv == NULL) {
+        LOG_ERROR("Py_compatibility: Failed to allocate wArgv");
+        return 1;
+    }
+    for (size_t i = 0; i < argc; i++) {
+        const char *argument = argv[i];
+        wArgv[i] = charToWchar(argument);
+        if (wArgv[i] == NULL) {
+            LOG_ERROR("Failed to allocate space for wide version of argument %d ('%s')!",
+                      i, argument);
+            for (i--; i > 1; i--) {
+                free(wArgv[i]);
+            }
+            free(wArgv);
+            return 1;
+        }
+    }
+    int result = Py_Main(argc, wArgv);
+    for (size_t i = 0; i < argc; i++) {
+        free(wArgv[i]);
+    }
+    free(wArgv);
+    return result;
 }
 
 void callCharSetterFunction(const char* funcName, char* arg) {
