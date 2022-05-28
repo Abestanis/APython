@@ -16,6 +16,7 @@ import com.apython.python.pythonhost.CalledByNative;
 import com.apython.python.pythonhost.PackageManager;
 import com.apython.python.pythonhost.views.interfaces.WindowManagerInterface;
 
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -78,7 +79,7 @@ public class SDLServer {
             }
             return;
         }
-        
+        startServerThread();
         
         // Get filename from "Open with" of another application
         Intent intent = activity.getIntent();
@@ -194,7 +195,27 @@ public class SDLServer {
     public SDLControllerManager getControllerManager() {
         return controllerManager;
     }
+    
+    UUID getServerId() {
+        return serverId;
+    }
 
+    private void startServerThread() {
+        Thread serverThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    FileDescriptor clientFd = nativeWaitForSDLClient();
+                    if (clientFd == null) { continue; }
+                    Log.d(TAG, "Got client connection");
+                    new SDLClientHandler(clientFd, SDLServer.this).start();
+                }
+            }
+        }, "SDLMainServerThread");
+        serverThread.setDaemon(true);
+        serverThread.start();
+    }
+    
     /**
      * These methods are called by SDL using JNI.
      */
@@ -383,4 +404,5 @@ public class SDLServer {
     public native String nativeGetHint(String name);
     public native void onNativeClipboardChanged();
     native static void nativeDisplayResize(int screenWidth, int screenHeight, float refreshRate);
+    native FileDescriptor nativeWaitForSDLClient();
 }

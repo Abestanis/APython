@@ -219,7 +219,7 @@ public class SDLWindowFragment extends PythonFragment implements
     }
 
     @CalledByNative
-    private void destroy() {
+    public void destroy() {
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
