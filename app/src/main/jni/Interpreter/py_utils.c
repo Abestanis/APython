@@ -50,7 +50,7 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     // These must not be freed before the interpreter exits.
     char* pyHomeCopy = strdup(pythonHome);
     ASSERT(pyHomeCopy != NULL, "Not enough memory to copy the Python home path!");    
-    char* pyProgramPathCopy = strdup(pythonHome);
+    char* pyProgramPathCopy = strdup(pythonProgramPath);
     ASSERT(pyProgramPathCopy != NULL, "Not enough memory to copy the Python program path!");
     call_Py_SetPythonHome(pyHomeCopy);
     call_Py_SetProgramName(pyProgramPathCopy);
@@ -75,7 +75,7 @@ void setupPython(const char* pythonProgramPath, const char* pythonLibs, const ch
     // Search dataDir for best 'tcl' dir
     char* tclDirName = NULL;
     size_t dirNameLen = 0;
-    size_t nameLen = 0;
+    size_t nameLen;
     int maxMajorVersion = 0;
     int maxMinorVersion = 0;
     int majorVersion;
