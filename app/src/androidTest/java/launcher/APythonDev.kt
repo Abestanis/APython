@@ -23,10 +23,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-const val PYTHON_VERSION = "3.4"
+const val PYTHON_VERSION = "3.10"
 
 /**
- * Test that allows to launch the python interpreter within the development environment.
+ * Test that allows to launch the Python interpreter within the development environment.
  *
  * Created by Sebastian on 02.10.2017.
  */
@@ -77,6 +77,6 @@ class APythonDev {
                 finishCondition.await(1, TimeUnit.SECONDS)
             }
         } while (pythonScenario.state.isAtLeast(Lifecycle.State.INITIALIZED))
-        Assert.assertEquals(pythonScenario.result.resultCode, 0)
+        Assert.assertEquals(0, pythonScenario.result.resultCode)
     }
 }
