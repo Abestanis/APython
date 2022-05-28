@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId "com.apython.python.pythonhost"
         minSdkVersion 16
-        targetSdkVersion 29
+        targetSdkVersion 28
         versionCode 1
         versionName "0.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -56,46 +56,57 @@ dependencies {
 
 def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file('local.properties')))
-tasks.whenTaskAdded {
-    task ->
-        if (task.name in ['generateDebugResources', 'generateReleaseResources']) {
-            task.finalizedBy updatePythonLibZips
-        }
-        if (task.name.startsWith('externalNativeBuild')) {
-            task.finalizedBy {
-                copyExecutable
-            }
-        }
+afterEvaluate {
+    mergeDebugAndroidTestAssets.dependsOn 'updatePythonLibZips'
+    mergeDebugAndroidTestAssets.dependsOn 'updateTclArchive'
+    mergeDebugAndroidTestAssets.dependsOn 'updateTkArchive'
+    mergeDebugAssets.dependsOn 'copyExecutable'
 }
 File buildCacheDir = new File(System.getProperty("java.io.tmpdir"), "APythonBuildLibraryCache")
 
-task copyExecutable(type: Copy, description: 'Copy the Python executable binaries.') {
+tasks.register('copyExecutable', Copy) {
+    description 'Copy the Python executable binaries.'
     from 'build/intermediates/cmake/debug/obj' // TODO: Change for release builds
     include '*/python-pie'
     include '*/python'
     into 'src/main/assets'
+    dependsOn 'externalNativeBuildDebug'
 }
-task createDiffs(type: DiffMaker,
-        description: 'Create the diffs for the Python versions and additional libraries') {
+tasks.register('createDiffs', DiffMaker) {
+    description 'Create the diffs for the Python versions and additional libraries'
     versionsSourceDir = file('src/main/jni/DevLibs')
     patchOutputDir = file('src/main/jni/DevLibs/patches')
     cacheDir = buildCacheDir
     downloadUrl = 'https://www.python.org/ftp/python/%VERSION%/Python-%VERSION%.tgz'
     libConfigFile new File(file(localProperties['apython.libs.dir']), 'libraries.cfg')
 }
-task setupAdditionalLibrarySources(type: SetupAdditionalLibrarySources,
-        description: 'Download and extract sources for all additional libraries') {
+tasks.register('setupAdditionalLibrarySources', SetupAdditionalLibrarySources) {
+    description 'Download and extract sources for all additional libraries'
     libConfigFile new File(file(localProperties['apython.libs.dir']), 'libraries.cfg')
     cacheDir buildCacheDir
 }
-task updatePythonLibZips(type: UpdatePythonLibZips,
-        description: 'Create a zip of the Python libraries and place it in the ' +
-                'test assets folder so it can be used during testing.') {
+tasks.register('updatePythonLibZips', UpdatePythonLibZips) {
+    description 'Create a zip of the Python libraries and place it in the ' +
+            'test assets folder so it can be used during testing.'
     pythonSourceParentDir file('src/main/jni/DevLibs')
     destinationDir file('src/androidTest/assets/')
 }
-task SyncBuildSystem(type: Copy,
-        description: 'Copy the neccesary files to sync with the APython Libs build system') {
+tasks.register('updateTclArchive', Zip) {
+    description 'Create or update the tcl archive zip it in the ' +
+            'test assets folder so it can be used during testing.'
+    from file('src/main/jni/DevLibs/Tcl/source/library')
+    destinationDirectory = file('src/androidTest/assets')
+    archiveFileName = 'tcl_library.zip'
+}
+tasks.register('updateTkArchive', Zip) {
+    description 'Create or update the tk archive zip it in the ' +
+            'test assets folder so it can be used during testing.'
+    from file('src/main/jni/DevLibs/Tk/source/library')
+    destinationDirectory = file('src/androidTest/assets')
+    archiveFileName = 'tk_library.zip'
+}
+tasks.register('SyncBuildSystem', Copy) {
+    description 'Copy the neccesary files to sync with the APython Libs build system'
     from('src/main/jni/DevLibs') {
         include '*/CMakeLists.txt'
         exclude 'PythonPatch/*'
@@ -418,7 +429,7 @@ abstract class UpdatePythonLibZips extends DefaultTask {
     }
 }
 
-class SetupAdditionalLibrarySources extends DefaultTask {
+abstract class SetupAdditionalLibrarySources extends DefaultTask {
     @InputFile
     File libConfigFile
 
@@ -581,7 +592,7 @@ class SetupAdditionalLibrarySources extends DefaultTask {
 }
 
 
-class DiffMaker extends DefaultTask {
+abstract class DiffMaker extends DefaultTask {
     @InputDirectory
     File versionsSourceDir
 
