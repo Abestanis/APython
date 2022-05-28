@@ -149,6 +149,7 @@ public class TerminalFragment extends PythonFragment implements TerminalInterfac
                         }
                         if (input != null) {
                             programHandler.sendInput(input);
+                            result = true;
                         }
                     }
                     return result;
