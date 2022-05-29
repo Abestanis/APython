@@ -131,13 +131,13 @@ void callCharSetterFunction(const char* funcName, char* arg) {
         func = dlsym(pythonLib, funcName);
         if (func != NULL) {
             wchar_t* wArg = charToWchar(arg);
+            free(arg);
             if (wArg == NULL) {
                 LOG_ERROR("Py_compatibility: Failed to convert argument of function "
                           "'%s' to wchar_t.", funcName);
                 return;
             }
             func(wArg);
-            free(wArg);
             return;
         }
     }
