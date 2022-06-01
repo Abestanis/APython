@@ -76,7 +76,7 @@ tasks.register('copyExecutable', Copy) {
 tasks.register('createDiffs', DiffMaker) {
     description 'Create the diffs for the Python versions and additional libraries'
     versionsSourceDir = file('src/main/jni/DevLibs')
-    patchOutputDir = file('src/main/jni/DevLibs/patches')
+    patchOutputDir = new File(file(localProperties['apython.libs.dir']), 'patches')
     cacheDir = buildCacheDir
     downloadUrl = 'https://www.python.org/ftp/python/%VERSION%/Python-%VERSION%.tgz'
     libConfigFile new File(file(localProperties['apython.libs.dir']), 'libraries.cfg')
