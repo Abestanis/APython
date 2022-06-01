@@ -182,7 +182,7 @@ class Util {
                         'refs', 'tags', segments[4] + '.zip')
             } else {
                 path = sourceUrl.path + (
-                        sourceUrl.path.endsWith('/') ? '' : '/') + 'archive/master.zip'
+                        sourceUrl.path.endsWith('/') ? '' : '/') + 'archive/main.zip'
             }
             sourceUrl = new URL(sourceUrl.protocol, sourceUrl.host, sourceUrl.port,
                     sourceUrl.file.replaceFirst(Pattern.quote(sourceUrl.path), path))
