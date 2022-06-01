@@ -1,6 +1,7 @@
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.util.regex.Pattern
 
 plugins {
     id 'com.android.application'
@@ -127,10 +128,10 @@ class Util {
      * Find and verify a git executable path.
      * @return A path to a valid git executable.
      */
-    static String[] getGitExecPath(Project project) {
+    static String getGitExecPath(Project project) {
         try {
             'git --version'.execute().waitFor()
-            return ['git']
+            return 'git'
         } catch (IOException ignored) {
         }
         Properties properties = new Properties()
@@ -146,7 +147,7 @@ class Util {
         }
         try {
             (gitPath + ' --version').execute().waitFor()
-            return [gitPath]
+            return gitPath
         } catch (IOException ignored) {
             thow new InvalidUserDataException('Git executable not found at the location specified' +
                     ' with git.path in ' + propertiesFile.absolutePath + '.')
@@ -170,22 +171,26 @@ class Util {
         return gitStatusLines[0].substring(10).trim()
     }
 
-    static File download(Project project, String url, File destDir) {
-        download(project, url, destDir, null)
-    }
-
     static File download(Project project, String url, File destDir, File cacheDir) {
-        def urlSource = new URL(url)
-        def segments = urlSource.getPath().split("/")
+        def sourceUrl = new URL(url)
+        def segments = sourceUrl.path.split("/", 5)
         def fileName = segments[segments.length - 1]
-        if (url.contains('github.com') && !url.endsWith('.zip')) {
-            if (!url.endsWith('/')) url += '/'
-            url += 'archive/master.zip'
-            urlSource = new URL(url)
+        if (['github.com', 'www.github.com'].contains(sourceUrl.host) && !fileName.endsWith('.zip')) {
+            String path
+            if (segments.length == 5 && segments[3] == 'tree') {
+                path = String.join('/', segments[0], segments[1], segments[2], 'archive',
+                        'refs', 'tags', segments[4] + '.zip')
+            } else {
+                path = sourceUrl.path + (
+                        sourceUrl.path.endsWith('/') ? '' : '/') + 'archive/master.zip'
+            }
+            sourceUrl = new URL(sourceUrl.protocol, sourceUrl.host, sourceUrl.port,
+                    sourceUrl.file.replaceFirst(Pattern.quote(sourceUrl.path), path))
             fileName += '.zip'
         }
         File dest = new File(destDir, fileName)
-        println('Downloading source files from \'' + url + '\'...')
+        println('Downloading source files from \'' + sourceUrl + '\'...')
+        dest.parentFile.mkdirs()
         if (cacheDir != null) {
             File cacheFile = new File(cacheDir, fileName)
             if (cacheFile.isFile()) {
@@ -209,7 +214,7 @@ class Util {
         }
         for (int attempt = 1; attempt <= 3; attempt++) {
             try {
-                urlSource.withInputStream { i ->
+                sourceUrl.withInputStream { i ->
                     dest.withOutputStream {
                         it << i
                     }
@@ -221,10 +226,10 @@ class Util {
                 }
                 if (attempt == 3) {
                     throw new GradleException(
-                            'Downloading source files from "' + url + '" failed.', error)
+                            'Downloading source files from "' + sourceUrl + '" failed.', error)
                 } else {
                     project.getLogger().log(LogLevel.WARN, 'Download attempt ' + attempt +
-                            ' from "' + url + '" failed. Retrying...')
+                            ' from "' + sourceUrl + '" failed. Retrying...')
                 }
             }
         }
@@ -438,11 +443,10 @@ abstract class SetupAdditionalLibrarySources extends DefaultTask {
 
     @TaskAction
     def run() {
-        String[] gitExecPath = Util.getGitExecPath(project)
+        String gitExecPath = [Util.getGitExecPath(project), '-C', librariesDir.absolutePath]
         def libConfig = Util.parseLibConfigFile(libConfigFile)
         int execReturn
         def errorStringBuffer = new StringWriter()
-        gitExecPath += ['-C', librariesDir.absolutePath]
         if ((execReturn = Util.execProcess(errorStringBuffer, gitExecPath, 'stash')) != 0) {
             throw new GradleException('git stash failed with exit code ' + execReturn +
                     "\nOutput: " + errorStringBuffer.toString())
@@ -599,6 +603,7 @@ abstract class DiffMaker extends DefaultTask {
     @InputFile
     File libConfigFile
 
+    @OutputDirectory
     File cacheDir = new File(System.getProperty("java.io.tmpdir"), "APythonBuildLibraryCache")
 
     @Input
@@ -609,7 +614,7 @@ abstract class DiffMaker extends DefaultTask {
 
     @TaskAction
     def main() {
-        String[] gitExecPath = Util.getGitExecPath(project)
+        String gitExecPath = Util.getGitExecPath(project)
         def libConfig = Util.parseLibConfigFile(libConfigFile)
         // Add the Python versions
         def sourceDirs = versionsSourceDir.listFiles()
@@ -645,7 +650,7 @@ abstract class DiffMaker extends DefaultTask {
                         "Section " + libName + ' misses entry "url". Skipping it.')
                 continue
             }
-//            if (libName == 'sdl2X11Emulation') continue // TODO: Test removal of this
+            if (libName == 'sdl2X11Emulation') continue
             def url = libData.value.get('url')
             def sourceDir = null
             for (File dir : sourceDirs) {
@@ -677,9 +682,9 @@ abstract class DiffMaker extends DefaultTask {
             patchOutputDir.mkdirs()
             def patchFile = new File(patchOutputDir, libName + ".patch")
             if (patchFile.exists()) patchFile.delete()
-            def gitDiffProcess = new ProcessBuilder(gitExecPath + [
+            def gitDiffProcess = new ProcessBuilder(gitExecPath,
                     "--no-pager", "diff", "--no-index", "--no-prefix", "--diff-filter=RMA",
-                    extractDir.name, sourceDir.name]).directory(sourceDir.parentFile).start()
+                    extractDir.name, sourceDir.name).directory(sourceDir.parentFile).start()
             StringBuilder output = new StringBuilder()
             StringBuilder err = new StringBuilder()
             gitDiffProcess.waitForProcessOutput(output, err)
