@@ -329,8 +329,10 @@ public final class Util {
                 inputStream.close();
                 return false;
             }
-            if (!hashToHex(hashAlgorithm.digest()).equals(md5CheckSum)) {
-                Log.w(MainActivity.TAG, "Md5 checksum of downloaded File invalid!");
+            String localMd5Sum = hashToHex(hashAlgorithm.digest());
+            if (!localMd5Sum.equals(md5CheckSum)) {
+                Log.w(MainActivity.TAG,"Md5 checksum of downloaded file from " + url
+                        + " invalid (" + localMd5Sum + " != " + md5CheckSum + ")!");
                 if (!destination.delete()) {
                     Log.e(MainActivity.TAG, "Failed to delete downloaded file '" +
                             destination.getAbsolutePath() + "'.");
