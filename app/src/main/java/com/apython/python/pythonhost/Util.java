@@ -97,11 +97,9 @@ public final class Util {
                 Log.d(MainActivity.TAG, "Successfully made '" +
                         file.getAbsolutePath() + "' accessible via chmod.");
                 return true;
-            } else {
-                Log.w(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() +
-                        "' accessible via chmod: Process failed with exit status " + result);
-                return true;
             }
+            Log.w(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() +
+                    "' accessible via chmod: Process failed with exit status " + result);
         } catch (IOException e) {
             Log.e(MainActivity.TAG, "Failed to make '" + file.getAbsolutePath() +
                     "' accessible via chmod!", e);
